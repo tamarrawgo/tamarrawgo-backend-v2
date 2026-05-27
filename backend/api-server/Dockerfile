@@ -7,9 +7,15 @@ COPY packages/shared-utils/ ./packages/shared-utils/
 COPY backend/api-server/ ./backend/api-server/
 COPY tsconfig.base.json ./
 
-RUN cd packages/shared-types && npm install && npm run build
-RUN cd packages/shared-utils && npm install && npm run build
-RUN cd backend/api-server && npm install && npx prisma generate && npm run build
+# Minimal root package.json with only backend-related workspaces
+RUN echo '{"name":"tamarrawgo","private":true,"workspaces":["packages/*","backend/*"]}' > package.json
+
+RUN npm install
+
+RUN npm run build --workspace=packages/shared-types
+RUN npm run build --workspace=packages/shared-utils
+RUN npm run prisma:generate --workspace=backend/api-server
+RUN npm run build --workspace=backend/api-server
 
 FROM node:20-alpine AS production
 
