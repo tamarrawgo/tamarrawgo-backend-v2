@@ -1,7 +1,7 @@
 [build]
-buildCommand = "npm ci && npm run build --workspace=packages/shared-types && npm run build --workspace=packages/shared-utils && npm run prisma:generate --workspace=backend/api-server && npm run build:backend"
+builder = "dockerfile"
+dockerfilePath = "backend/api-server/Dockerfile"
 
 [deploy]
-startCommand = "npm run prisma:migrate:prod --workspace=backend/api-server && node backend/api-server/dist/main"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3

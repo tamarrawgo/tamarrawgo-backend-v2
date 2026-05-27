@@ -13,7 +13,10 @@ COPY packages/ ./packages/
 COPY backend/api-server/ ./backend/api-server/
 COPY tsconfig.base.json ./
 
-RUN npm run build --workspace=backend/api-server
+RUN npm run build --workspace=packages/shared-types
+RUN npm run build --workspace=packages/shared-utils
+RUN npm run prisma:generate --workspace=backend/api-server
+RUN npm run build:backend
 
 FROM node:20-alpine AS production
 
