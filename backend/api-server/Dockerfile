@@ -2,21 +2,14 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-COPY package*.json ./
-COPY backend/api-server/package*.json ./backend/api-server/
-COPY packages/shared-types/package*.json ./packages/shared-types/
-COPY packages/shared-utils/package*.json ./packages/shared-utils/
-
-RUN npm ci --workspaces
-
-COPY packages/ ./packages/
+COPY packages/shared-types/ ./packages/shared-types/
+COPY packages/shared-utils/ ./packages/shared-utils/
 COPY backend/api-server/ ./backend/api-server/
 COPY tsconfig.base.json ./
 
-RUN npm run build --workspace=packages/shared-types
-RUN npm run build --workspace=packages/shared-utils
-RUN npm run prisma:generate --workspace=backend/api-server
-RUN npm run build:backend
+RUN cd packages/shared-types && npm install && npm run build
+RUN cd packages/shared-utils && npm install && npm run build
+RUN cd backend/api-server && npm install && npx prisma generate && npm run build
 
 FROM node:20-alpine AS production
 
@@ -27,7 +20,7 @@ ENV NODE_ENV=production
 COPY --from=builder /app/backend/api-server/dist ./dist
 COPY --from=builder /app/backend/api-server/prisma ./prisma
 COPY --from=builder /app/backend/api-server/package*.json ./
-COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/backend/api-server/node_modules ./node_modules
 
 EXPOSE 3000
 
