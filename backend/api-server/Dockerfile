@@ -26,7 +26,7 @@ ENV NODE_ENV=production
 COPY --from=builder /app/backend/api-server/dist ./dist
 COPY --from=builder /app/backend/api-server/prisma ./prisma
 COPY --from=builder /app/backend/api-server/package*.json ./
-COPY --from=builder /app/backend/api-server/node_modules ./node_modules
+COPY --from=builder /app/node_modules ./node_modules
 
 EXPOSE 3000
 
