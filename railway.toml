@@ -1,5 +1,4 @@
 [build]
-builder = "nixpacks"
 buildCommand = "npm ci && npm run build --workspace=packages/shared-types && npm run build --workspace=packages/shared-utils && npm run prisma:generate --workspace=backend/api-server && npm run build:backend"
 
 [deploy]
