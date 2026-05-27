@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "TamarrawGo Rider",
+    "slug": "tamarrawgo-rider",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": { "bundleIdentifier": "com.tamarrawgo.rider", "supportsTablet": false },
+    "android": {
+      "package": "com.tamarrawgo.rider",
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "ACCESS_BACKGROUND_LOCATION"]
+    },
+    "plugins": ["expo-router", "expo-location"],
+    "scheme": "tamarrawgo-rider"
+  }
+}

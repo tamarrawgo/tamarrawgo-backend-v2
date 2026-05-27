@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "TamarrawGo",
+    "slug": "tamarrawgo-passenger",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FF6B00"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.tamarrawgo.passenger",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "TamarrawGo needs your location to find nearby riders.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "TamarrawGo needs your location for real-time tracking."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FF6B00"
+      },
+      "package": "com.tamarrawgo.passenger",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ],
+      "googleServicesFile": "./google-services.json",
+      "config": {
+        "googleMaps": {
+          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+        }
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-location",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#FF6B00"
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "scheme": "tamarrawgo"
+  }
+}

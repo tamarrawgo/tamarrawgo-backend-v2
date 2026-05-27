@@ -1,0 +1,176 @@
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import * as bcrypt from 'bcrypt';
+import { PrismaService } from '../prisma/prisma.service';
+import { RegisterPassengerDto, RegisterRiderDto } from './dto/register.dto';
+import { LoginDto, RefreshTokenDto, VerifyOtpDto } from './dto/login.dto';
+import { JwtPayload, UserRole } from '@tamarrawgo/shared-types';
+import { generateOtp } from '@tamarrawgo/shared-utils';
+
+@Injectable()
+export class AuthService {
+  constructor(
+    private prisma: PrismaService,
+    private jwt: JwtService,
+    private config: ConfigService,
+  ) {}
+
+  async registerPassenger(dto: RegisterPassengerDto) {
+    const existing = await this.prisma.user.findUnique({ where: { phone: dto.phone } });
+    if (existing) throw new ConflictException('Phone number already registered');
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const otp = generateOtp(6);
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    const user = await this.prisma.user.create({
+      data: {
+        phone: dto.phone,
+        email: dto.email,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        passwordHash,
+        role: UserRole.PASSENGER,
+        status: 'PENDING_VERIFICATION',
+        otpCode: otp,
+        otpExpiresAt,
+      },
+    });
+
+    // In production: send OTP via SMS provider (Semaphore, Vonage, etc.)
+    console.log(`[OTP] ${user.phone}: ${otp}`);
+
+    return { message: 'Registration successful. Please verify your phone.', userId: user.id };
+  }
+
+  async registerRider(dto: RegisterRiderDto) {
+    const existing = await this.prisma.user.findFirst({
+      where: { OR: [{ phone: dto.phone }, { rider: { licenseNumber: dto.licenseNumber } }] },
+    });
+    if (existing) throw new ConflictException('Phone or license number already registered');
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const otp = generateOtp(6);
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    const user = await this.prisma.user.create({
+      data: {
+        phone: dto.phone,
+        email: dto.email,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        passwordHash,
+        role: UserRole.RIDER,
+        status: 'PENDING_VERIFICATION',
+        otpCode: otp,
+        otpExpiresAt,
+        rider: {
+          create: { licenseNumber: dto.licenseNumber, status: 'PENDING' },
+        },
+      },
+      include: { rider: true },
+    });
+
+    console.log(`[OTP] ${user.phone}: ${otp}`);
+    return { message: 'Rider registration submitted. Verify phone and await approval.', userId: user.id };
+  }
+
+  async verifyOtp(dto: VerifyOtpDto) {
+    const user = await this.prisma.user.findUnique({ where: { phone: dto.phone } });
+    if (!user) throw new NotFoundException('User not found');
+    if (!user.otpCode || !user.otpExpiresAt) throw new BadRequestException('No OTP requested');
+    if (new Date() > user.otpExpiresAt) throw new BadRequestException('OTP has expired');
+    if (user.otpCode !== dto.otp) throw new BadRequestException('Invalid OTP');
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { status: 'ACTIVE', otpCode: null, otpExpiresAt: null },
+    });
+
+    return this.generateTokens(user.id, user.phone, user.role as UserRole);
+  }
+
+  async requestOtp(phone: string) {
+    const user = await this.prisma.user.findUnique({ where: { phone } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const otp = generateOtp(6);
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await this.prisma.user.update({ where: { id: user.id }, data: { otpCode: otp, otpExpiresAt } });
+    console.log(`[OTP] ${phone}: ${otp}`);
+
+    return { message: 'OTP sent successfully' };
+  }
+
+  async login(dto: LoginDto) {
+    const user = await this.prisma.user.findUnique({ where: { phone: dto.phone } });
+    if (!user) throw new UnauthorizedException('Invalid credentials');
+
+    const valid = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!valid) throw new UnauthorizedException('Invalid credentials');
+
+    if (user.status === 'PENDING_VERIFICATION') {
+      throw new UnauthorizedException('Please verify your phone number first');
+    }
+    if (user.status === 'SUSPENDED') {
+      throw new UnauthorizedException('Account has been suspended');
+    }
+
+    return this.generateTokens(user.id, user.phone, user.role as UserRole);
+  }
+
+  async refresh(dto: RefreshTokenDto) {
+    let payload: JwtPayload;
+    try {
+      payload = this.jwt.verify(dto.refreshToken, {
+        secret: this.config.getOrThrow('JWT_REFRESH_SECRET'),
+      });
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
+    if (!user || !user.refreshTokenHash) throw new UnauthorizedException('Session expired');
+
+    const valid = await bcrypt.compare(dto.refreshToken, user.refreshTokenHash);
+    if (!valid) throw new UnauthorizedException('Invalid refresh token');
+
+    return this.generateTokens(user.id, user.phone, user.role as UserRole);
+  }
+
+  async logout(userId: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { refreshTokenHash: null, fcmToken: null },
+    });
+    return { message: 'Logged out successfully' };
+  }
+
+  private async generateTokens(userId: string, phone: string, role: UserRole) {
+    const payload: JwtPayload = { sub: userId, phone, role };
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwt.signAsync(payload, {
+        secret: this.config.getOrThrow('JWT_SECRET'),
+        expiresIn: this.config.get('JWT_EXPIRES_IN', '15m'),
+      }),
+      this.jwt.signAsync(payload, {
+        secret: this.config.getOrThrow('JWT_REFRESH_SECRET'),
+        expiresIn: this.config.get('JWT_REFRESH_EXPIRES_IN', '7d'),
+      }),
+    ]);
+
+    const hash = await bcrypt.hash(refreshToken, 10);
+    await this.prisma.user.update({ where: { id: userId }, data: { refreshTokenHash: hash } });
+
+    return { accessToken, refreshToken };
+  }
+}

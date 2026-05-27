@@ -1,0 +1,26 @@
+Phase 1 — Backend & Infrastructure (Local) ✅ Done
+
+NestJS API, PostgreSQL, Redis running on your machine
+Phase 2 — Passenger App ✅ Done
+
+Login, booking, cancel, profile, history
+Phase 3 — Rider App ← Next
+
+Rider login, go online, receive requests, accept/complete trips
+Phase 4 — End-to-End Testing (Local)
+
+Full trip flow: passenger books → rider accepts → completes → rating
+Phase 5 — Admin Dashboard
+
+Manage bookings, approve riders, view analytics
+Phase 6 — Deployment (Real Hosting) ← What you're asking about
+
+Database: Move PostgreSQL + Redis to Railway.app (easiest) or Supabase
+Backend API: Deploy NestJS to Railway or Render.com
+Update app config: Change EXPO_PUBLIC_API_URL from http://192.168.1.10:3000 to your live URL
+Google Maps: At this point you'll need the API key (required for real users)
+Build APK: Use eas build to generate installable Android/iOS apps for your client
+Phase 7 — App Store / Distribution
+
+Submit to Google Play Store and Apple App Store
+Or distribute directly via APK link for testing with real users

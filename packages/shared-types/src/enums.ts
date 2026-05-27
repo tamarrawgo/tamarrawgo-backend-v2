@@ -1,0 +1,84 @@
+export enum UserRole {
+  PASSENGER = 'PASSENGER',
+  RIDER = 'RIDER',
+  ADMIN = 'ADMIN',
+}
+
+export enum UserStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  SUSPENDED = 'SUSPENDED',
+  PENDING_VERIFICATION = 'PENDING_VERIFICATION',
+}
+
+export enum RiderStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+  SUSPENDED = 'SUSPENDED',
+}
+
+export enum OnlineStatus {
+  ONLINE = 'ONLINE',
+  OFFLINE = 'OFFLINE',
+  BUSY = 'BUSY',
+}
+
+export enum BookingStatus {
+  SEARCHING = 'SEARCHING',
+  ACCEPTED = 'ACCEPTED',
+  RIDER_ARRIVED = 'RIDER_ARRIVED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+  EXPIRED = 'EXPIRED',
+}
+
+export enum PaymentMethod {
+  CASH = 'CASH',
+  GCASH = 'GCASH',
+  MAYA = 'MAYA',
+  WALLET = 'WALLET',
+}
+
+export enum PaymentStatus {
+  PENDING = 'PENDING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+  REFUNDED = 'REFUNDED',
+}
+
+export enum VehicleType {
+  MOTORCYCLE = 'MOTORCYCLE',
+}
+
+export enum DocumentType {
+  LICENSE = 'LICENSE',
+  REGISTRATION = 'REGISTRATION',
+  INSURANCE = 'INSURANCE',
+  NBI_CLEARANCE = 'NBI_CLEARANCE',
+  PROFILE_PHOTO = 'PROFILE_PHOTO',
+}
+
+export enum NotificationType {
+  BOOKING_REQUEST = 'BOOKING_REQUEST',
+  RIDER_ASSIGNED = 'RIDER_ASSIGNED',
+  RIDER_ARRIVED = 'RIDER_ARRIVED',
+  TRIP_STARTED = 'TRIP_STARTED',
+  TRIP_COMPLETED = 'TRIP_COMPLETED',
+  PAYMENT_RECEIVED = 'PAYMENT_RECEIVED',
+  PROMO_ALERT = 'PROMO_ALERT',
+  SYSTEM = 'SYSTEM',
+}
+
+export enum SupportTicketStatus {
+  OPEN = 'OPEN',
+  IN_PROGRESS = 'IN_PROGRESS',
+  RESOLVED = 'RESOLVED',
+  CLOSED = 'CLOSED',
+}
+
+export enum PromoType {
+  PERCENTAGE = 'PERCENTAGE',
+  FIXED = 'FIXED',
+}

@@ -1,0 +1,343 @@
+You are a senior software architect and full-stack engineer. Build a production-ready motorcycle ride-hailing platform similar to Angkas using modern 2026 technologies The App name is TamarrawGo.
+
+Technology Stack:
+Mobile Applications:
+React Native
+Expo SDK (latest stable version)
+TypeScript
+React Navigation
+React Query (TanStack Query)
+Zustand for state management
+Socket.IO Client
+Firebase Cloud Messaging
+Google Maps SDK
+
+Backend:
+NestJS
+TypeScript
+Socket.IO
+JWT Authentication
+REST API
+Swagger Documentation
+PostgreSQL
+Prisma ORM
+Redis for caching and real-time data
+Docker support
+
+Infrastructure:
+Railway deployment
+PostgreSQL database
+Redis instance
+Firebase project for push notifications
+Google Maps Platform integration
+
+
+Project Structure:
+
+Create a monorepo structure:
+
+apps/
+ ├── passenger-app
+ ├── rider-app
+ ├── admin-dashboard
+
+backend/
+ ├── api-server
+
+packages/
+ ├── shared-types
+ ├── shared-utils
+
+User Roles:
+Passenger
+Features:
+
+Register
+Login
+Phone verification
+Update profile
+Select pickup location
+Select destination
+View route on map
+View estimated fare
+Book ride
+Cancel booking
+Real-time rider tracking
+In-app chat
+Push notifications
+Trip history
+Rate rider
+Save favorite places
+
+
+Rider:
+Features:
+
+Registration
+Upload documents
+Driver profile
+Vehicle profile
+Online / Offline toggle
+Receive booking requests
+Accept booking
+Reject booking
+Navigate to passenger
+Navigate to destination
+Earnings dashboard
+Trip history
+Ratings system
+Wallet system
+
+
+Admin:
+Features:
+
+Dashboard analytics
+User management
+Rider approval
+Trip monitoring
+Fare configuration
+Promo management
+System reports
+Audit logs
+Support management
+
+
+Authentication:
+Implement:
+
+JWT Authentication
+Refresh Tokens
+Role-Based Access Control
+Secure Password Hashing
+OTP Verification
+Session Management
+
+Maps and Location:
+Use Google Maps Platform.
+
+Implement:
+
+Place Autocomplete
+Reverse Geocoding
+Directions API
+Route Visualization
+Distance Calculation
+ETA Calculation
+Live Rider Tracking
+
+Features:
+
+Passenger sees rider movement in real time.
+Rider sees passenger pickup point.
+Route updates automatically.
+
+
+Real-Time Tracking:
+Use Socket.IO.
+
+Implement:
+Rider
+Send GPS location every 3 seconds:
+
+latitude
+longitude
+heading
+speed
+timestamp
+
+
+Passenger:
+
+Receive live updates.
+Update rider marker smoothly on map.
+
+Display:
+
+Current location
+Estimated arrival time
+Trip status
+
+
+Booking Flow:
+Passenger enters destination.
+Fare estimate is calculated.
+Passenger confirms booking.
+System finds nearby riders.
+Riders receive booking request.
+First accepted rider is assigned.
+Passenger receives assignment.
+Rider navigates to passenger.
+Rider starts trip.
+Rider completes trip.
+Payment is processed.
+Ratings are submitted.
+Implement full backend workflow.
+
+Fare Calculation Engine:
+Create configurable fare system.
+Formula:
+
+Fare =
+Base Fare +
+(Distance × Distance Rate) +
+(Duration × Time Rate)
+
+Support:
+Surge Pricing
+Peak Hours
+Night Differential
+Promo Discounts
+Coupon Codes
+
+Admin can update rates dynamically.
+
+Notifications:
+Use Firebase Cloud Messaging.
+Notifications:
+
+Booking request
+Rider assigned
+Rider arrived
+Trip started
+Trip completed
+Payment received
+Promo alerts
+
+
+Payments:
+Phase 1:
+Cash payment
+
+Phase 2:
+Prepare architecture for:
+
+GCash
+Maya
+Wallet Balance
+Design payment abstraction layer.
+
+Database Design:
+
+Create Prisma schema for:
+
+users
+riders
+vehicles
+bookings
+trips
+trip_locations
+payments
+wallets
+ratings
+notifications
+promotions
+support_tickets
+audit_logs
+
+Generate complete relationships.
+
+APIs:
+Generate REST APIs for:
+Authentication
+POST /auth/register
+POST /auth/login
+POST /auth/logout
+POST /auth/refresh
+
+Users:
+GET /users/profile
+PUT /users/profile
+
+Riders:
+POST /riders/location
+POST /riders/status
+GET /riders/earnings
+
+Booking:
+POST /bookings
+GET /bookings
+GET /bookings/:id
+PATCH /bookings/:id
+
+Payments:
+POST /payments
+GET /payments/history
+
+Create Swagger documentation for all APIs.
+
+Admin Dashboard:
+
+Build responsive web dashboard.
+
+Pages:
+
+Login
+Dashboard
+Users
+Riders
+Trips
+Payments
+Promotions
+Reports
+Settings
+
+Use:
+
+React
+TypeScript
+TailwindCSS
+TanStack Table
+Recharts
+
+
+Security
+Implement:
+
+JWT Security
+Rate Limiting
+Input Validation
+Helmet
+CORS
+SQL Injection Protection
+XSS Protection
+Audit Logging
+
+Follow OWASP best practices.
+
+Code Quality:
+
+Requirements:
+
+Clean Architecture
+SOLID Principles
+Repository Pattern
+Modular NestJS Architecture
+Strict TypeScript
+ESLint
+Prettier
+Unit Tests
+Integration Tests
+
+
+Deliverables:
+Generate:
+
+Complete project architecture
+Folder structure
+Database schema
+Prisma models
+NestJS backend modules
+REST APIs
+Socket.IO implementation
+React Native passenger app
+React Native rider app
+Admin dashboard
+Environment configuration
+Railway deployment configuration
+Docker configuration
+CI/CD pipeline
+Documentation
+Step-by-step setup guide
+
+Build the project incrementally, starting with database schema, backend architecture, authentication system, and booking workflow before generating UI screens.
