@@ -1,5 +1,7 @@
 FROM node:20-alpine AS builder
 
+RUN apk add --no-cache openssl
+
 WORKDIR /app
 
 COPY packages/shared-types/ ./packages/shared-types/
@@ -18,6 +20,8 @@ RUN npm run prisma:generate --workspace=backend/api-server
 RUN npm run build --workspace=backend/api-server
 
 FROM node:20-alpine AS production
+
+RUN apk add --no-cache openssl
 
 WORKDIR /app
 
