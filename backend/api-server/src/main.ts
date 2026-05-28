@@ -20,8 +20,9 @@ async function bootstrap() {
   app.use(helmet());
   app.use(compression());
 
+  const corsOrigins = configService.get('CORS_ORIGINS', '*');
   app.enableCors({
-    origin: configService.get('CORS_ORIGINS', '*').split(','),
+    origin: corsOrigins === '*' ? true : corsOrigins.split(','),
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     credentials: true,
   });
