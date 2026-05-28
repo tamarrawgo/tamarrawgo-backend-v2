@@ -139,7 +139,7 @@ export class AdminService {
     if (terminal.includes(booking.status)) throw new Error(`Booking is already ${booking.status.toLowerCase()}`);
     return this.prisma.booking.update({
       where: { id: bookingId },
-      data: { status: 'CANCELLED', cancelReason: 'Cancelled by admin' },
+      data: { status: 'CANCELLED', cancellationReason: 'Cancelled by admin', cancelledAt: new Date() },
     });
   }
 

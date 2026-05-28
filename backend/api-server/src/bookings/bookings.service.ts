@@ -83,6 +83,7 @@ export class BookingsService {
         paymentMethod: dto.paymentMethod,
         promoCode: dto.promoCode,
         notes: dto.notes,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
       },
       include: { passenger: { select: { firstName: true, lastName: true } } },
     });
@@ -125,7 +126,7 @@ export class BookingsService {
       dropoff: { address: booking.dropoffAddress, latitude: booking.dropoffLatitude, longitude: booking.dropoffLongitude },
       estimatedFare: Number(booking.estimatedFare),
       distanceKm: booking.distanceKm,
-      expiresAt: booking.expiresAt.getTime(),
+      expiresAt: booking.expiresAt?.getTime() ?? Date.now() + 5 * 60 * 1000,
     };
 
     for (const rider of nearby) {
