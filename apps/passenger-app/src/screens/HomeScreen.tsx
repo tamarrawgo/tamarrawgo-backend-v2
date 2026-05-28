@@ -26,7 +26,7 @@ export default function HomeScreen() {
     // Check for existing active booking on mount
     (async () => {
       try {
-        const existing = await api.get('/bookings/active');
+        const existing = await api.get('/bookings/active') as any;
         if (existing) {
           setActiveBooking(existing);
           router.replace('/searching');
@@ -58,7 +58,7 @@ export default function HomeScreen() {
 
       socket.on(SocketEvent.BOOKING_STATUS_UPDATE, (data: any) => {
         if (activeBooking?.id === data.bookingId) {
-          setActiveBooking({ ...activeBooking, status: data.status });
+          setActiveBooking({ ...activeBooking, status: data.status } as any);
         }
       });
 
@@ -82,10 +82,20 @@ export default function HomeScreen() {
         dropoff,
         paymentMethod: 'CASH',
       });
-      setActiveBooking(booking);
+      setActiveBooking(booking as any);
       router.push('/searching');
     } catch (err: any) {
       const msg = Array.isArray(err?.message) ? err.message.join(', ') : (err?.message ?? 'Failed to book ride');
+      if (msg.toLowerCase().includes('active booking')) {
+        try {
+          const existing = await api.get('/bookings/active') as any;
+          if (existing) {
+            setActiveBooking(existing);
+            router.push('/searching');
+            return;
+          }
+        } catch {}
+      }
       Alert.alert('Error', msg);
     } finally {
       setLoading(false);

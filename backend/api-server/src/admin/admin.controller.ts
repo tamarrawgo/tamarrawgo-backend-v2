@@ -64,6 +64,12 @@ export class AdminController {
     return this.admin.getTripMonitoring(+page, +limit, status);
   }
 
+  @Patch('trips/:id/cancel')
+  @ApiOperation({ summary: 'Admin cancel a trip' })
+  cancelTrip(@Param('id') id: string) {
+    return this.admin.cancelTrip(id);
+  }
+
   @Get('reports/revenue')
   @ApiOperation({ summary: 'Revenue report' })
   getRevenue(@Query('days') days = 30) {

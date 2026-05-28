@@ -132,6 +132,17 @@ export class AdminService {
     return { data: bookings, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
+  async cancelTrip(bookingId: string) {
+    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    const terminal = ['COMPLETED', 'CANCELLED', 'EXPIRED'];
+    if (terminal.includes(booking.status)) throw new Error(`Booking is already ${booking.status.toLowerCase()}`);
+    return this.prisma.booking.update({
+      where: { id: bookingId },
+      data: { status: 'CANCELLED', cancelReason: 'Cancelled by admin' },
+    });
+  }
+
   async getRevenueReport(days = 30) {
     const from = new Date();
     from.setDate(from.getDate() - days);
