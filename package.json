@@ -23,15 +23,24 @@
     "prettier": "^3.3.3",
     "typescript": "^5.5.0"
   },
+  "overrides": {
+    "expo-modules-core": "~3.0.30",
+    "expo-font": "~14.0.11",
+    "@react-navigation/elements": "^2.9.18"
+  },
   "engines": {
     "node": ">=20.0.0",
     "npm": ">=10.0.0"
   },
   "dependencies": {
+    "@expo/metro-runtime": "^56.0.13",
     "ajv": "^8.20.0",
     "babel-preset-expo": "^56.0.12",
     "expo": "^54.0.34",
-    "expo-asset": "~11.0.0",
+    "expo-asset": "~12.0.13",
+    "expo-font": "~14.0.11",
+    "@react-navigation/elements": "^2.9.18",
+    "expo-modules-core": "~3.0.30",
     "expo-router": "~6.0.0",
     "metro-runtime": "^0.84.4",
     "react": "^19.1.0",

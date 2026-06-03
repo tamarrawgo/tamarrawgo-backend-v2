@@ -1,28 +1,64 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationType } from '@tamarrawgo/shared-types';
+import * as admin from 'firebase-admin';
 
 interface PushPayload {
   title: string;
   body: string;
-  data?: Record<string, any>;
+  data?: Record<string, string>;
 }
 
 @Injectable()
-export class NotificationsService {
+export class NotificationsService implements OnModuleInit {
   private readonly logger = new Logger(NotificationsService.name);
+  private firebaseInitialized = false;
 
   constructor(
     private prisma: PrismaService,
     private config: ConfigService,
   ) {}
 
+  onModuleInit() {
+    const projectId = this.config.get('FIREBASE_PROJECT_ID');
+    const clientEmail = this.config.get('FIREBASE_CLIENT_EMAIL');
+    const privateKey = this.config.get<string>('FIREBASE_PRIVATE_KEY')?.replace(/\\n/g, '\n');
+
+    if (projectId && clientEmail && privateKey && !admin.apps.length) {
+      try {
+        admin.initializeApp({
+          credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
+        });
+        this.firebaseInitialized = true;
+        this.logger.log('Firebase Admin SDK initialized');
+      } catch (err) {
+        this.logger.error('Firebase init failed', err);
+      }
+    } else {
+      this.logger.warn('Firebase credentials missing — push notifications disabled');
+    }
+  }
+
   async sendPush(fcmToken: string, payload: PushPayload): Promise<void> {
-    // In production: use firebase-admin to send actual push
-    // const message = { token: fcmToken, notification: { title, body }, data };
-    // await getMessaging().send(message);
-    this.logger.debug(`[FCM] → ${fcmToken.slice(-6)}: ${payload.title}`);
+    if (!this.firebaseInitialized || !fcmToken) return;
+    try {
+      const stringData: Record<string, string> = {};
+      if (payload.data) {
+        for (const [k, v] of Object.entries(payload.data)) {
+          stringData[k] = String(v);
+        }
+      }
+      await admin.messaging().send({
+        token: fcmToken,
+        notification: { title: payload.title, body: payload.body },
+        data: stringData,
+        android: { priority: 'high' },
+      });
+      this.logger.debug(`[FCM] ✓ → ${fcmToken.slice(-6)}: ${payload.title}`);
+    } catch (err: any) {
+      this.logger.error(`[FCM] ✗ → ${fcmToken.slice(-6)}: ${err.message}`);
+    }
   }
 
   async createNotification(userId: string, type: NotificationType, title: string, body: string, data?: any) {
