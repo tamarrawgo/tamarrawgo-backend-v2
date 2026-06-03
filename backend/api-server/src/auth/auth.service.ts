@@ -13,6 +13,7 @@ import { RegisterPassengerDto, RegisterRiderDto } from './dto/register.dto';
 import { LoginDto, RefreshTokenDto, VerifyOtpDto } from './dto/login.dto';
 import { JwtPayload, UserRole } from '@tamarrawgo/shared-types';
 import { generateOtp } from '@tamarrawgo/shared-utils';
+import { SmsService } from './sms.service';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +21,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwt: JwtService,
     private config: ConfigService,
+    private sms: SmsService,
   ) {}
 
   async registerPassenger(dto: RegisterPassengerDto) {
@@ -44,8 +46,7 @@ export class AuthService {
       },
     });
 
-    // In production: send OTP via SMS provider (Semaphore, Vonage, etc.)
-    console.log(`[OTP] ${user.phone}: ${otp}`);
+    await this.sms.sendOtp(user.phone, otp);
 
     return { message: 'Registration successful. Please verify your phone.', userId: user.id };
   }
@@ -78,7 +79,7 @@ export class AuthService {
       include: { rider: true },
     });
 
-    console.log(`[OTP] ${user.phone}: ${otp}`);
+    await this.sms.sendOtp(user.phone, otp);
     return { message: 'Rider registration submitted. Verify phone and await approval.', userId: user.id };
   }
 
