@@ -78,7 +78,7 @@ export class RidersService {
     weekStart.setDate(weekStart.getDate() - 7);
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const [today, week, month, totalTrips] = await Promise.all([
+    const [today, week, month, totalTrips, todayTrips] = await Promise.all([
       this.prisma.earning.aggregate({
         where: { riderId: rider.id, date: { gte: todayStart } },
         _sum: { amount: true },
@@ -94,6 +94,9 @@ export class RidersService {
       this.prisma.booking.count({
         where: { riderId: rider.id, status: 'COMPLETED' },
       }),
+      this.prisma.booking.count({
+        where: { riderId: rider.id, status: 'COMPLETED', updatedAt: { gte: todayStart } },
+      }),
     ]);
 
     return {
@@ -101,6 +104,7 @@ export class RidersService {
       thisWeek: Number(week._sum.amount ?? 0),
       thisMonth: Number(month._sum.amount ?? 0),
       totalTrips,
+      todayTrips,
       averageRating: Number(rider.rating),
       walletBalance: Number(rider.walletBalance),
     };
