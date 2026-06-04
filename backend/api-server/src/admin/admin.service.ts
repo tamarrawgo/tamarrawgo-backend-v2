@@ -67,7 +67,17 @@ export class AdminService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        select: { id: true, phone: true, email: true, firstName: true, lastName: true, role: true, status: true, createdAt: true },
+        select: {
+          id: true, phone: true, email: true, firstName: true, lastName: true,
+          role: true, status: true, createdAt: true,
+          rider: {
+            select: {
+              id: true, licenseNumber: true, status: true, rating: true, onlineStatus: true,
+              vehicle: true,
+              documents: { select: { id: true, type: true, fileUrl: true, verified: true, createdAt: true } },
+            },
+          },
+        },
       }),
       this.prisma.user.count({ where }),
     ]);
