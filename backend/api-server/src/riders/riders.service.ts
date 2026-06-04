@@ -1,35 +1,42 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createClient } from '@supabase/supabase-js';
+import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateLocationDto, UpdateOnlineStatusDto, AddVehicleDto, UploadDocumentDto } from './dto/rider.dto';
 import { SocketGateway } from '../socket/socket.gateway';
 
 @Injectable()
 export class RidersService {
-  private supabase: any;
-
   constructor(
     private prisma: PrismaService,
     private socket: SocketGateway,
     private config: ConfigService,
-  ) {
-    const url = this.config.get('SUPABASE_URL');
-    const key = this.config.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (url && key) this.supabase = createClient(url, key);
-  }
+  ) {}
 
   async uploadDocumentFile(userId: string, base64: string, fileName: string, docType: string): Promise<string> {
-    if (!this.supabase) throw new Error('Storage not configured');
+    const supabaseUrl = this.config.get('SUPABASE_URL');
+    const serviceKey = this.config.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !serviceKey) throw new Error('Storage not configured');
+
     const buffer = Buffer.from(base64, 'base64');
     const ext = fileName.split('.').pop() ?? 'jpg';
     const path = `${userId}/${docType}-${Date.now()}.${ext}`;
-    const { error } = await this.supabase.storage
-      .from('rider-documents')
-      .upload(path, buffer, { contentType: `image/${ext}`, upsert: true });
-    if (error) throw new Error(error.message);
-    const { data } = this.supabase.storage.from('rider-documents').getPublicUrl(path);
-    return data.publicUrl;
+    const contentType = ext === 'png' ? 'image/png' : ext === 'pdf' ? 'application/pdf' : 'image/jpeg';
+
+    // Upload via Supabase Storage REST API (no WebSocket needed)
+    await axios.put(
+      `${supabaseUrl}/storage/v1/object/rider-documents/${path}`,
+      buffer,
+      {
+        headers: {
+          'Authorization': `Bearer ${serviceKey}`,
+          'Content-Type': contentType,
+          'x-upsert': 'true',
+        },
+      }
+    );
+
+    return `${supabaseUrl}/storage/v1/object/public/rider-documents/${path}`;
   }
 
   private async getRiderProfile(userId: string) {
