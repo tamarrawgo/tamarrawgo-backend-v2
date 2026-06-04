@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Query, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Query, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { AdminService } from './admin.service';
@@ -40,6 +40,12 @@ export class AdminController {
   @Patch('users/:id/activate')
   activateUser(@Param('id') id: string) {
     return this.admin.activateUser(id);
+  }
+
+  @Delete('users/:id')
+  @ApiOperation({ summary: 'Delete user from database' })
+  deleteUser(@Param('id') id: string) {
+    return this.admin.deleteUser(id);
   }
 
   @Get('riders/pending')

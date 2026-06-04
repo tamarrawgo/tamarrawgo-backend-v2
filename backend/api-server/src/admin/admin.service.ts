@@ -92,6 +92,10 @@ export class AdminService {
     return this.prisma.user.update({ where: { id: userId }, data: { status: 'ACTIVE' } });
   }
 
+  async deleteUser(userId: string) {
+    return this.prisma.user.delete({ where: { id: userId } });
+  }
+
   async getPendingRiders(page = 1, limit = 20) {
     const skip = (page - 1) * limit;
     const [riders, total] = await Promise.all([
