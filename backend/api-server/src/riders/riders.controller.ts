@@ -48,8 +48,11 @@ export class RidersController {
   @ApiOperation({ summary: 'Upload document image to storage' })
   async uploadFile(@CurrentUser() user: any, @Body() body: { base64: string; fileName: string; docType: string }) {
     const url = await this.riders.uploadDocumentFile(user.id, body.base64, body.fileName, body.docType);
-    // Auto-save the document record
     await this.riders.uploadDocument(user.id, { type: body.docType, fileUrl: url });
+    // Save selfie as user's profile photo
+    if (body.docType === 'PROFILE_PHOTO') {
+      await this.riders.saveProfilePhoto(user.id, url);
+    }
     return { url };
   }
 

@@ -89,6 +89,10 @@ export class RidersService {
     });
   }
 
+  async saveProfilePhoto(userId: string, url: string) {
+    return this.prisma.user.update({ where: { id: userId }, data: { profilePhoto: url } });
+  }
+
   async uploadDocument(userId: string, dto: UploadDocumentDto) {
     const rider = await this.getRiderProfile(userId);
     return this.prisma.riderDocument.create({
