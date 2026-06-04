@@ -63,6 +63,7 @@ enum DocumentType {
   INSURANCE
   NBI_CLEARANCE
   PROFILE_PHOTO
+  TRICYCLE_PHOTO
 }
 
 enum NotificationType {
