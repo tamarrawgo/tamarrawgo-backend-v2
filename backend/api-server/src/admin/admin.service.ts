@@ -136,6 +136,8 @@ export class AdminService {
   async rejectRider(riderId: string, reason: string) {
     const rider = await this.prisma.riderProfile.findUnique({ where: { id: riderId } });
     if (!rider) throw new NotFoundException('Rider not found');
+    // Suspend the user account so the rider cannot log in or go online
+    await this.prisma.user.update({ where: { id: rider.userId }, data: { status: 'SUSPENDED' } });
     return this.prisma.riderProfile.update({ where: { id: riderId }, data: { status: 'REJECTED' } });
   }
 
