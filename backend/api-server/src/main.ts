@@ -12,12 +12,13 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log'],
-    bodyParser: true,
+    bodyParser: false,
   });
 
-  // Increase body size limit for base64 image uploads (default is 100kb)
-  app.use(require('express').json({ limit: '20mb' }));
-  app.use(require('express').urlencoded({ limit: '20mb', extended: true }));
+  // Set body size limit BEFORE NestJS routes — required for image uploads
+  const { json, urlencoded } = await import('express');
+  app.use(json({ limit: '20mb' }));
+  app.use(urlencoded({ limit: '20mb', extended: true }));
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 3000);
