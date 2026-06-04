@@ -93,6 +93,19 @@ export class AdminService {
   }
 
   async deleteUser(userId: string) {
+    // Delete all related records in order before deleting the user
+    const rider = await this.prisma.riderProfile.findUnique({ where: { userId } });
+    if (rider) {
+      await this.prisma.riderDocument.deleteMany({ where: { riderId: rider.id } });
+      await this.prisma.earning.deleteMany({ where: { riderId: rider.id } });
+      await this.prisma.rating.deleteMany({ where: { riderId: rider.id } });
+      await this.prisma.booking.updateMany({ where: { riderId: rider.id }, data: { riderId: null } });
+      await this.prisma.vehicle.deleteMany({ where: { riderId: rider.id } });
+      await this.prisma.riderProfile.delete({ where: { userId } });
+    }
+    // Delete passenger-related records
+    await this.prisma.booking.deleteMany({ where: { passengerId: userId } });
+    await this.prisma.notification.deleteMany({ where: { userId } });
     return this.prisma.user.delete({ where: { id: userId } });
   }
 
