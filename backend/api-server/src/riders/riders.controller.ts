@@ -43,6 +43,16 @@ export class RidersController {
     return this.riders.uploadDocument(user.id, dto);
   }
 
+  @Post('upload-file')
+  @Roles(UserRole.RIDER)
+  @ApiOperation({ summary: 'Upload document image to storage' })
+  async uploadFile(@CurrentUser() user: any, @Body() body: { base64: string; fileName: string; docType: string }) {
+    const url = await this.riders.uploadDocumentFile(user.id, body.base64, body.fileName, body.docType);
+    // Auto-save the document record
+    await this.riders.uploadDocument(user.id, { type: body.docType, fileUrl: url });
+    return { url };
+  }
+
   @Get('earnings')
   @Roles(UserRole.RIDER)
   @ApiOperation({ summary: 'Get rider earnings summary' })
