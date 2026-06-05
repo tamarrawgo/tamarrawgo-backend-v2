@@ -101,6 +101,7 @@ export class BookingsService {
         status: 'APPROVED',
         currentLatitude: { not: null },
         currentLongitude: { not: null },
+        walletBalance: { gte: 100 }, // Must have at least ₱100 topup balance
       },
       include: { user: { select: { id: true, fcmToken: true } } },
     });
@@ -249,7 +250,8 @@ export class BookingsService {
     if (!booking.riderId) return;
 
     const fare = Number(booking.estimatedFare);
-    const riderEarnings = fare * 0.8; // 80% to rider
+    const commission = fare * 0.20; // 20% service fee deducted from topup balance
+    const riderEarnings = fare * 0.80; // 80% rider keeps
 
     await this.prisma.$transaction([
       this.prisma.payment.create({
@@ -269,7 +271,7 @@ export class BookingsService {
       this.prisma.riderProfile.update({
         where: { id: booking.riderId },
         data: {
-          walletBalance: { increment: riderEarnings },
+          walletBalance: { decrement: commission }, // Deduct 20% commission from topup balance
           totalTrips: { increment: 1 },
         },
       }),

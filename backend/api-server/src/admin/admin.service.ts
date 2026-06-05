@@ -72,7 +72,7 @@ export class AdminService {
           role: true, status: true, createdAt: true,
           rider: {
             select: {
-              id: true, licenseNumber: true, status: true, rating: true, onlineStatus: true,
+              id: true, licenseNumber: true, status: true, rating: true, onlineStatus: true, walletBalance: true,
               vehicle: true,
               documents: { select: { id: true, type: true, fileUrl: true, verified: true, createdAt: true } },
             },
@@ -125,6 +125,16 @@ export class AdminService {
       this.prisma.riderProfile.count({ where: { status: 'PENDING' } }),
     ]);
     return { data: riders, total, page, limit };
+  }
+
+  async topupRiderWallet(riderId: string, amount: number) {
+    const rider = await this.prisma.riderProfile.findUnique({ where: { id: riderId } });
+    if (!rider) throw new NotFoundException('Rider not found');
+    if (amount <= 0) throw new Error('Amount must be greater than 0');
+    return this.prisma.riderProfile.update({
+      where: { id: riderId },
+      data: { walletBalance: { increment: amount } },
+    });
   }
 
   async approveRider(riderId: string) {

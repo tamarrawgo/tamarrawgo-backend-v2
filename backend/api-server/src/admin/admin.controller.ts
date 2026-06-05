@@ -48,6 +48,12 @@ export class AdminController {
     return this.admin.deleteUser(id);
   }
 
+  @Post('riders/:id/topup')
+  @ApiOperation({ summary: 'Add topup balance to rider wallet' })
+  topupRider(@Param('id') id: string, @Body() body: { amount: number }) {
+    return this.admin.topupRiderWallet(id, body.amount);
+  }
+
   @Get('riders/pending')
   @ApiOperation({ summary: 'Get pending rider approvals' })
   getPendingRiders(@Query('page') page = 1, @Query('limit') limit = 20) {
