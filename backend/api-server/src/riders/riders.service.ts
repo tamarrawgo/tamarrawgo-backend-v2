@@ -45,6 +45,9 @@ export class RidersService {
     return rider;
   }
 
+  // Cache riderId → passengerId so we don't query DB every 3 seconds
+  private riderPassengerCache = new Map<string, { passengerId: string; expires: number }>();
+
   async updateLocation(userId: string, dto: UpdateLocationDto) {
     const rider = await this.getRiderProfile(userId);
 
@@ -59,8 +62,26 @@ export class RidersService {
       },
     });
 
-    // Broadcast to any passenger tracking this rider
-    this.socket.broadcastRiderLocation(rider.id, dto);
+    // Look up the passenger for this rider's active booking (cached for 30s)
+    let passengerId: string | undefined;
+    const cached = this.riderPassengerCache.get(rider.id);
+    if (cached && cached.expires > Date.now()) {
+      passengerId = cached.passengerId;
+    } else {
+      const booking = await this.prisma.booking.findFirst({
+        where: { riderId: rider.id, status: { in: ['ACCEPTED', 'RIDER_ARRIVED', 'IN_PROGRESS'] } },
+        select: { passengerId: true },
+      });
+      if (booking) {
+        passengerId = booking.passengerId;
+        this.riderPassengerCache.set(rider.id, { passengerId, expires: Date.now() + 30000 });
+      } else {
+        this.riderPassengerCache.delete(rider.id);
+      }
+    }
+
+    // Broadcast to passenger's auto-joined user room (reliable) + tracking room (legacy)
+    this.socket.broadcastRiderLocation(rider.id, dto, passengerId);
 
     return { message: 'Location updated' };
   }

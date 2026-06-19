@@ -81,12 +81,14 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   // Called by RidersService every 3 seconds
-  broadcastRiderLocation(riderId: string, location: UpdateLocationDto) {
-    this.server.to(`tracking:${riderId}`).emit(SocketEvent.RIDER_LOCATION, {
-      riderId,
-      ...location,
-      timestamp: Date.now(),
-    });
+  broadcastRiderLocation(riderId: string, location: UpdateLocationDto, passengerId?: string) {
+    const payload = { riderId, ...location, timestamp: Date.now() };
+    // Send to tracking room (for clients that joined it)
+    this.server.to(`tracking:${riderId}`).emit(SocketEvent.RIDER_LOCATION, payload);
+    // Also send directly to passenger's auto-joined user room (always reliable)
+    if (passengerId) {
+      this.server.to(`user:${passengerId}`).emit(SocketEvent.RIDER_LOCATION, payload);
+    }
   }
 
   broadcastRiderStatus(riderId: string, status: string) {
