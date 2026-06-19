@@ -94,6 +94,40 @@ export class BookingsService {
     return booking;
   }
 
+  async getAvailableBookings(userId: string) {
+    const rider = await this.prisma.riderProfile.findUnique({ where: { userId } });
+    if (!rider || !rider.currentLatitude || !rider.currentLongitude) return [];
+
+    const activeBooking = await this.prisma.booking.findFirst({
+      where: { riderId: rider.id, status: { in: ['ACCEPTED', 'RIDER_ARRIVED', 'IN_PROGRESS'] } },
+    });
+    if (activeBooking) return [];
+
+    const searching = await this.prisma.booking.findMany({
+      where: { status: 'SEARCHING' },
+      include: { passenger: { select: { firstName: true, lastName: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return searching
+      .filter((b) => {
+        const dist = haversineDistance(
+          { latitude: b.pickupLatitude, longitude: b.pickupLongitude },
+          { latitude: rider.currentLatitude!, longitude: rider.currentLongitude! },
+        );
+        return dist <= SEARCH_RADIUS_KM;
+      })
+      .map((b) => ({
+        bookingId: b.id,
+        passenger: { id: b.passengerId, firstName: b.passenger.firstName, lastName: b.passenger.lastName, rating: 5.0 },
+        pickup: { address: b.pickupAddress, latitude: b.pickupLatitude, longitude: b.pickupLongitude },
+        dropoff: { address: b.dropoffAddress, latitude: b.dropoffLatitude, longitude: b.dropoffLongitude },
+        estimatedFare: Number(b.estimatedFare),
+        distanceKm: b.distanceKm,
+        expiresAt: b.expiresAt?.getTime() ?? Date.now() + 5 * 60 * 1000,
+      }));
+  }
+
   private async dispatchToNearbyRiders(booking: any) {
     const riders = await this.prisma.riderProfile.findMany({
       where: {
@@ -101,7 +135,8 @@ export class BookingsService {
         status: 'APPROVED',
         currentLatitude: { not: null },
         currentLongitude: { not: null },
-        walletBalance: { gte: 100 }, // Must have at least ₱100 topup balance
+        walletBalance: { gte: 100 },
+        bookingsAsRider: { none: { status: { in: ['ACCEPTED', 'RIDER_ARRIVED', 'IN_PROGRESS'] } } },
       },
       include: { user: { select: { id: true, fcmToken: true } } },
     });
@@ -237,11 +272,16 @@ export class BookingsService {
       data: { status, [transition.field]: new Date() },
     });
 
-    if (status === BookingStatus.COMPLETED) {
-      await this.handleTripCompletion(booking);
-    }
-
+    // Notify passenger first so it always fires even if completion processing fails
     this.socket.notifyBookingStatusUpdate(booking.passengerId, { bookingId, status });
+
+    if (status === BookingStatus.COMPLETED) {
+      try {
+        await this.handleTripCompletion(booking);
+      } catch (err) {
+        this.logger.error(`Trip completion processing failed for booking ${bookingId}:`, err);
+      }
+    }
 
     return updated;
   }

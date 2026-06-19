@@ -58,6 +58,10 @@ export class NotificationsService implements OnModuleInit {
       this.logger.debug(`[FCM] ✓ → ${fcmToken.slice(-6)}: ${payload.title}`);
     } catch (err: any) {
       this.logger.error(`[FCM] ✗ → ${fcmToken.slice(-6)}: ${err.message}`);
+      const code: string = err.code ?? err.errorInfo?.code ?? '';
+      if (code === 'messaging/invalid-registration-token' || code === 'messaging/registration-token-not-registered') {
+        await this.prisma.user.updateMany({ where: { fcmToken }, data: { fcmToken: null } }).catch(() => {});
+      }
     }
   }
 

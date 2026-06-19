@@ -38,6 +38,12 @@ export class BookingsController {
     return this.bookings.getActiveBooking(user.id);
   }
 
+  @Get('available')
+  @ApiOperation({ summary: 'Get all SEARCHING bookings near the rider' })
+  getAvailableBookings(@CurrentUser() user: any) {
+    return this.bookings.getAvailableBookings(user.id);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get booking by ID' })
   getBooking(@Param('id') id: string) {
