@@ -11,7 +11,7 @@ import { SocketGateway } from '../socket/socket.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateBookingDto, CancelBookingDto, RateRiderDto } from './dto/booking.dto';
 import { haversineDistance, estimateEtaMinutes } from '@tamarrawgo/shared-utils';
-import { BookingStatus, NotificationType } from '@tamarrawgo/shared-types';
+import { BookingStatus, NotificationType, SocketEvent } from '@tamarrawgo/shared-types';
 
 const SEARCH_RADIUS_KM = 5;
 

@@ -34,7 +34,7 @@ export default function SearchScreen() {
   const { pickup, dropoff, setPickup, setDropoff, setActiveBooking } = useBookingStore();
 
   const [pickupText, setPickupText] = useState(pickup?.address ?? '');
-  const [dropoffText, setDropoffText] = useState('');
+  const [dropoffText, setDropoffText] = useState(dropoff?.address ?? '');
   const [activeField, setActiveField] = useState<SearchField>(null);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);

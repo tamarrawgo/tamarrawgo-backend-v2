@@ -314,7 +314,7 @@ export default function TrackingScreen() {
   const plateNo = activeBooking?.rider?.vehicle?.plateNumber ?? '—';
   const rating = Number(activeBooking?.rider?.rating ?? 5.0).toFixed(1);
   const isCompleted = status === BookingStatus.COMPLETED;
-  const canCancel = status === BookingStatus.ACCEPTED || status === BookingStatus.SEARCHING;
+  const canCancel = status === BookingStatus.ACCEPTED || status === BookingStatus.SEARCHING || status === BookingStatus.RIDER_ARRIVED;
 
   return (
     <View style={styles.container}>
