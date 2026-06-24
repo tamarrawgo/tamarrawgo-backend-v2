@@ -151,11 +151,12 @@ export default function SearchScreen() {
       });
       setShowFareModal(true);
     } catch (err: any) {
-      Alert.alert('Error', err?.message ?? 'Failed to get fare estimate');
+      const msg = Array.isArray(err?.message) ? err.message.join(', ') : (err?.message ?? 'Failed to get fare estimate');
+      Alert.alert('Error', String(msg));
     } finally {
       setLoadingEstimate(false);
     }
-  }, [pickup, dropoff, dropoffText]);
+  }, [pickup, dropoff, dropoffText, passengerCount]);
 
   const handleConfirmBooking = useCallback(async () => {
     if (!pickup || !dropoff) return;
@@ -182,7 +183,7 @@ export default function SearchScreen() {
     } finally {
       setLoading(false);
     }
-  }, [pickup, dropoff, selectedPayment]);
+  }, [pickup, dropoff, selectedPayment, passengerCount]);
 
   return (
     <SafeAreaView style={styles.safe}>
