@@ -1,121 +1,541 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TextInput, FlatList,
-  TouchableOpacity,
+  TouchableOpacity, SafeAreaView, StatusBar,
+  ActivityIndicator, Alert, Image, Modal,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as Location from 'expo-location';
 import { useBookingStore } from '../store/booking.store';
-import { Location } from '@tamarrawgo/shared-types';
+import { api } from '../services/api';
+import { Location as LocationType } from '@tamarrawgo/shared-types';
 
-const POPULAR_LOCATIONS: Location[] = [
-  { address: 'SM Mall of Asia, Pasay City', latitude: 14.5353, longitude: 120.9832 },
-  { address: 'Bonifacio Global City, Taguig', latitude: 14.5501, longitude: 121.0494 },
-  { address: 'Makati City Hall, Makati', latitude: 14.5547, longitude: 121.0244 },
-  { address: 'Robinsons Place Manila, Ermita', latitude: 14.5794, longitude: 120.9835 },
-  { address: 'Intramuros, Manila', latitude: 14.5893, longitude: 120.9744 },
-  { address: 'Quezon City Hall, Quezon City', latitude: 14.6507, longitude: 121.0488 },
-  { address: 'NAIA Terminal 3, Pasay City', latitude: 14.5086, longitude: 121.0197 },
-  { address: 'Eastwood City, Quezon City', latitude: 14.6095, longitude: 121.0794 },
-  { address: 'Ortigas Center, Pasig City', latitude: 14.5876, longitude: 121.0600 },
-  { address: 'Divisoria, Manila', latitude: 14.5995, longitude: 120.9734 },
-  { address: 'UP Diliman, Quezon City', latitude: 14.6548, longitude: 121.0651 },
-  { address: 'Cubao, Quezon City', latitude: 14.6196, longitude: 121.0532 },
-  { address: 'Pasig City Hall, Pasig', latitude: 14.5764, longitude: 121.0851 },
-  { address: 'Mandaluyong City Hall', latitude: 14.5794, longitude: 121.0359 },
-  { address: 'SM Megamall, Mandaluyong', latitude: 14.5853, longitude: 121.0565 },
+const GREEN = '#1B6B2F';
+const GREEN_DARK = '#145224';
+const GREEN_LIGHT = '#E8F5E9';
+
+const TRICYCLE_IMG = require('../../assets/tricycle-small.png');
+
+const RIDE_TYPES = [
+  { id: 'regular', label: 'Regular Tricycle', price: '₱25 – ₱40', icon: 'local-taxi' as const },
+  { id: 'special', label: 'Special Trip (Group)', price: '₱Negotiable', icon: 'groups' as const },
 ];
+
+const PAYMENT_METHODS = [
+  { id: 'CASH', label: 'Cash', icon: 'payments' as const },
+  { id: 'GCASH', label: 'GCash', icon: 'account-balance-wallet' as const },
+];
+
+type SearchField = 'pickup' | 'dropoff' | null;
 
 export default function SearchScreen() {
   const router = useRouter();
-  const { pickup, setDropoff } = useBookingStore();
-  const [query, setQuery] = useState('');
+  const { pickup, dropoff, setPickup, setDropoff, setActiveBooking } = useBookingStore();
 
-  const filtered = query.length >= 2
-    ? POPULAR_LOCATIONS.filter(loc =>
-        loc.address.toLowerCase().includes(query.toLowerCase())
-      )
-    : POPULAR_LOCATIONS;
+  const [pickupText, setPickupText] = useState(pickup?.address ?? '');
+  const [dropoffText, setDropoffText] = useState('');
+  const [activeField, setActiveField] = useState<SearchField>(null);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [detectingLocation, setDetectingLocation] = useState(false);
+  const [selectedRide, setSelectedRide] = useState('regular');
+  const [selectedPayment, setSelectedPayment] = useState('CASH');
+  const [passengerCount, setPassengerCount] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [loadingEstimate, setLoadingEstimate] = useState(false);
+  const [showFareModal, setShowFareModal] = useState(false);
+  const [fareEstimate, setFareEstimate] = useState<{
+    totalFare: number; distanceKm: number; estimatedDurationMinutes: number;
+  } | null>(null);
 
-  const selectPlace = useCallback((location: Location) => {
-    setDropoff(location);
-    router.back();
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-detect pickup on mount if not set
+  useEffect(() => {
+    if (!pickup?.address || pickup.address === '') {
+      detectCurrentLocation();
+    }
   }, []);
 
+  const detectCurrentLocation = async () => {
+    setDetectingLocation(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+        const geocode = await api.get(`/maps/reverse-geocode?lat=${coords.latitude}&lng=${coords.longitude}`)
+          .catch(() => ({ address: 'Current Location' })) as any;
+        const address = geocode?.address ?? 'Current Location';
+        setPickup({ ...coords, address });
+        setPickupText(address);
+      }
+    } catch {
+      const fallback = { latitude: 14.5995, longitude: 120.9842, address: 'Manila, Philippines' };
+      setPickup(fallback);
+      setPickupText(fallback.address);
+    } finally {
+      setDetectingLocation(false);
+    }
+  };
+
+  const searchPlaces = useCallback(async (query: string) => {
+    if (query.length < 2) { setSuggestions([]); return; }
+    setLoadingSuggestions(true);
+    try {
+      const result = await api.get(`/maps/autocomplete?input=${encodeURIComponent(query)}`) as any;
+      setSuggestions(result?.predictions ?? result ?? []);
+    } catch {
+      setSuggestions([]);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  }, []);
+
+  const handleTextChange = (text: string, field: SearchField) => {
+    if (field === 'pickup') setPickupText(text);
+    else setDropoffText(text);
+    setActiveField(field);
+
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => searchPlaces(text), 400);
+  };
+
+  const selectSuggestion = async (suggestion: any) => {
+    const address = suggestion.description ?? suggestion.formatted_address ?? suggestion.address ?? '';
+    setSuggestions([]);
+
+    try {
+      const geocoded = await api.get(`/maps/geocode?address=${encodeURIComponent(address)}`) as any;
+      const coords = {
+        latitude: geocoded?.lat ?? geocoded?.latitude ?? 14.5995,
+        longitude: geocoded?.lng ?? geocoded?.longitude ?? 120.9842,
+        address,
+      };
+      if (activeField === 'pickup') {
+        setPickup(coords);
+        setPickupText(address);
+      } else {
+        setDropoff(coords);
+        setDropoffText(address);
+      }
+    } catch {
+      if (activeField === 'pickup') {
+        setPickupText(address);
+      } else {
+        setDropoffText(address);
+        setDropoff({ latitude: 14.5995, longitude: 120.9842, address });
+      }
+    }
+    setActiveField(null);
+  };
+
+  const handleFindRide = useCallback(async () => {
+    if (!pickup) { Alert.alert('Error', 'Please set your pickup location.'); return; }
+    if (!dropoffText || !dropoff) { Alert.alert('Error', 'Please select a destination from the suggestions.'); return; }
+
+    setLoadingEstimate(true);
+    try {
+      const result = await api.post('/bookings/estimate', {
+        pickupLat: pickup.latitude,
+        pickupLng: pickup.longitude,
+        dropoffLat: dropoff.latitude,
+        dropoffLng: dropoff.longitude,
+        passengerCount,
+      }) as any;
+      setFareEstimate({
+        totalFare: result?.totalFare ?? 0,
+        distanceKm: result?.distanceKm ?? 0,
+        estimatedDurationMinutes: result?.estimatedDurationMinutes ?? 0,
+      });
+      setShowFareModal(true);
+    } catch (err: any) {
+      Alert.alert('Error', err?.message ?? 'Failed to get fare estimate');
+    } finally {
+      setLoadingEstimate(false);
+    }
+  }, [pickup, dropoff, dropoffText]);
+
+  const handleConfirmBooking = useCallback(async () => {
+    if (!pickup || !dropoff) return;
+    setLoading(true);
+    try {
+      const booking = await api.post('/bookings', {
+        pickup,
+        dropoff,
+        paymentMethod: selectedPayment,
+        passengerCount,
+      });
+      setActiveBooking(booking as any);
+      setShowFareModal(false);
+      router.replace('/searching');
+    } catch (err: any) {
+      const msg = Array.isArray(err?.message) ? err.message.join(', ') : (err?.message ?? 'Failed to book ride');
+      if (msg.toLowerCase().includes('active booking')) {
+        try {
+          const existing = await api.get('/bookings/active') as any;
+          if (existing) { setActiveBooking(existing); router.replace('/searching'); return; }
+        } catch {}
+      }
+      Alert.alert('Error', msg);
+    } finally {
+      setLoading(false);
+    }
+  }, [pickup, dropoff, selectedPayment]);
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safe}>
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <MaterialIcons name="arrow-back" size={22} color="#333" />
         </TouchableOpacity>
-        <View style={styles.inputWrapper}>
-          <Ionicons name="flag" size={18} color="#FF6B00" />
-          <TextInput
-            style={styles.input}
-            placeholder="Where do you want to go?"
-            value={query}
-            onChangeText={setQuery}
-            autoFocus
-          />
-        </View>
+        <Text style={styles.headerTitle}>Find Ride</Text>
+        <View style={{ width: 36 }} />
       </View>
 
-      {pickup && (
-        <View style={styles.pickupRow}>
-          <Ionicons name="location" size={18} color="#FF6B00" />
-          <Text style={styles.pickupText} numberOfLines={1}>{pickup.address}</Text>
-        </View>
-      )}
-
-      <Text style={styles.sectionLabel}>
-        {query.length >= 2 ? 'Search Results' : 'Popular Locations'}
-      </Text>
-
       <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.address}
+        data={activeField && suggestions.length > 0 ? suggestions : []}
+        keyExtractor={(item, i) => item.place_id ?? String(i)}
+        keyboardShouldPersistTaps="handled"
+        ListHeaderComponent={
+          <View>
+            {/* Route Card */}
+            <View style={styles.routeCard}>
+              {/* Pickup Row */}
+              <View style={styles.routeRow}>
+                <View style={styles.dotGreen} />
+                <TextInput
+                  style={styles.routeInput}
+                  placeholder="Pickup location"
+                  placeholderTextColor="#aaa"
+                  value={pickupText}
+                  onChangeText={(t) => handleTextChange(t, 'pickup')}
+                  onFocus={() => setActiveField('pickup')}
+                />
+                <TouchableOpacity onPress={detectCurrentLocation} style={styles.locationBtn}>
+                  {detectingLocation
+                    ? <ActivityIndicator size="small" color={GREEN} />
+                    : <MaterialIcons name="my-location" size={18} color={GREEN} />
+                  }
+                </TouchableOpacity>
+              </View>
+              <View style={styles.routeDivider} />
+              {/* Dropoff Row */}
+              <View style={styles.routeRow}>
+                <View style={styles.dotRed} />
+                <TextInput
+                  style={styles.routeInput}
+                  placeholder="Enter destination or landmark"
+                  placeholderTextColor="#aaa"
+                  value={dropoffText}
+                  onChangeText={(t) => handleTextChange(t, 'dropoff')}
+                  onFocus={() => setActiveField('dropoff')}
+                  autoFocus={!pickup?.address}
+                />
+                {dropoffText.length > 0 && (
+                  <TouchableOpacity onPress={() => { setDropoffText(''); setSuggestions([]); }}>
+                    <MaterialIcons name="close" size={18} color="#999" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
+            {/* Loading suggestions */}
+            {loadingSuggestions && (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator size="small" color={GREEN} />
+                <Text style={styles.loadingText}>Searching places...</Text>
+              </View>
+            )}
+
+            {/* No suggestions active - show ride type and payment */}
+            {(!activeField || suggestions.length === 0) && (
+              <>
+                {/* Ride Type */}
+                <Text style={styles.sectionLabel}>Choose Ride Type</Text>
+                {RIDE_TYPES.map(rt => (
+                  <TouchableOpacity
+                    key={rt.id}
+                    style={[styles.rideTypeRow, selectedRide === rt.id && styles.rideTypeSelected]}
+                    onPress={() => setSelectedRide(rt.id)}
+                  >
+                    <View style={[styles.rideTypeIcon, selectedRide === rt.id && styles.rideTypeIconSelected]}>
+                      <MaterialIcons name={rt.icon} size={22} color={selectedRide === rt.id ? '#fff' : GREEN} />
+                    </View>
+                    <View style={styles.rideTypeText}>
+                      <Text style={[styles.rideTypeName, selectedRide === rt.id && { color: GREEN_DARK }]}>{rt.label}</Text>
+                      <Text style={styles.rideTypePrice}>{rt.price}</Text>
+                    </View>
+                    {selectedRide === rt.id && <MaterialIcons name="check-circle" size={22} color={GREEN} />}
+                  </TouchableOpacity>
+                ))}
+
+                {/* Passenger Count */}
+                <Text style={styles.sectionLabel}>Number of Passengers</Text>
+                <View style={styles.passengerCountRow}>
+                  {[1, 2, 3, 4].map(n => (
+                    <TouchableOpacity
+                      key={n}
+                      style={[styles.passengerCountBtn, passengerCount === n && styles.passengerCountBtnSelected]}
+                      onPress={() => setPassengerCount(n)}
+                    >
+                      <MaterialIcons name="person" size={18} color={passengerCount === n ? '#fff' : GREEN} />
+                      <Text style={[styles.passengerCountText, passengerCount === n && { color: '#fff' }]}>{n}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                {passengerCount > 1 && (
+                  <Text style={styles.passengerCountHint}>
+                    +{(passengerCount - 1) * 20}% fare for {passengerCount} passengers
+                  </Text>
+                )}
+
+                {/* Payment Method */}
+                <Text style={styles.sectionLabel}>Payment Method</Text>
+                <View style={styles.paymentRow}>
+                  {PAYMENT_METHODS.map(pm => (
+                    <TouchableOpacity
+                      key={pm.id}
+                      style={[styles.paymentBtn, selectedPayment === pm.id && styles.paymentBtnSelected]}
+                      onPress={() => setSelectedPayment(pm.id)}
+                    >
+                      <MaterialIcons name={pm.icon} size={20} color={selectedPayment === pm.id ? GREEN : '#666'} />
+                      <Text style={[styles.paymentLabel, selectedPayment === pm.id && { color: GREEN, fontWeight: '700' }]}>
+                        {pm.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
+          </View>
+        }
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.item} onPress={() => selectPlace(item)}>
-            <Ionicons name="location-outline" size={20} color="#999" />
-            <View style={styles.itemText}>
-              <Text style={styles.mainText}>{item.address.split(',')[0]}</Text>
-              <Text style={styles.secondaryText}>{item.address.split(',').slice(1).join(',').trim()}</Text>
+          <TouchableOpacity style={styles.suggestion} onPress={() => selectSuggestion(item)}>
+            <MaterialIcons name="location-on" size={20} color="#999" />
+            <View style={styles.suggestionText}>
+              <Text style={styles.suggMain} numberOfLines={1}>
+                {item.structured_formatting?.main_text ?? item.description?.split(',')[0] ?? item.address}
+              </Text>
+              <Text style={styles.suggSub} numberOfLines={1}>
+                {item.structured_formatting?.secondary_text ?? item.description ?? ''}
+              </Text>
             </View>
           </TouchableOpacity>
         )}
-        ListEmptyComponent={
-          <Text style={styles.empty}>No locations found</Text>
-        }
+        ListFooterComponent={<View style={{ height: 100 }} />}
       />
-    </View>
+
+      {/* Find Button */}
+      <View style={styles.findWrapper}>
+        <TouchableOpacity style={styles.findBtn} onPress={handleFindRide} disabled={loadingEstimate}>
+          {loadingEstimate
+            ? <ActivityIndicator color="#fff" />
+            : <>
+                <MaterialIcons name="my-location" size={20} color="#fff" />
+                <Text style={styles.findBtnText}>Find Nearby Tricycle</Text>
+              </>
+          }
+        </TouchableOpacity>
+      </View>
+
+      {/* Fare Estimate Bottom Sheet */}
+      <Modal
+        visible={showFareModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowFareModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.fareSheet}>
+            <View style={styles.sheetHandle} />
+
+            <Text style={styles.sheetTitle}>Your TamarrawGo Ride</Text>
+
+            {/* Route summary */}
+            <View style={styles.routeSummaryCard}>
+              <View style={styles.routeSummaryRow}>
+                <View style={styles.dotGreen} />
+                <Text style={styles.routeSummaryText} numberOfLines={1}>{pickup?.address}</Text>
+              </View>
+              <View style={styles.routeSummaryDivider} />
+              <View style={styles.routeSummaryRow}>
+                <View style={styles.dotRed} />
+                <Text style={styles.routeSummaryText} numberOfLines={1}>{dropoff?.address}</Text>
+              </View>
+            </View>
+
+            {/* Tricycle fare card */}
+            <View style={styles.fareCard}>
+              <Text style={styles.fareEmoji}>🛺</Text>
+              <View style={styles.fareInfo}>
+                <Text style={styles.fareName}>Tricycle</Text>
+                <Text style={styles.fareDesc}>
+                  👤 {passengerCount} passenger{passengerCount > 1 ? 's' : ''} · {fareEstimate?.distanceKm?.toFixed(1) ?? '—'} km · ~{fareEstimate?.estimatedDurationMinutes ?? '—'} mins
+                </Text>
+              </View>
+              <Text style={styles.fareAmount}>₱{fareEstimate?.totalFare?.toFixed(0) ?? '—'}</Text>
+            </View>
+
+            {/* Payment method */}
+            <View style={styles.paymentInfoRow}>
+              <MaterialIcons
+                name={selectedPayment === 'CASH' ? 'payments' : 'account-balance-wallet'}
+                size={16}
+                color={GREEN}
+              />
+              <Text style={styles.paymentInfoText}>
+                {selectedPayment === 'CASH' ? 'Cash' : 'GCash'}
+              </Text>
+            </View>
+
+            {/* Confirm */}
+            <TouchableOpacity
+              style={styles.confirmBtn}
+              onPress={handleConfirmBooking}
+              disabled={loading}
+            >
+              {loading
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={styles.confirmBtnText}>Confirm Booking</Text>
+              }
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.goBackBtn} onPress={() => setShowFareModal(false)}>
+              <Text style={styles.goBackText}>Go Back</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  safe: { flex: 1, backgroundColor: '#fff' },
   header: {
-    flexDirection: 'row', alignItems: 'center', padding: 16,
-    paddingTop: 56, gap: 12, borderBottomWidth: 1, borderBottomColor: '#F0F0F0',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: '#F0F0F0',
   },
-  backBtn: { padding: 4 },
-  inputWrapper: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#F5F5F5', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10,
+  backBtn: { padding: 6, borderRadius: 20, backgroundColor: '#F5F5F5' },
+  headerTitle: { fontSize: 17, fontWeight: '700', color: '#1A1A1A' },
+
+  routeCard: {
+    margin: 16, borderRadius: 16, borderWidth: 1.5, borderColor: '#E0E0E0',
+    padding: 16, backgroundColor: '#FAFAFA',
   },
-  input: { flex: 1, fontSize: 15, color: '#333' },
-  pickupRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingHorizontal: 20, paddingVertical: 12,
-    backgroundColor: '#FFF8F5', borderBottomWidth: 1, borderBottomColor: '#F0F0F0',
+  routeRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 4 },
+  dotGreen: { width: 12, height: 12, borderRadius: 6, backgroundColor: GREEN },
+  dotRed: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#E53935' },
+  routeDivider: { height: 1, backgroundColor: '#EEE', marginLeft: 24, marginVertical: 8 },
+  routeInput: { flex: 1, fontSize: 14, color: '#1A1A1A', padding: 0 },
+  locationBtn: { padding: 4 },
+
+  loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 10 },
+  loadingText: { fontSize: 13, color: '#888' },
+
+  sectionLabel: {
+    fontSize: 13, fontWeight: '700', color: '#888', textTransform: 'uppercase',
+    letterSpacing: 0.5, paddingHorizontal: 16, marginTop: 16, marginBottom: 8,
   },
-  pickupText: { flex: 1, color: '#666', fontSize: 14 },
-  sectionLabel: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8, fontSize: 12, fontWeight: '600', color: '#999', textTransform: 'uppercase' },
-  item: {
+  rideTypeRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    marginHorizontal: 16, marginBottom: 10, padding: 14,
+    borderRadius: 14, borderWidth: 1.5, borderColor: '#E0E0E0', backgroundColor: '#FAFAFA',
+  },
+  rideTypeSelected: { borderColor: GREEN, backgroundColor: GREEN_LIGHT },
+  rideTypeIcon: {
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: GREEN_LIGHT, alignItems: 'center', justifyContent: 'center',
+  },
+  rideTypeIconSelected: { backgroundColor: GREEN },
+  rideTypeText: { flex: 1 },
+  rideTypeName: { fontSize: 15, fontWeight: '700', color: '#1A1A1A' },
+  rideTypePrice: { fontSize: 13, color: '#666', marginTop: 2 },
+
+  passengerCountRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 10, marginBottom: 8 },
+  passengerCountBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
+    paddingVertical: 12, borderRadius: 12, borderWidth: 1.5, borderColor: '#E0F0E3', backgroundColor: '#fff',
+  },
+  passengerCountBtnSelected: { backgroundColor: GREEN, borderColor: GREEN },
+  passengerCountText: { fontSize: 16, fontWeight: '700', color: GREEN },
+  passengerCountHint: { textAlign: 'center', fontSize: 12, color: '#888', marginBottom: 12 },
+  paymentRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 12, marginBottom: 16 },
+  paymentBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    borderWidth: 1.5, borderColor: '#E0E0E0', borderRadius: 12, paddingVertical: 12, backgroundColor: '#FAFAFA',
+  },
+  paymentBtnSelected: { borderColor: GREEN, backgroundColor: GREEN_LIGHT },
+  paymentLabel: { fontSize: 14, color: '#555' },
+
+  suggestion: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 16, borderBottomWidth: 1, borderBottomColor: '#F5F5F5',
+    paddingVertical: 14, paddingHorizontal: 16,
+    borderBottomWidth: 1, borderBottomColor: '#F5F5F5',
   },
-  itemText: { flex: 1 },
-  mainText: { fontSize: 15, color: '#333', fontWeight: '500' },
-  secondaryText: { fontSize: 13, color: '#999', marginTop: 2 },
-  empty: { textAlign: 'center', color: '#999', marginTop: 40 },
+  suggestionText: { flex: 1 },
+  suggMain: { fontSize: 15, fontWeight: '600', color: '#1A1A1A' },
+  suggSub: { fontSize: 13, color: '#999', marginTop: 2 },
+
+  findWrapper: {
+    paddingHorizontal: 16, paddingBottom: 24, paddingTop: 10,
+    backgroundColor: '#fff',
+    shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 10,
+  },
+  findBtn: {
+    backgroundColor: GREEN, borderRadius: 16, paddingVertical: 16,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+  },
+  findBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+
+  // Fare estimate modal
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end',
+  },
+  fareSheet: {
+    backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    paddingHorizontal: 20, paddingTop: 12, paddingBottom: 36,
+  },
+  sheetHandle: {
+    width: 40, height: 4, borderRadius: 2, backgroundColor: '#E0E0E0',
+    alignSelf: 'center', marginBottom: 20,
+  },
+  sheetTitle: {
+    fontSize: 18, fontWeight: '800', color: '#1A1A1A', textAlign: 'center', marginBottom: 16,
+  },
+  routeSummaryCard: {
+    borderWidth: 1, borderColor: '#E8E8E8', borderRadius: 14,
+    padding: 14, backgroundColor: '#FAFAFA', marginBottom: 16,
+  },
+  routeSummaryRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  routeSummaryDivider: { height: 1, backgroundColor: '#EEE', marginLeft: 22, marginVertical: 8 },
+  routeSummaryText: { flex: 1, fontSize: 13, color: '#555' },
+  fareCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    borderWidth: 1.5, borderColor: GREEN, borderRadius: 16,
+    padding: 16, backgroundColor: '#F0FAF2', marginBottom: 14,
+  },
+  fareEmoji: { fontSize: 36 },
+  fareInfo: { flex: 1 },
+  fareName: { fontSize: 16, fontWeight: '800', color: '#1A1A1A' },
+  fareDesc: { fontSize: 12, color: '#777', marginTop: 3 },
+  fareAmount: { fontSize: 26, fontWeight: '900', color: GREEN },
+  paymentInfoRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    marginBottom: 20, paddingHorizontal: 4,
+  },
+  paymentInfoText: { fontSize: 14, color: GREEN, fontWeight: '600' },
+  confirmBtn: {
+    backgroundColor: GREEN, borderRadius: 16, paddingVertical: 16,
+    alignItems: 'center', marginBottom: 10,
+  },
+  confirmBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  goBackBtn: { alignItems: 'center', paddingVertical: 10 },
+  goBackText: { color: '#999', fontSize: 14, fontWeight: '600' },
 });

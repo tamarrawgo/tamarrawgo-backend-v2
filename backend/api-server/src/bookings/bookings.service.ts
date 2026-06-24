@@ -26,7 +26,7 @@ export class BookingsService {
     private notifications: NotificationsService,
   ) {}
 
-  async estimateFare(pickupLat: number, pickupLng: number, dropoffLat: number, dropoffLng: number, promoCode?: string) {
+  async estimateFare(pickupLat: number, pickupLng: number, dropoffLat: number, dropoffLng: number, promoCode?: string, passengerCount = 1) {
     const distanceKm = haversineDistance(
       { latitude: pickupLat, longitude: pickupLng },
       { latitude: dropoffLat, longitude: dropoffLng },
@@ -38,7 +38,16 @@ export class BookingsService {
       promoDiscount = await this.getPromoDiscount(promoCode, 0);
     }
 
-    return this.fare.estimateFare(distanceKm, durationMinutes, promoDiscount);
+    const estimate = await this.fare.estimateFare(distanceKm, durationMinutes, promoDiscount);
+
+    // +20% fare per additional passenger (max 4)
+    const count = Math.min(Math.max(passengerCount, 1), 4);
+    const multiplier = 1 + (count - 1) * 0.20;
+    if (count > 1) {
+      estimate.totalFare = Math.round(estimate.totalFare * multiplier * 100) / 100;
+    }
+
+    return { ...estimate, passengerCount: count, passengerMultiplier: multiplier };
   }
 
   async createBooking(passengerId: string, dto: CreateBookingDto) {
@@ -60,6 +69,13 @@ export class BookingsService {
 
     const fareEstimate = await this.fare.estimateFare(distanceKm, durationMinutes, promoDiscount);
 
+    // +20% fare per additional passenger (max 4)
+    const pCount = Math.min(Math.max(dto.passengerCount ?? 1, 1), 4);
+    const pMultiplier = 1 + (pCount - 1) * 0.20;
+    const adjustedFare = pCount > 1
+      ? Math.round(fareEstimate.totalFare * pMultiplier * 100) / 100
+      : fareEstimate.totalFare;
+
     const booking = await this.prisma.booking.create({
       data: {
         passengerId,
@@ -79,7 +95,8 @@ export class BookingsService {
         timeFare: fareEstimate.timeFare,
         surgeMultiplier: fareEstimate.surgeMultiplier,
         discount: fareEstimate.discount,
-        estimatedFare: fareEstimate.totalFare,
+        estimatedFare: adjustedFare,
+        passengerCount: pCount,
         paymentMethod: dto.paymentMethod,
         promoCode: dto.promoCode,
         notes: dto.notes,
@@ -124,6 +141,7 @@ export class BookingsService {
         dropoff: { address: b.dropoffAddress, latitude: b.dropoffLatitude, longitude: b.dropoffLongitude },
         estimatedFare: Number(b.estimatedFare),
         distanceKm: b.distanceKm,
+        passengerCount: b.passengerCount,
         expiresAt: b.expiresAt?.getTime() ?? Date.now() + 5 * 60 * 1000,
       }));
   }
