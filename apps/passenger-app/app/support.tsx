@@ -16,13 +16,13 @@ export default function SupportScreen() {
       </View>
 
       <View style={styles.content}>
-        <View style={styles.card}>
+        <TouchableOpacity style={styles.card} onPress={() => Linking.openURL('mailto:tamarrawgo@gmail.com')}>
           <Ionicons name="mail-outline" size={24} color="#FF6B00" />
           <View style={styles.cardText}>
             <Text style={styles.cardTitle}>Email Us</Text>
-            <Text style={styles.cardSub}>support@tamarrawgo.com</Text>
+            <Text style={styles.cardSub}>tamarrawgo@gmail.com</Text>
           </View>
-        </View>
+        </TouchableOpacity>
         <View style={styles.card}>
           <Ionicons name="call-outline" size={24} color="#FF6B00" />
           <View style={styles.cardText}>

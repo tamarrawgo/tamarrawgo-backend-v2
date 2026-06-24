@@ -363,14 +363,18 @@ export class BookingsService {
 
     // Notify the other party via socket
     if (!isRider && booking.rider?.user?.id) {
-      // Passenger cancelled → tell rider
+      // Passenger cancelled → tell rider (both custom event + standard status update)
       this.socket.sendToUser(booking.rider.user.id, 'passenger:booking:cancel', {
         bookingId,
         reason: dto.reason,
       });
+      this.socket.sendToUser(booking.rider.user.id, SocketEvent.BOOKING_STATUS_UPDATE, {
+        bookingId,
+        status: 'CANCELLED',
+      });
     } else if (isRider && booking.passengerId) {
       // Rider cancelled → tell passenger
-      this.socket.sendToUser(booking.passengerId, 'booking:status:update', {
+      this.socket.notifyBookingStatusUpdate(booking.passengerId, {
         bookingId,
         status: 'CANCELLED',
       });

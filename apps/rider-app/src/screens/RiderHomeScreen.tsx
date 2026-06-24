@@ -112,6 +112,22 @@ export default function RiderHomeScreen() {
     socket.on('booking:taken', (data: any) => {
       removeBookingRequest(data.bookingId);
     });
+    socket.on('passenger:booking:cancel', (data: any) => {
+      removeBookingRequest(data.bookingId);
+      if (activeBooking?.bookingId === data.bookingId) {
+        setActiveBooking(null);
+        Alert.alert('Booking Cancelled', 'The passenger has cancelled this booking.');
+      }
+    });
+    socket.on(SocketEvent.BOOKING_STATUS_UPDATE, (data: any) => {
+      if (data.status === 'CANCELLED') {
+        removeBookingRequest(data.bookingId);
+        if (activeBooking?.bookingId === data.bookingId) {
+          setActiveBooking(null);
+          Alert.alert('Booking Cancelled', 'The passenger has cancelled this booking.');
+        }
+      }
+    });
   };
 
   const toggleOnline = useCallback(async (value: boolean) => {
