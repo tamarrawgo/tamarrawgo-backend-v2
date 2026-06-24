@@ -2,14 +2,32 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TextInput, FlatList,
   TouchableOpacity, SafeAreaView, StatusBar,
-  ActivityIndicator, Alert, Image, Modal,
+  ActivityIndicator, Alert, Image, Modal, Dimensions,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
+import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
 import { useBookingStore } from '../store/booking.store';
 import { api } from '../services/api';
 import { Location as LocationType } from '@tamarrawgo/shared-types';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+function decodePolyline(encoded: string): { latitude: number; longitude: number }[] {
+  const points: { latitude: number; longitude: number }[] = [];
+  let index = 0, lat = 0, lng = 0;
+  while (index < encoded.length) {
+    let b, shift = 0, result = 0;
+    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+    shift = 0; result = 0;
+    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+    points.push({ latitude: lat / 1e5, longitude: lng / 1e5 });
+  }
+  return points;
+}
 
 const GREEN = '#1B6B2F';
 const GREEN_DARK = '#145224';
@@ -47,7 +65,9 @@ export default function SearchScreen() {
   const [showFareModal, setShowFareModal] = useState(false);
   const [fareEstimate, setFareEstimate] = useState<{
     totalFare: number; distanceKm: number; estimatedDurationMinutes: number;
+    polyline?: string | null;
   } | null>(null);
+  const mapPreviewRef = useRef<MapView>(null);
 
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -148,6 +168,7 @@ export default function SearchScreen() {
         totalFare: result?.totalFare ?? 0,
         distanceKm: result?.distanceKm ?? 0,
         estimatedDurationMinutes: result?.estimatedDurationMinutes ?? 0,
+        polyline: result?.polyline ?? null,
       });
       setShowFareModal(true);
     } catch (err: any) {
@@ -357,6 +378,46 @@ export default function SearchScreen() {
 
             <Text style={styles.sheetTitle}>Your TamarrawGo Ride</Text>
 
+            {/* Route map preview */}
+            {pickup && dropoff && (
+              <View style={styles.mapPreviewContainer}>
+                <MapView
+                  ref={mapPreviewRef}
+                  style={styles.mapPreview}
+                  provider={PROVIDER_DEFAULT}
+                  scrollEnabled={false}
+                  zoomEnabled={false}
+                  rotateEnabled={false}
+                  pitchEnabled={false}
+                  onLayout={() => {
+                    if (pickup && dropoff) {
+                      mapPreviewRef.current?.fitToCoordinates(
+                        [
+                          { latitude: pickup.latitude, longitude: pickup.longitude },
+                          { latitude: dropoff.latitude, longitude: dropoff.longitude },
+                        ],
+                        { edgePadding: { top: 40, right: 40, bottom: 40, left: 40 }, animated: false },
+                      );
+                    }
+                  }}
+                >
+                  <Marker coordinate={{ latitude: pickup.latitude, longitude: pickup.longitude }} anchor={{ x: 0.5, y: 1 }}>
+                    <Text style={styles.emojiMarker}>🙋</Text>
+                  </Marker>
+                  <Marker coordinate={{ latitude: dropoff.latitude, longitude: dropoff.longitude }} anchor={{ x: 0.5, y: 1 }}>
+                    <Text style={styles.emojiMarker}>🏁</Text>
+                  </Marker>
+                  {fareEstimate?.polyline && (
+                    <Polyline
+                      coordinates={decodePolyline(fareEstimate.polyline)}
+                      strokeColor={GREEN}
+                      strokeWidth={4}
+                    />
+                  )}
+                </MapView>
+              </View>
+            )}
+
             {/* Route summary */}
             <View style={styles.routeSummaryCard}>
               <View style={styles.routeSummaryRow}>
@@ -539,4 +600,10 @@ const styles = StyleSheet.create({
   confirmBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
   goBackBtn: { alignItems: 'center', paddingVertical: 10 },
   goBackText: { color: '#999', fontSize: 14, fontWeight: '600' },
+  mapPreviewContainer: {
+    height: 180, borderRadius: 14, overflow: 'hidden',
+    marginBottom: 14, borderWidth: 1, borderColor: '#E8E8E8',
+  },
+  mapPreview: { flex: 1 },
+  emojiMarker: { fontSize: 28, lineHeight: 30 },
 });

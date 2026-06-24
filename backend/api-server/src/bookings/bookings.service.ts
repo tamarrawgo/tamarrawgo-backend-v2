@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FareService } from '../fare/fare.service';
+import { MapsService } from '../maps/maps.service';
 import { SocketGateway } from '../socket/socket.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateBookingDto, CancelBookingDto, RateRiderDto } from './dto/booking.dto';
@@ -22,16 +23,28 @@ export class BookingsService {
   constructor(
     private prisma: PrismaService,
     private fare: FareService,
+    private maps: MapsService,
     private socket: SocketGateway,
     private notifications: NotificationsService,
   ) {}
 
   async estimateFare(pickupLat: number, pickupLng: number, dropoffLat: number, dropoffLng: number, promoCode?: string, passengerCount = 1) {
-    const distanceKm = haversineDistance(
-      { latitude: pickupLat, longitude: pickupLng },
-      { latitude: dropoffLat, longitude: dropoffLng },
-    );
-    const durationMinutes = estimateEtaMinutes(distanceKm);
+    let distanceKm: number;
+    let durationMinutes: number;
+    let polyline: string | null = null;
+
+    try {
+      const directions = await this.maps.getDirections(pickupLat, pickupLng, dropoffLat, dropoffLng);
+      distanceKm = directions.distanceKm;
+      durationMinutes = directions.durationMinutes;
+      polyline = directions.polyline;
+    } catch {
+      distanceKm = haversineDistance(
+        { latitude: pickupLat, longitude: pickupLng },
+        { latitude: dropoffLat, longitude: dropoffLng },
+      );
+      durationMinutes = estimateEtaMinutes(distanceKm);
+    }
 
     let promoDiscount = 0;
     if (promoCode) {
@@ -47,7 +60,7 @@ export class BookingsService {
       estimate.totalFare = Math.round(estimate.totalFare * multiplier * 100) / 100;
     }
 
-    return { ...estimate, passengerCount: count, passengerMultiplier: multiplier };
+    return { ...estimate, passengerCount: count, passengerMultiplier: multiplier, polyline };
   }
 
   async createBooking(passengerId: string, dto: CreateBookingDto) {
