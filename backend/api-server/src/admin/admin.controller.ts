@@ -13,11 +13,6 @@ class RejectRiderDto {
   @ApiPropertyOptional() @IsString() @IsOptional() reason?: string;
 }
 
-@ApiTags('admin')
-@ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'), RolesGuard)
-@Roles(UserRole.ADMIN)
-@Controller({ path: 'admin', version: '1' })
 class UpdateFareDto {
   @ApiPropertyOptional() @IsNumber() @IsOptional() baseFare?: number;
   @ApiPropertyOptional() @IsNumber() @IsOptional() ratePerKm?: number;
@@ -27,6 +22,11 @@ class UpdateFareDto {
   @ApiPropertyOptional() @IsNumber() @IsOptional() nightSurge?: number;
 }
 
+@ApiTags('admin')
+@ApiBearerAuth()
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles(UserRole.ADMIN)
+@Controller({ path: 'admin', version: '1' })
 export class AdminController {
   constructor(private admin: AdminService, private fare: FareService) {}
 
