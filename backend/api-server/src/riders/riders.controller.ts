@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Put, Param, Body, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { RidersService } from './riders.service';
@@ -20,6 +20,12 @@ export class RidersController {
   @ApiOperation({ summary: 'Update rider GPS location' })
   updateLocation(@CurrentUser() user: any, @Body() dto: UpdateLocationDto) {
     return this.riders.updateLocation(user.id, dto);
+  }
+
+  @Get(':riderId/location')
+  @ApiOperation({ summary: 'Get rider live location' })
+  getRiderLocation(@Param('riderId') riderId: string) {
+    return this.riders.getRiderLocation(riderId);
   }
 
   @Post('status')

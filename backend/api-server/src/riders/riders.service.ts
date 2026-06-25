@@ -86,6 +86,15 @@ export class RidersService {
     return { message: 'Location updated' };
   }
 
+  async getRiderLocation(riderId: string) {
+    const rider = await this.prisma.riderProfile.findUnique({
+      where: { id: riderId },
+      select: { currentLatitude: true, currentLongitude: true, currentHeading: true, lastLocationUpdate: true },
+    });
+    if (!rider) throw new NotFoundException('Rider not found');
+    return rider;
+  }
+
   async updateStatus(userId: string, dto: UpdateOnlineStatusDto) {
     const rider = await this.getRiderProfile(userId);
     if (rider.status !== 'APPROVED') {

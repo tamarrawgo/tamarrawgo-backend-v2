@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, Modal, ActivityIndicator, Animated, Dimensions, Linking, Share } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, Modal, ActivityIndicator, Animated, Dimensions, Linking, Share, Platform } from 'react-native';
+import MapView, { Marker, Polyline, PROVIDER_DEFAULT, AnimatedRegion, MarkerAnimated } from 'react-native-maps';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const COLLAPSED_HEIGHT = 130;
@@ -61,7 +61,7 @@ function decodePolyline(encoded: string): { latitude: number; longitude: number 
 export default function TrackingScreen() {
   const router = useRouter();
   const mapRef = useRef<MapView>(null);
-  const { activeBooking: _ab, riderLocation: storeRiderLoc, pickup, dropoff, setActiveBooking, setRiderLocation, reset } = useBookingStore();
+  const { activeBooking: _ab, riderLocation: storeRiderLoc, pickup, dropoff, setActiveBooking, setRiderLocation, setPickup, setDropoff, reset } = useBookingStore();
   const activeBooking = _ab as any;
   const status: string = activeBooking?.status ?? BookingStatus.SEARCHING;
   const [routeCoords, setRouteCoords] = useState<{ latitude: number; longitude: number }[]>([]);
@@ -69,7 +69,20 @@ export default function TrackingScreen() {
   // Local state for rider marker — ensures re-render on every position change
   const [localRiderLoc, setLocalRiderLoc] = useState<{ latitude: number; longitude: number; heading: number } | null>(null);
   const riderLocation = localRiderLoc ?? storeRiderLoc;
+  const [markerKey, setMarkerKey] = useState(0);
+  const [markerVisible, setMarkerVisible] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState('');
 
+  const refreshMarker = useCallback(() => {
+    setMarkerVisible(false);
+    setTimeout(() => setMarkerVisible(true), 50);
+  }, []);
+  const riderCoord = useRef(new AnimatedRegion({
+    latitude: 0, longitude: 0, latitudeDelta: 0.01, longitudeDelta: 0.01,
+  })).current;
+  const markerRef = useRef<any>(null);
+
+  const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const { user } = useAuthStore();
@@ -95,15 +108,10 @@ export default function TrackingScreen() {
   ];
 
   const fitMapToRider = useCallback((riderLat: number, riderLng: number) => {
-    const store = useBookingStore.getState();
-    const curStatus = (store.activeBooking as any)?.status;
-    const dest = curStatus === BookingStatus.IN_PROGRESS ? store.dropoff : store.pickup;
-    const coords = [{ latitude: riderLat, longitude: riderLng }];
-    if (dest) coords.push({ latitude: dest.latitude, longitude: dest.longitude });
-    mapRef.current?.fitToCoordinates(coords, {
-      edgePadding: { top: 140, right: 60, bottom: 200, left: 60 },
-      animated: true,
-    });
+    mapRef.current?.animateCamera({
+      center: { latitude: riderLat, longitude: riderLng },
+      zoom: 16,
+    }, { duration: 500 });
   }, []);
 
   const fetchRoute = useCallback(async (fromLat: number, fromLng: number, toLat: number, toLng: number) => {
@@ -120,7 +128,23 @@ export default function TrackingScreen() {
     (async () => {
       try {
         const full: any = await api.get('/bookings/active');
-        if (full?.id) setActiveBooking(full);
+        if (full?.id) {
+          setActiveBooking(full);
+          if (!pickup && full.pickupLatitude && full.pickupLongitude) {
+            setPickup({ address: full.pickupAddress, latitude: full.pickupLatitude, longitude: full.pickupLongitude });
+          }
+          if (!dropoff && full.dropoffLatitude && full.dropoffLongitude) {
+            setDropoff({ address: full.dropoffAddress, latitude: full.dropoffLatitude, longitude: full.dropoffLongitude });
+          }
+          const rLat = full.rider?.currentLatitude;
+          const rLng = full.rider?.currentLongitude;
+          if (rLat && rLng) {
+            const loc = { latitude: rLat, longitude: rLng, heading: 0 };
+            setRiderLocation(loc);
+            setLocalRiderLoc(loc);
+            riderCoord.setValue({ latitude: rLat, longitude: rLng, latitudeDelta: 0.01, longitudeDelta: 0.01 });
+          }
+        }
       } catch {}
     })();
   }, []);
@@ -216,8 +240,20 @@ export default function TrackingScreen() {
     const handleRiderLocation = (data: any) => {
       const loc = { latitude: data.latitude, longitude: data.longitude, heading: data.heading ?? 0 };
       setRiderLocation(loc);
-      setLocalRiderLoc(loc);
+      setLocalRiderLoc({ ...loc });
+      setMarkerKey((k) => k + 1);
+      refreshMarker();
+      setLastUpdate(`Socket ${new Date().toLocaleTimeString()}`);
       fitMapToRider(data.latitude, data.longitude);
+      const p = useBookingStore.getState().pickup;
+      const currentStatus = (useBookingStore.getState().activeBooking as any)?.status;
+      if (p && (currentStatus === BookingStatus.ACCEPTED || currentStatus === BookingStatus.SEARCHING)) {
+        const dLat = (data.latitude - p.latitude) * 111000;
+        const dLng = (data.longitude - p.longitude) * 111000 * Math.cos(p.latitude * Math.PI / 180);
+        const distM = Math.sqrt(dLat * dLat + dLng * dLng);
+        const mins = Math.max(1, Math.round(distM / 250));
+        setEtaMinutes(mins);
+      }
     };
 
     connectSocket().then((socket) => {
@@ -272,18 +308,34 @@ export default function TrackingScreen() {
             router.replace('/(tabs)/home');
           }
         }
-        // Update rider location from polling
-        const rLat = booking.rider?.currentLatitude;
-        const rLng = booking.rider?.currentLongitude;
-        if (rLat && rLng) {
-          const loc = { latitude: rLat, longitude: rLng, heading: 0 };
-          useBookingStore.getState().setRiderLocation(loc);
-          setLocalRiderLoc(loc);
-          fitMapToRider(rLat, rLng);
+        // Fetch rider location directly (bypasses booking JOIN caching)
+        const riderId = booking.riderId ?? booking.rider?.id;
+        if (riderId) {
+          try {
+            const riderLoc: any = await api.get(`/riders/${riderId}/location`);
+            const rLat = riderLoc?.currentLatitude;
+            const rLng = riderLoc?.currentLongitude;
+            if (rLat && rLng) {
+              const loc = { latitude: rLat, longitude: rLng, heading: riderLoc?.currentHeading ?? 0 };
+              useBookingStore.getState().setRiderLocation(loc);
+              setLocalRiderLoc({ ...loc });
+              setMarkerKey((k) => k + 1);
+              refreshMarker();
+              setLastUpdate(`Live ${new Date().toLocaleTimeString()} [${rLat.toFixed(4)},${rLng.toFixed(4)}]`);
+              fitMapToRider(rLat, rLng);
+              const p = useBookingStore.getState().pickup;
+              if (p && (booking.status === 'ACCEPTED' || booking.status === 'SEARCHING')) {
+                const dLat = (rLat - p.latitude) * 111000;
+                const dLng = (rLng - p.longitude) * 111000 * Math.cos(p.latitude * Math.PI / 180);
+                const distM = Math.sqrt(dLat * dLat + dLng * dLng);
+                setEtaMinutes(Math.max(1, Math.round(distM / 250)));
+              }
+            }
+          } catch {}
         }
       } catch {}
     };
-    const interval = setInterval(poll, 10000);
+    const interval = setInterval(poll, 5000);
     return () => { mounted = false; clearInterval(interval); };
   }, []);
 
@@ -362,14 +414,10 @@ export default function TrackingScreen() {
         )}
         {riderLocation && (
           <Marker
-            key="rider-marker"
             coordinate={{ latitude: riderLocation.latitude, longitude: riderLocation.longitude }}
             title="Driver"
-            anchor={{ x: 0.5, y: 0.5 }}
-            tracksViewChanges={false}
-          >
-            <Text style={styles.emojiMarker}>🛺</Text>
-          </Marker>
+            pinColor="#1B6B2F"
+          />
         )}
       </MapView>
 
@@ -407,6 +455,7 @@ export default function TrackingScreen() {
               <View style={[styles.statusDot, { backgroundColor: isCompleted ? '#34C759' : GREEN }]} />
               <Text style={styles.statusTextCompact}>{STATUS_LABELS[status] ?? 'Processing...'}</Text>
             </View>
+            {lastUpdate ? <Text style={{ fontSize: 9, color: '#F57C00' }}>{lastUpdate}</Text> : null}
           </View>
           <Text style={styles.fareAmountCompact}>{formatCurrency(Number(activeBooking?.estimatedFare ?? 0))}</Text>
         </View>
@@ -425,7 +474,12 @@ export default function TrackingScreen() {
               </View>
               <View style={styles.metaItem}>
                 <Text style={styles.metaLabel}>ETA</Text>
-                <Text style={[styles.metaValue, { color: GREEN }]}>{ETA_MAP[status] ?? '—'}</Text>
+                <Text style={[styles.metaValue, { color: GREEN }]}>
+                  {status === BookingStatus.RIDER_ARRIVED ? 'Arrived'
+                    : status === BookingStatus.COMPLETED ? 'Done'
+                    : etaMinutes ? `~${etaMinutes} min${etaMinutes > 1 ? 's' : ''}`
+                    : ETA_MAP[status] ?? '—'}
+                </Text>
               </View>
             </View>
           </View>
