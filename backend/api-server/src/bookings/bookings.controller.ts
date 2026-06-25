@@ -1,4 +1,5 @@
 import { Controller, Post, Get, Patch, Param, Body, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { CacheTTL } from '@nestjs/cache-manager';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { BookingsService } from './bookings.service';
@@ -39,6 +40,7 @@ export class BookingsController {
   }
 
   @Get('active')
+  @CacheTTL(0)
   @ApiOperation({ summary: 'Get current active booking' })
   getActiveBooking(@CurrentUser() user: any) {
     return this.bookings.getActiveBooking(user.id);

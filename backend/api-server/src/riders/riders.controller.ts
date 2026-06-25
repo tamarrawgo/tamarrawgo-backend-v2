@@ -1,4 +1,5 @@
-import { Controller, Post, Get, Put, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Put, Param, Body, Query, UseGuards, UseInterceptors } from '@nestjs/common';
+import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { RidersService } from './riders.service';
@@ -23,6 +24,7 @@ export class RidersController {
   }
 
   @Get(':riderId/location')
+  @CacheTTL(0)
   @ApiOperation({ summary: 'Get rider live location' })
   getRiderLocation(@Param('riderId') riderId: string) {
     return this.riders.getRiderLocation(riderId);
