@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, FlatList, Animated, Dimensions, TouchableWithoutFeedback, ScrollView } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -7,10 +7,14 @@ import CustomToggle from '../components/CustomToggle';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRiderStore } from '../store/rider.store';
+import { useAuthStore } from '../store/auth.store';
 import { api } from '../services/api';
 import { BookingStatus } from '@tamarrawgo/shared-types';
 import { connectSocket, SocketEvent } from '../services/socket';
 import { formatCurrency, formatDistance } from '@tamarrawgo/shared-utils';
+
+const DRAWER_WIDTH = Dimensions.get('window').width * 0.75;
+const GREEN = '#1B6B2F';
 
 const LOCATION_INTERVAL = 3000;
 
@@ -26,6 +30,31 @@ export default function RiderHomeScreen() {
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [summary, setSummary] = useState<{ today: number; totalTrips: number; todayTrips: number; averageRating: number } | null>(null);
   const router = useRouter();
+  const { user, logout } = useAuthStore();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const drawerAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
+
+  const openDrawer = useCallback(() => {
+    setDrawerOpen(true);
+    Animated.spring(drawerAnim, { toValue: 0, useNativeDriver: true, friction: 8 }).start();
+  }, []);
+
+  const closeDrawer = useCallback(() => {
+    Animated.spring(drawerAnim, { toValue: -DRAWER_WIDTH, useNativeDriver: true, friction: 8 }).start(() => setDrawerOpen(false));
+  }, []);
+
+  const handleDrawerNav = useCallback((route: string) => {
+    closeDrawer();
+    setTimeout(() => router.push(route as any), 250);
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    closeDrawer();
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Logout', style: 'destructive', onPress: () => logout() },
+    ]);
+  }, []);
 
   const { setBookingRequests } = useRiderStore();
   const fetchAvailableBookings = useCallback(async () => {
@@ -238,7 +267,10 @@ export default function RiderHomeScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <View>
+        <TouchableOpacity onPress={openDrawer} style={styles.hamburgerBtn}>
+          <MaterialIcons name="menu" size={26} color="#333" />
+        </TouchableOpacity>
+        <View style={{ flex: 1, marginLeft: 12 }}>
           <Text style={styles.statusLabel}>{isOnline ? 'You are ONLINE' : 'You are OFFLINE'}</Text>
           <Text style={styles.statusSub}>{isOnline ? 'Ready to receive bookings' : 'Toggle to go online'}</Text>
         </View>
@@ -301,6 +333,61 @@ export default function RiderHomeScreen() {
           />
         </View>
       )}
+
+      {/* Side Drawer */}
+      {drawerOpen && (
+        <TouchableWithoutFeedback onPress={closeDrawer}>
+          <View style={styles.drawerOverlay}>
+            <TouchableWithoutFeedback>
+              <Animated.View style={[styles.drawer, { transform: [{ translateX: drawerAnim }] }]}>
+                {/* Profile header */}
+                <View style={styles.drawerHeader}>
+                  <View style={styles.drawerAvatar}>
+                    <MaterialIcons name="person" size={32} color="#fff" />
+                  </View>
+                  <Text style={styles.drawerName}>{user?.firstName} {user?.lastName}</Text>
+                  <Text style={styles.drawerPhone}>{user?.phone}</Text>
+                </View>
+
+                <ScrollView style={styles.drawerMenu}>
+                  {[
+                    { icon: 'person-outline', label: 'My Profile', route: '/profile' },
+                    { icon: 'history', label: 'Ride History', route: '/history' },
+                    { icon: 'account-balance-wallet', label: 'Earnings', route: '/earnings' },
+                    { icon: 'report-problem', label: 'Report & Complaints', route: '/complaints' },
+                    { icon: 'headset-mic', label: 'Help & Support', route: '/support' },
+                  ].map((item) => (
+                    <TouchableOpacity key={item.route} style={styles.drawerItem} onPress={() => handleDrawerNav(item.route)}>
+                      <MaterialIcons name={item.icon as any} size={22} color="#333" />
+                      <Text style={styles.drawerItemText}>{item.label}</Text>
+                      <MaterialIcons name="chevron-right" size={20} color="#ccc" />
+                    </TouchableOpacity>
+                  ))}
+
+                  <View style={styles.drawerDivider} />
+
+                  {[
+                    { icon: 'info-outline', label: 'About', route: '/about' },
+                    { icon: 'privacy-tip', label: 'Privacy Policy', route: '/privacy' },
+                    { icon: 'description', label: 'Terms & Conditions', route: '/terms' },
+                  ].map((item) => (
+                    <TouchableOpacity key={item.route} style={styles.drawerItem} onPress={() => handleDrawerNav(item.route)}>
+                      <MaterialIcons name={item.icon as any} size={22} color="#333" />
+                      <Text style={styles.drawerItemText}>{item.label}</Text>
+                      <MaterialIcons name="chevron-right" size={20} color="#ccc" />
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+
+                <TouchableOpacity style={styles.drawerLogout} onPress={handleLogout}>
+                  <MaterialIcons name="logout" size={22} color="#E53935" />
+                  <Text style={styles.drawerLogoutText}>Logout</Text>
+                </TouchableOpacity>
+              </Animated.View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      )}
     </View>
   );
 }
@@ -358,4 +445,38 @@ const styles = StyleSheet.create({
   rejectText: { color: '#FF4444', fontWeight: '700' },
   acceptBtn: { flex: 2, backgroundColor: '#1B6B2F', borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
   acceptText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+
+  // Drawer
+  hamburgerBtn: { padding: 4 },
+  drawerOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)', zIndex: 100,
+  },
+  drawer: {
+    position: 'absolute', top: 0, left: 0, bottom: 0, width: DRAWER_WIDTH,
+    backgroundColor: '#fff', zIndex: 101,
+  },
+  drawerHeader: {
+    backgroundColor: GREEN, paddingTop: 50, paddingBottom: 20, paddingHorizontal: 20,
+  },
+  drawerAvatar: {
+    width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 10,
+  },
+  drawerName: { fontSize: 17, fontWeight: '800', color: '#fff' },
+  drawerPhone: { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+  drawerMenu: { flex: 1, paddingTop: 8 },
+  drawerItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    paddingHorizontal: 20, paddingVertical: 16,
+    borderBottomWidth: 1, borderBottomColor: '#f5f5f5',
+  },
+  drawerItemText: { flex: 1, fontSize: 15, fontWeight: '600', color: '#333' },
+  drawerDivider: { height: 1, backgroundColor: '#eee', marginHorizontal: 20, marginVertical: 8 },
+  drawerLogout: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    paddingHorizontal: 20, paddingVertical: 18,
+    borderTopWidth: 1, borderTopColor: '#f0f0f0',
+  },
+  drawerLogoutText: { fontSize: 15, fontWeight: '700', color: '#E53935' },
 });

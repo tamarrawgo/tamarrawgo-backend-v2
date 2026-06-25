@@ -368,56 +368,63 @@ export default function SearchScreen() {
       {/* Fare Estimate Bottom Sheet */}
       <Modal
         visible={showFareModal}
-        transparent
         animationType="slide"
         onRequestClose={() => setShowFareModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <View style={styles.fullScreenModal}>
+          {/* Map takes top half */}
+          {pickup && dropoff && (
+            <View style={styles.mapPreviewContainer}>
+              <MapView
+                ref={mapPreviewRef}
+                style={styles.mapPreview}
+                provider={PROVIDER_DEFAULT}
+                scrollEnabled={false}
+                zoomEnabled={false}
+                rotateEnabled={false}
+                pitchEnabled={false}
+                initialRegion={{
+                  latitude: (pickup.latitude + dropoff.latitude) / 2,
+                  longitude: (pickup.longitude + dropoff.longitude) / 2,
+                  latitudeDelta: Math.abs(pickup.latitude - dropoff.latitude) * 1.8 + 0.01,
+                  longitudeDelta: Math.abs(pickup.longitude - dropoff.longitude) * 1.8 + 0.01,
+                }}
+                onMapReady={() => {
+                  setTimeout(() => {
+                    mapPreviewRef.current?.fitToCoordinates(
+                      [
+                        { latitude: pickup.latitude, longitude: pickup.longitude },
+                        { latitude: dropoff.latitude, longitude: dropoff.longitude },
+                      ],
+                      { edgePadding: { top: 60, right: 60, bottom: 60, left: 60 }, animated: true },
+                    );
+                  }, 500);
+                }}
+              >
+                <Marker coordinate={{ latitude: pickup.latitude, longitude: pickup.longitude }} anchor={{ x: 0.5, y: 1 }}>
+                  <Text style={styles.emojiMarker}>🙋</Text>
+                </Marker>
+                <Marker coordinate={{ latitude: dropoff.latitude, longitude: dropoff.longitude }} anchor={{ x: 0.5, y: 1 }}>
+                  <Text style={styles.emojiMarker}>🏁</Text>
+                </Marker>
+                {fareEstimate?.polyline && (
+                  <Polyline
+                    coordinates={decodePolyline(fareEstimate.polyline)}
+                    strokeColor={GREEN}
+                    strokeWidth={4}
+                  />
+                )}
+              </MapView>
+
+              {/* Back button overlay */}
+              <TouchableOpacity style={styles.mapBackBtn} onPress={() => setShowFareModal(false)}>
+                <MaterialIcons name="arrow-back" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Bottom info card */}
           <View style={styles.fareSheet}>
-            <View style={styles.sheetHandle} />
-
-            <Text style={styles.sheetTitle}>Your TamarrawGo Ride</Text>
-
-            {/* Route map preview */}
-            {pickup && dropoff && (
-              <View style={styles.mapPreviewContainer}>
-                <MapView
-                  ref={mapPreviewRef}
-                  style={styles.mapPreview}
-                  provider={PROVIDER_DEFAULT}
-                  scrollEnabled={false}
-                  zoomEnabled={false}
-                  rotateEnabled={false}
-                  pitchEnabled={false}
-                  onLayout={() => {
-                    if (pickup && dropoff) {
-                      mapPreviewRef.current?.fitToCoordinates(
-                        [
-                          { latitude: pickup.latitude, longitude: pickup.longitude },
-                          { latitude: dropoff.latitude, longitude: dropoff.longitude },
-                        ],
-                        { edgePadding: { top: 40, right: 40, bottom: 40, left: 40 }, animated: false },
-                      );
-                    }
-                  }}
-                >
-                  <Marker coordinate={{ latitude: pickup.latitude, longitude: pickup.longitude }} anchor={{ x: 0.5, y: 1 }}>
-                    <Text style={styles.emojiMarker}>🙋</Text>
-                  </Marker>
-                  <Marker coordinate={{ latitude: dropoff.latitude, longitude: dropoff.longitude }} anchor={{ x: 0.5, y: 1 }}>
-                    <Text style={styles.emojiMarker}>🏁</Text>
-                  </Marker>
-                  {fareEstimate?.polyline && (
-                    <Polyline
-                      coordinates={decodePolyline(fareEstimate.polyline)}
-                      strokeColor={GREEN}
-                      strokeWidth={4}
-                    />
-                  )}
-                </MapView>
-              </View>
-            )}
-
             {/* Route summary */}
             <View style={styles.routeSummaryCard}>
               <View style={styles.routeSummaryRow}>
@@ -463,12 +470,8 @@ export default function SearchScreen() {
             >
               {loading
                 ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.confirmBtnText}>Confirm Booking</Text>
+                : <Text style={styles.confirmBtnText}>CONFIRM BOOKING</Text>
               }
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.goBackBtn} onPress={() => setShowFareModal(false)}>
-              <Text style={styles.goBackText}>Go Back</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -557,19 +560,11 @@ const styles = StyleSheet.create({
   findBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 
   // Fare estimate modal
-  modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end',
+  fullScreenModal: {
+    flex: 1, backgroundColor: '#fff',
   },
   fareSheet: {
-    backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    paddingHorizontal: 20, paddingTop: 12, paddingBottom: 36,
-  },
-  sheetHandle: {
-    width: 40, height: 4, borderRadius: 2, backgroundColor: '#E0E0E0',
-    alignSelf: 'center', marginBottom: 20,
-  },
-  sheetTitle: {
-    fontSize: 18, fontWeight: '800', color: '#1A1A1A', textAlign: 'center', marginBottom: 16,
+    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 36,
   },
   routeSummaryCard: {
     borderWidth: 1, borderColor: '#E8E8E8', borderRadius: 14,
@@ -601,9 +596,14 @@ const styles = StyleSheet.create({
   goBackBtn: { alignItems: 'center', paddingVertical: 10 },
   goBackText: { color: '#999', fontSize: 14, fontWeight: '600' },
   mapPreviewContainer: {
-    height: 180, borderRadius: 14, overflow: 'hidden',
-    marginBottom: 14, borderWidth: 1, borderColor: '#E8E8E8',
+    flex: 1, position: 'relative',
   },
   mapPreview: { flex: 1 },
+  mapBackBtn: {
+    position: 'absolute', top: 48, left: 16,
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 4,
+  },
   emojiMarker: { fontSize: 28, lineHeight: 30 },
 });

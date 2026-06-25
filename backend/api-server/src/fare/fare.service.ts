@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { calculateFare, getSurgeMultiplier } from '@tamarrawgo/shared-utils';
+import { calculateFare, isPeakHour, isNightDifferential } from '@tamarrawgo/shared-utils';
 import { FareEstimate } from '@tamarrawgo/shared-types';
 
 @Injectable()
@@ -15,7 +15,9 @@ export class FareService {
 
   async estimateFare(distanceKm: number, durationMinutes: number, promoDiscount = 0): Promise<FareEstimate> {
     const config = await this.getActiveFareConfig();
-    const surge = getSurgeMultiplier();
+    let surge = 1.0;
+    if (isPeakHour()) surge = Number(config.peakSurge) || 1.5;
+    else if (isNightDifferential()) surge = Number(config.nightSurge) || 1.2;
 
     return calculateFare(
       distanceKm,

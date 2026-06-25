@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, Modal, ActivityIndicator, Animated, Dimensions, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, Modal, ActivityIndicator, Animated, Dimensions, Linking, Share } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -362,11 +362,11 @@ export default function TrackingScreen() {
         )}
         {riderLocation && (
           <Marker
-            key={`rider-${riderLocation.latitude}-${riderLocation.longitude}`}
+            key="rider-marker"
             coordinate={{ latitude: riderLocation.latitude, longitude: riderLocation.longitude }}
             title="Driver"
             anchor={{ x: 0.5, y: 0.5 }}
-            tracksViewChanges={true}
+            tracksViewChanges={false}
           >
             <Text style={styles.emojiMarker}>🛺</Text>
           </Marker>
@@ -447,6 +447,15 @@ export default function TrackingScreen() {
             }}>
               <MaterialIcons name="call" size={20} color="#333" />
               <Text style={styles.actionLabel}>Call</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionBtn} onPress={() => {
+              const loc = riderLocation ?? pickup;
+              const mapsLink = loc ? `https://maps.google.com/?q=${loc.latitude},${loc.longitude}` : '';
+              const msg = `I'm on a TamarrawGo ride!\n\nDriver: ${riderName}\nPlate: ${plateNo}\nStatus: ${STATUS_LABELS[status] ?? 'On the way'}\nFare: ${formatCurrency(Number(activeBooking?.estimatedFare ?? 0))}\n${mapsLink ? `\nTrack my location: ${mapsLink}` : ''}`;
+              Share.share({ message: msg, title: 'My TamarrawGo Trip' }).catch(() => {});
+            }}>
+              <MaterialIcons name="share" size={20} color="#333" />
+              <Text style={styles.actionLabel}>Share</Text>
             </TouchableOpacity>
             {canCancel && (
               <TouchableOpacity style={[styles.actionBtn, styles.cancelActionBtn]} onPress={handleCancel}>

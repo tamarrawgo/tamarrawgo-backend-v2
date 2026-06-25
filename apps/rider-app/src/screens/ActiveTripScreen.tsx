@@ -475,6 +475,22 @@ export default function ActiveTripScreen() {
             <Text style={styles.distanceHint}>📍 Getting your location...</Text>
           )}
 
+          {/* Call & Chat buttons */}
+          <View style={styles.contactRow}>
+            <TouchableOpacity style={styles.contactBtn} onPress={() => {
+              const phone = activeBooking?.passenger?.phone;
+              if (phone) Linking.openURL(`tel:${phone}`);
+              else Alert.alert('Unavailable', 'Passenger phone number not available');
+            }}>
+              <MaterialIcons name="call" size={20} color={GREEN} />
+              <Text style={styles.contactBtnText}>Call Passenger</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.contactBtn} onPress={() => { setUnreadCount(0); router.push('/chat'); }}>
+              <MaterialIcons name="chat" size={20} color={GREEN} />
+              <Text style={styles.contactBtnText}>Chat</Text>
+            </TouchableOpacity>
+          </View>
+
           {status === BookingStatus.ACCEPTED && (
             <TouchableOpacity
               style={styles.cancelBookingBtn}
@@ -562,6 +578,13 @@ const styles = StyleSheet.create({
   fareRow: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 8 },
   fareLabel: { color: '#666', fontSize: 13 },
   fareAmount: { fontSize: 20, fontWeight: '900', color: GREEN },
+  contactRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
+  contactBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    borderWidth: 1.5, borderColor: '#E0F0E3', borderRadius: 12, paddingVertical: 12,
+    backgroundColor: '#F0FAF2',
+  },
+  contactBtnText: { color: GREEN, fontWeight: '700', fontSize: 14 },
   cancelBookingBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     borderWidth: 1.5, borderColor: '#E53935', borderRadius: 12, paddingVertical: 12, marginTop: 8,

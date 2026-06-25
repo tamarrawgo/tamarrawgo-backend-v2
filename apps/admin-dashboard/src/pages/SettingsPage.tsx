@@ -1,4 +1,78 @@
+import { useEffect, useState } from 'react';
+import { api } from '../services/api';
+
+interface FareConfig {
+  id: string;
+  baseFare: number;
+  ratePerKm: number;
+  ratePerMinute: number;
+  minimumFare: number;
+  peakSurge: number;
+  nightSurge: number;
+}
+
 export default function SettingsPage() {
+  const [config, setConfig] = useState<FareConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    api.get('/admin/fare-config')
+      .then((res: any) => {
+        setConfig({
+          id: res.id,
+          baseFare: Number(res.baseFare),
+          ratePerKm: Number(res.ratePerKm),
+          ratePerMinute: Number(res.ratePerMinute),
+          minimumFare: Number(res.minimumFare),
+          peakSurge: Number(res.peakSurge),
+          nightSurge: Number(res.nightSurge),
+        });
+      })
+      .catch(() => setError('Failed to load fare configuration'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async () => {
+    if (!config) return;
+    setSaving(true);
+    setError('');
+    setSuccess('');
+    try {
+      await api.patch('/admin/fare-config', {
+        baseFare: config.baseFare,
+        ratePerKm: config.ratePerKm,
+        ratePerMinute: config.ratePerMinute,
+        minimumFare: config.minimumFare,
+        peakSurge: config.peakSurge,
+        nightSurge: config.nightSurge,
+      });
+      setSuccess('Fare rates updated successfully!');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch {
+      setError('Failed to update fare rates');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateField = (field: keyof FareConfig, value: string) => {
+    if (!config) return;
+    const num = parseFloat(value);
+    if (!isNaN(num)) setConfig({ ...config, [field]: num });
+  };
+
+  const fields: { key: keyof FareConfig; label: string; desc: string; prefix: string }[] = [
+    { key: 'baseFare', label: 'Base Fare', desc: 'Minimum starting fare', prefix: '₱' },
+    { key: 'ratePerKm', label: 'Rate per km', desc: 'Distance charge', prefix: '₱' },
+    { key: 'ratePerMinute', label: 'Rate per minute', desc: 'Time-based charge', prefix: '₱' },
+    { key: 'minimumFare', label: 'Minimum Fare', desc: 'Minimum chargeable amount', prefix: '₱' },
+    { key: 'peakSurge', label: 'Peak Surge', desc: '7-9am, 5-8pm weekdays', prefix: '' },
+    { key: 'nightSurge', label: 'Night Differential', desc: '10pm - 5am', prefix: '' },
+  ];
+
   return (
     <div className="p-8">
       <div className="mb-8">
@@ -9,25 +83,48 @@ export default function SettingsPage() {
       <div className="grid grid-cols-2 gap-6">
         <div className="card">
           <h2 className="text-lg font-bold text-gray-900 mb-4">Fare Configuration</h2>
-          <div className="space-y-4">
-            {[
-              { label: 'Base Fare', value: '₱40.00', desc: 'Minimum starting fare' },
-              { label: 'Rate per km', value: '₱15.00', desc: 'Distance charge' },
-              { label: 'Rate per minute', value: '₱2.00', desc: 'Time-based charge' },
-              { label: 'Minimum Fare', value: '₱50.00', desc: 'Minimum chargeable amount' },
-              { label: 'Peak Surge', value: '1.5x', desc: '7-9am, 5-8pm weekdays' },
-              { label: 'Night Differential', value: '1.2x', desc: '10pm - 5am' },
-            ].map((item) => (
-              <div key={item.label} className="flex items-center justify-between py-2 border-b border-gray-50">
-                <div>
-                  <p className="font-medium text-gray-800">{item.label}</p>
-                  <p className="text-xs text-gray-400">{item.desc}</p>
-                </div>
-                <span className="font-bold text-primary text-lg">{item.value}</span>
+
+          {loading ? (
+            <div className="text-center py-8 text-gray-400">Loading fare configuration...</div>
+          ) : error && !config ? (
+            <div className="text-center py-8 text-red-500">{error}</div>
+          ) : config ? (
+            <>
+              <div className="space-y-4">
+                {fields.map((f) => (
+                  <div key={f.key} className="flex items-center justify-between py-3 border-b border-gray-50">
+                    <div>
+                      <p className="font-medium text-gray-800">{f.label}</p>
+                      <p className="text-xs text-gray-400">{f.desc}</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {f.prefix && <span className="text-primary font-bold text-lg">{f.prefix}</span>}
+                      <input
+                        type="number"
+                        step={f.key.includes('Surge') ? '0.1' : '1'}
+                        min="0"
+                        value={config[f.key]}
+                        onChange={(e) => updateField(f.key, e.target.value)}
+                        className="w-24 text-right text-lg font-bold text-primary border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500"
+                      />
+                      {f.key.includes('Surge') && <span className="text-primary font-bold text-lg">x</span>}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <button className="mt-4 btn-primary w-full">Update Fare Rates</button>
+
+              {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
+              {success && <p className="text-green-600 text-sm mt-3 font-medium">{success}</p>}
+
+              <button
+                className="mt-4 btn-primary w-full disabled:opacity-50"
+                onClick={handleSave}
+                disabled={saving}
+              >
+                {saving ? 'Saving...' : 'Update Fare Rates'}
+              </button>
+            </>
+          ) : null}
         </div>
 
         <div className="card">

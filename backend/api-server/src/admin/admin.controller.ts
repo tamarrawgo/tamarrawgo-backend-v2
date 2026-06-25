@@ -2,10 +2,11 @@ import { Controller, Get, Post, Patch, Delete, Param, Query, Body, UseGuards } f
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { AdminService } from './admin.service';
+import { FareService } from '../fare/fare.service';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { UserRole } from '@tamarrawgo/shared-types';
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsNumber } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 class RejectRiderDto {
@@ -17,8 +18,17 @@ class RejectRiderDto {
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @Roles(UserRole.ADMIN)
 @Controller({ path: 'admin', version: '1' })
+class UpdateFareDto {
+  @ApiPropertyOptional() @IsNumber() @IsOptional() baseFare?: number;
+  @ApiPropertyOptional() @IsNumber() @IsOptional() ratePerKm?: number;
+  @ApiPropertyOptional() @IsNumber() @IsOptional() ratePerMinute?: number;
+  @ApiPropertyOptional() @IsNumber() @IsOptional() minimumFare?: number;
+  @ApiPropertyOptional() @IsNumber() @IsOptional() peakSurge?: number;
+  @ApiPropertyOptional() @IsNumber() @IsOptional() nightSurge?: number;
+}
+
 export class AdminController {
-  constructor(private admin: AdminService) {}
+  constructor(private admin: AdminService, private fare: FareService) {}
 
   @Get('dashboard')
   @ApiOperation({ summary: 'Dashboard analytics' })
@@ -86,5 +96,17 @@ export class AdminController {
   @ApiOperation({ summary: 'Revenue report' })
   getRevenue(@Query('days') days = 30) {
     return this.admin.getRevenueReport(+days);
+  }
+
+  @Get('fare-config')
+  @ApiOperation({ summary: 'Get active fare configuration' })
+  getFareConfig() {
+    return this.fare.getActiveFareConfig();
+  }
+
+  @Patch('fare-config')
+  @ApiOperation({ summary: 'Update fare configuration' })
+  updateFareConfig(@Body() dto: UpdateFareDto) {
+    return this.fare.updateFareConfig(dto);
   }
 }
