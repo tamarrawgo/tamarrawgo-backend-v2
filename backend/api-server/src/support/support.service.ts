@@ -75,6 +75,48 @@ export class SupportService {
     return { data, total, page, totalPages: Math.ceil(total / limit) };
   }
 
+  async getComplaintsByUser(userId: string) {
+    return this.prisma.complaint.findMany({
+      where: { reportedUserId: userId },
+      include: {
+        user: { select: { firstName: true, lastName: true, phone: true, role: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getReportedUsers(userType?: string, page = 1, limit = 20) {
+    const where: any = { reportedUserId: { not: null } };
+    if (userType) where.userType = userType;
+
+    const grouped = await this.prisma.complaint.groupBy({
+      by: ['reportedUserId'],
+      where,
+      _count: { id: true },
+      orderBy: { _count: { id: 'desc' } },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    const total = await this.prisma.complaint.groupBy({
+      by: ['reportedUserId'],
+      where,
+    });
+
+    const userIds = grouped.map((g) => g.reportedUserId).filter(Boolean) as string[];
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, firstName: true, lastName: true, phone: true, role: true, status: true },
+    });
+
+    const data = grouped.map((g) => {
+      const user = users.find((u) => u.id === g.reportedUserId);
+      return { reportedUserId: g.reportedUserId, count: g._count.id, user };
+    });
+
+    return { data, total: total.length, page, totalPages: Math.ceil(total.length / limit) };
+  }
+
   async updateComplaintStatus(id: string, status: string, adminNotes?: string) {
     return this.prisma.complaint.update({
       where: { id },

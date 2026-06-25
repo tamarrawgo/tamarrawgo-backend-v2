@@ -117,6 +117,18 @@ export class AdminController {
     return this.support.getComplaints(userType, +page, +limit);
   }
 
+  @Get('complaints/reported-users')
+  @ApiOperation({ summary: 'List reported users grouped by complaint count' })
+  getReportedUsers(@Query('userType') userType?: string, @Query('page') page = 1, @Query('limit') limit = 20) {
+    return this.support.getReportedUsers(userType, +page, +limit);
+  }
+
+  @Get('complaints/user/:userId')
+  @ApiOperation({ summary: 'Get all complaints against a specific user' })
+  getComplaintsByUser(@Param('userId') userId: string) {
+    return this.support.getComplaintsByUser(userId);
+  }
+
   @Patch('complaints/:id')
   @ApiOperation({ summary: 'Update complaint status' })
   updateComplaint(@Param('id') id: string, @Body() body: { status: string; adminNotes?: string }) {
