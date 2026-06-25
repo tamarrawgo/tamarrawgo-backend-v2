@@ -2,14 +2,15 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth.store';
 
 const navItems = [
-  { path: '/dashboard', label: 'Dashboard', icon: '📊' },
-  { path: '/users', label: 'Users', icon: '👥' },
-  { path: '/riders', label: 'Riders', icon: '🏍️' },
-  { path: '/trips', label: 'Trips', icon: '🗺️' },
-  { path: '/payments', label: 'Payments', icon: '💳' },
-  { path: '/promotions', label: 'Promotions', icon: '🎁' },
-  { path: '/reports', label: 'Reports', icon: '📈' },
-  { path: '/settings', label: 'Settings', icon: '⚙️' },
+  { path: '/dashboard', label: 'Dashboard',  icon: 'dashboard' },
+  { path: '/users',     label: 'Users',       icon: 'groups' },
+  { path: '/riders',    label: 'Riders',      icon: 'badge' },
+  { path: '/trips',     label: 'Trips',       icon: 'route' },
+  { path: '/payments',  label: 'Payments',    icon: 'payments' },
+  { path: '/promotions',label: 'Promotions',  icon: 'local_offer' },
+  { path: '/complaints',label: 'Complaints',  icon: 'report_problem' },
+  { path: '/reports',   label: 'Reports',     icon: 'assessment' },
+  { path: '/settings',  label: 'Settings',    icon: 'settings' },
 ];
 
 export default function Layout() {
@@ -38,7 +39,7 @@ export default function Layout() {
                 }`
               }
             >
-              <span className="text-lg">{item.icon}</span>
+              <span className="material-icons text-xl">{item.icon}</span>
               {item.label}
             </NavLink>
           ))}
@@ -54,7 +55,8 @@ export default function Layout() {
               <p className="text-xs text-white/50">Administrator</p>
             </div>
           </div>
-          <button onClick={handleLogout} className="w-full text-left text-sm text-white/50 hover:text-white transition-colors">
+          <button onClick={handleLogout} className="w-full flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors">
+            <span className="material-icons text-base">logout</span>
             Sign out
           </button>
         </div>

@@ -3,6 +3,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { AdminService } from './admin.service';
 import { FareService } from '../fare/fare.service';
+import { SupportService } from '../support/support.service';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { UserRole } from '@tamarrawgo/shared-types';
@@ -28,7 +29,7 @@ class UpdateFareDto {
 @Roles(UserRole.ADMIN)
 @Controller({ path: 'admin', version: '1' })
 export class AdminController {
-  constructor(private admin: AdminService, private fare: FareService) {}
+  constructor(private admin: AdminService, private fare: FareService, private support: SupportService) {}
 
   @Get('dashboard')
   @ApiOperation({ summary: 'Dashboard analytics' })
@@ -108,5 +109,17 @@ export class AdminController {
   @ApiOperation({ summary: 'Update fare configuration' })
   updateFareConfig(@Body() dto: UpdateFareDto) {
     return this.fare.updateFareConfig(dto);
+  }
+
+  @Get('complaints')
+  @ApiOperation({ summary: 'List complaints with optional userType filter' })
+  getComplaints(@Query('userType') userType?: string, @Query('page') page = 1, @Query('limit') limit = 20) {
+    return this.support.getComplaints(userType, +page, +limit);
+  }
+
+  @Patch('complaints/:id')
+  @ApiOperation({ summary: 'Update complaint status' })
+  updateComplaint(@Param('id') id: string, @Body() body: { status: string; adminNotes?: string }) {
+    return this.support.updateComplaintStatus(id, body.status, body.adminNotes);
   }
 }

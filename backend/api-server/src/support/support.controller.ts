@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Param, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
-import { SupportService, CreateTicketDto, ReplyTicketDto } from './support.service';
+import { SupportService, CreateTicketDto, ReplyTicketDto, CreateComplaintDto } from './support.service';
 import { CurrentUser } from '../common/decorators/user.decorator';
 
 @ApiTags('support')
@@ -24,5 +24,10 @@ export class SupportController {
   @Post('tickets/:id/reply')
   reply(@CurrentUser() user: any, @Param('id') id: string, @Body() dto: ReplyTicketDto) {
     return this.support.replyToTicket(id, user.id, dto.message);
+  }
+
+  @Post('complaints')
+  createComplaint(@CurrentUser() user: any, @Body() dto: CreateComplaintDto) {
+    return this.support.createComplaint(user.id, dto);
   }
 }

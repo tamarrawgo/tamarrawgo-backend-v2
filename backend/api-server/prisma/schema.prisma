@@ -116,6 +116,7 @@ model User {
   notifications    Notification[]
   sentMessages     ChatMessage[]  @relation("SenderMessages")
   supportTickets   SupportTicket[] @relation("UserTickets")
+  complaints       Complaint[]     @relation("UserComplaints")
   auditLogs        AuditLog[]
 
   @@map("users")
@@ -400,6 +401,22 @@ model SupportReply {
   createdAt DateTime      @default(now())
 
   @@map("support_replies")
+}
+
+model Complaint {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation("UserComplaints", fields: [userId], references: [id])
+  userType    String   // RIDER or PASSENGER
+  type        String   // e.g. "Driver misconduct", "Payment issue"
+  details     String
+  status      String   @default("PENDING") // PENDING, REVIEWED, RESOLVED
+  adminNotes  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userType, createdAt])
+  @@map("complaints")
 }
 
 model AuditLog {

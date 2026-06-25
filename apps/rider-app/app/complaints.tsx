@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Platform, StatusBar, KeyboardAvoidingView, ScrollView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Linking } from 'react-native';
+import { api } from '../src/services/api';
 
 const GREEN = '#1B6B2F';
 
@@ -20,13 +20,22 @@ export default function ComplaintsScreen() {
   const [selectedType, setSelectedType] = useState('');
   const [details, setDetails] = useState('');
 
-  const handleSubmit = () => {
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
     if (!selectedType) { Alert.alert('Error', 'Please select a report type'); return; }
     if (!details.trim()) { Alert.alert('Error', 'Please describe the issue'); return; }
-
-    const subject = encodeURIComponent(`[Rider Report] ${selectedType}`);
-    const body = encodeURIComponent(`Report Type: ${selectedType}\n\nDetails:\n${details.trim()}`);
-    Linking.openURL(`mailto:tamarrawgo@gmail.com?subject=${subject}&body=${body}`);
+    setSubmitting(true);
+    try {
+      await api.post('/support/complaints', { userType: 'RIDER', type: selectedType, details: details.trim() });
+      Alert.alert('Submitted', 'Your complaint has been submitted. We will review it shortly.');
+      setSelectedType('');
+      setDetails('');
+    } catch {
+      Alert.alert('Error', 'Failed to submit complaint. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -75,7 +84,7 @@ export default function ComplaintsScreen() {
             disabled={!selectedType || !details.trim()}
           >
             <MaterialIcons name="send" size={18} color="#fff" />
-            <Text style={styles.submitText}>Send via Email</Text>
+            <Text style={styles.submitText}>{submitting ? 'Submitting...' : 'Submit Complaint'}</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

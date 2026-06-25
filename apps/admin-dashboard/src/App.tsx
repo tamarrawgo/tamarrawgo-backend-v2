@@ -9,6 +9,7 @@ import TripsPage from './pages/TripsPage';
 import PaymentsPage from './pages/PaymentsPage';
 import PromotionsPage from './pages/PromotionsPage';
 import ReportsPage from './pages/ReportsPage';
+import ComplaintsPage from './pages/ComplaintsPage';
 import SettingsPage from './pages/SettingsPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="trips" element={<TripsPage />} />
           <Route path="payments" element={<PaymentsPage />} />
           <Route path="promotions" element={<PromotionsPage />} />
+          <Route path="complaints" element={<ComplaintsPage />} />
           <Route path="reports" element={<ReportsPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
