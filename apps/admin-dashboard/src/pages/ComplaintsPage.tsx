@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
 import { api } from '../services/api';
 
+interface ComplaintUser {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  role: string;
+}
+
 interface Complaint {
   id: string;
   userType: string;
@@ -8,8 +15,10 @@ interface Complaint {
   details: string;
   status: string;
   adminNotes: string | null;
+  bookingId: string | null;
   createdAt: string;
-  user: { firstName: string; lastName: string; phone: string; role: string };
+  user: ComplaintUser;
+  reportedUser: ComplaintUser | null;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -96,6 +105,7 @@ export default function ComplaintsPage() {
               <tr className="border-b border-gray-100 text-left text-gray-500 text-xs uppercase">
                 <th className="px-5 py-3">User</th>
                 <th className="px-5 py-3">Type</th>
+                <th className="px-5 py-3">Reported User</th>
                 <th className="px-5 py-3">Category</th>
                 <th className="px-5 py-3">Details</th>
                 <th className="px-5 py-3">Status</th>
@@ -116,6 +126,14 @@ export default function ComplaintsPage() {
                     }`}>
                       {c.userType}
                     </span>
+                  </td>
+                  <td className="px-5 py-3">
+                    {c.reportedUser ? (
+                      <div>
+                        <p className="font-medium text-red-700">{c.reportedUser.firstName} {c.reportedUser.lastName}</p>
+                        <p className="text-xs text-gray-400">{c.reportedUser.phone}</p>
+                      </div>
+                    ) : <span className="text-xs text-gray-300">—</span>}
                   </td>
                   <td className="px-5 py-3 text-gray-700">{c.type}</td>
                   <td className="px-5 py-3 text-gray-600 max-w-xs truncate">{c.details}</td>
@@ -174,6 +192,12 @@ export default function ComplaintsPage() {
                 <span className="text-sm text-gray-500">From</span>
                 <span className="text-sm font-medium">{selected.user.firstName} {selected.user.lastName} ({selected.userType})</span>
               </div>
+              {selected.reportedUser && (
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-500">Reported</span>
+                  <span className="text-sm font-medium text-red-700">{selected.reportedUser.firstName} {selected.reportedUser.lastName} ({selected.reportedUser.phone})</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-sm text-gray-500">Category</span>
                 <span className="text-sm font-medium">{selected.type}</span>

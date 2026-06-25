@@ -32,6 +32,12 @@ export class BookingsController {
     return this.bookings.getMyBookings(user.id);
   }
 
+  @Get('recent-trips')
+  @ApiOperation({ summary: 'Get recent completed trips for complaints' })
+  getRecentTrips(@CurrentUser() user: any) {
+    return this.bookings.getRecentTrips(user.id);
+  }
+
   @Get('active')
   @ApiOperation({ summary: 'Get current active booking' })
   getActiveBooking(@CurrentUser() user: any) {

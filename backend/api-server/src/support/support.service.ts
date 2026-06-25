@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateTicketDto {
@@ -16,6 +16,8 @@ export class CreateComplaintDto {
   @ApiProperty() @IsString() @IsNotEmpty() userType: string;
   @ApiProperty() @IsString() @IsNotEmpty() type: string;
   @ApiProperty() @IsString() @IsNotEmpty() details: string;
+  @ApiProperty({ required: false }) @IsString() @IsOptional() reportedUserId?: string;
+  @ApiProperty({ required: false }) @IsString() @IsOptional() bookingId?: string;
 }
 
 @Injectable()
@@ -44,7 +46,14 @@ export class SupportService {
 
   async createComplaint(userId: string, dto: CreateComplaintDto) {
     return this.prisma.complaint.create({
-      data: { userId, userType: dto.userType, type: dto.type, details: dto.details },
+      data: {
+        userId,
+        userType: dto.userType,
+        type: dto.type,
+        details: dto.details,
+        reportedUserId: dto.reportedUserId ?? null,
+        bookingId: dto.bookingId ?? null,
+      },
     });
   }
 
@@ -53,7 +62,10 @@ export class SupportService {
     const [data, total] = await Promise.all([
       this.prisma.complaint.findMany({
         where,
-        include: { user: { select: { firstName: true, lastName: true, phone: true, role: true } } },
+        include: {
+          user: { select: { firstName: true, lastName: true, phone: true, role: true } },
+          reportedUser: { select: { firstName: true, lastName: true, phone: true, role: true } },
+        },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,

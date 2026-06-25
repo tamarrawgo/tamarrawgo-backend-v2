@@ -115,7 +115,7 @@ export class BookingsService {
         notes: dto.notes,
         expiresAt: new Date(Date.now() + 5 * 60 * 1000),
       },
-      include: { passenger: { select: { firstName: true, lastName: true } } },
+      include: { passenger: { select: { firstName: true, lastName: true, phone: true } } },
     });
 
     // Find and notify nearby riders
@@ -135,7 +135,7 @@ export class BookingsService {
 
     const searching = await this.prisma.booking.findMany({
       where: { status: 'SEARCHING' },
-      include: { passenger: { select: { firstName: true, lastName: true } } },
+      include: { passenger: { select: { firstName: true, lastName: true, phone: true } } },
       orderBy: { createdAt: 'asc' },
     });
 
@@ -230,7 +230,7 @@ export class BookingsService {
     const updated = await this.prisma.booking.update({
       where: { id: bookingId },
       data: { riderId: rider.id, status: 'ACCEPTED', acceptedAt: new Date() },
-      include: { passenger: { select: { fcmToken: true } } },
+      include: { passenger: { select: { firstName: true, lastName: true, phone: true, fcmToken: true } } },
     });
 
     this.socket.notifyBookingAccepted(booking.passengerId, {
@@ -457,6 +457,25 @@ export class BookingsService {
       select: {
         id: true, status: true, dropoffAddress: true,
         estimatedFare: true, createdAt: true,
+      },
+    });
+  }
+
+  async getRecentTrips(userId: string) {
+    return this.prisma.booking.findMany({
+      where: {
+        OR: [{ passengerId: userId }, { rider: { userId } }],
+        status: 'COMPLETED',
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+      include: {
+        passenger: { select: { id: true, firstName: true, lastName: true, phone: true, profilePhoto: true } },
+        rider: {
+          include: {
+            user: { select: { id: true, firstName: true, lastName: true, phone: true, profilePhoto: true } },
+          },
+        },
       },
     });
   }
