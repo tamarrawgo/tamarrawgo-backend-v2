@@ -87,12 +87,12 @@ export class RidersService {
   }
 
   async getRiderLocation(riderId: string) {
-    const rider = await this.prisma.riderProfile.findUnique({
-      where: { id: riderId },
-      select: { currentLatitude: true, currentLongitude: true, currentHeading: true, lastLocationUpdate: true },
-    });
-    if (!rider) throw new NotFoundException('Rider not found');
-    return rider;
+    const result: any[] = await this.prisma.$queryRaw`
+      SELECT "currentLatitude", "currentLongitude", "currentHeading", "lastLocationUpdate"
+      FROM rider_profiles WHERE id = ${riderId} LIMIT 1
+    `;
+    if (!result || result.length === 0) throw new NotFoundException('Rider not found');
+    return result[0];
   }
 
   async updateStatus(userId: string, dto: UpdateOnlineStatusDto) {

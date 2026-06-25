@@ -69,18 +69,11 @@ export default function TrackingScreen() {
   // Local state for rider marker — ensures re-render on every position change
   const [localRiderLoc, setLocalRiderLoc] = useState<{ latitude: number; longitude: number; heading: number } | null>(null);
   const riderLocation = localRiderLoc ?? storeRiderLoc;
-  const [markerKey, setMarkerKey] = useState(0);
-  const [markerVisible, setMarkerVisible] = useState(true);
+  const [mapKey, setMapKey] = useState(0);
   const [lastUpdate, setLastUpdate] = useState('');
-
-  const refreshMarker = useCallback(() => {
-    setMarkerVisible(false);
-    setTimeout(() => setMarkerVisible(true), 50);
-  }, []);
   const riderCoord = useRef(new AnimatedRegion({
     latitude: 0, longitude: 0, latitudeDelta: 0.01, longitudeDelta: 0.01,
   })).current;
-  const markerRef = useRef<any>(null);
 
   const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -241,8 +234,7 @@ export default function TrackingScreen() {
       const loc = { latitude: data.latitude, longitude: data.longitude, heading: data.heading ?? 0 };
       setRiderLocation(loc);
       setLocalRiderLoc({ ...loc });
-      setMarkerKey((k) => k + 1);
-      refreshMarker();
+      setMapKey((k) => k + 1);
       setLastUpdate(`Socket ${new Date().toLocaleTimeString()}`);
       fitMapToRider(data.latitude, data.longitude);
       const p = useBookingStore.getState().pickup;
@@ -277,7 +269,7 @@ export default function TrackingScreen() {
     let mounted = true;
     const poll = async () => {
       try {
-        const booking: any = await api.get('/bookings/active');
+        const booking: any = await api.get(`/bookings/active?_t=${Date.now()}`);
         if (!mounted) return;
         const current = useBookingStore.getState().activeBooking as any;
         if (!current) return;
@@ -308,19 +300,18 @@ export default function TrackingScreen() {
             router.replace('/(tabs)/home');
           }
         }
-        // Fetch rider location directly (bypasses booking JOIN caching)
+        // Fetch rider location directly with cache busting
         const riderId = booking.riderId ?? booking.rider?.id;
         if (riderId) {
           try {
-            const riderLoc: any = await api.get(`/riders/${riderId}/location`);
+            const riderLoc: any = await api.get(`/riders/${riderId}/location?_t=${Date.now()}`);
             const rLat = riderLoc?.currentLatitude;
             const rLng = riderLoc?.currentLongitude;
             if (rLat && rLng) {
               const loc = { latitude: rLat, longitude: rLng, heading: riderLoc?.currentHeading ?? 0 };
               useBookingStore.getState().setRiderLocation(loc);
               setLocalRiderLoc({ ...loc });
-              setMarkerKey((k) => k + 1);
-              refreshMarker();
+              setMapKey((k) => k + 1);
               setLastUpdate(`Live ${new Date().toLocaleTimeString()} [${rLat.toFixed(4)},${rLng.toFixed(4)}]`);
               fitMapToRider(rLat, rLng);
               const p = useBookingStore.getState().pickup;
@@ -416,8 +407,10 @@ export default function TrackingScreen() {
           <Marker
             coordinate={{ latitude: riderLocation.latitude, longitude: riderLocation.longitude }}
             title="Driver"
-            pinColor="#1B6B2F"
-          />
+            anchor={{ x: 0.5, y: 1 }}
+          >
+            <Text style={styles.emojiMarker}>🛺</Text>
+          </Marker>
         )}
       </MapView>
 
