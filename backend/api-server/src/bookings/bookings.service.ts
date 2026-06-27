@@ -135,11 +135,14 @@ export class BookingsService {
       include: { passenger: { select: { firstName: true, lastName: true, phone: true } } },
     });
 
-    // Mark promo as used
+    // Mark promo as used and remove notification
     if (dto.promoCode && Number(booking.discount) > 0) {
       await this.prisma.promotion.update({
         where: { code: dto.promoCode },
         data: { usageCount: { increment: 1 } },
+      }).catch(() => {});
+      await this.prisma.notification.deleteMany({
+        where: { userId: passengerId, body: { contains: dto.promoCode } },
       }).catch(() => {});
     }
 
