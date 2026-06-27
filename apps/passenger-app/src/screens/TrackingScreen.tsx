@@ -78,6 +78,7 @@ export default function TrackingScreen() {
   const [cancelLoading, setCancelLoading] = useState(false);
   const sheetAnim = useRef(new Animated.Value(COLLAPSED_HEIGHT)).current;
   const sheetExpanded = useRef(false);
+  const navigatedToRate = useRef(false);
 
   const handleToggleSheet = useCallback(() => {
     const toValue = sheetExpanded.current ? COLLAPSED_HEIGHT : EXPANDED_HEIGHT;
@@ -217,7 +218,7 @@ export default function TrackingScreen() {
       if (!current || current.id !== data.bookingId) return;
       useBookingStore.getState().setActiveBooking({ ...current, status: data.status } as any);
       if (data.status === BookingStatus.COMPLETED) {
-        setTimeout(() => { if (mounted) router.push('/rate'); }, 1500);
+        if (!navigatedToRate.current) { navigatedToRate.current = true; setTimeout(() => { if (mounted) router.replace('/rate'); }, 1500); }
       } else if (data.status === BookingStatus.CANCELLED) {
         useBookingStore.getState().reset();
         if (mounted) router.replace('/(tabs)/home');
@@ -274,7 +275,7 @@ export default function TrackingScreen() {
             if (!mounted) return;
             if (specific?.status === BookingStatus.COMPLETED) {
               useBookingStore.getState().setActiveBooking({ ...current, status: BookingStatus.COMPLETED } as any);
-              router.push('/rate');
+              if (!navigatedToRate.current) { navigatedToRate.current = true; router.replace('/rate'); }
             } else if (specific?.status === BookingStatus.CANCELLED) {
               useBookingStore.getState().reset();
               router.replace('/(tabs)/home');
@@ -286,7 +287,7 @@ export default function TrackingScreen() {
         if (booking.status !== current.status) {
           useBookingStore.getState().setActiveBooking({ ...current, ...booking } as any);
           if (booking.status === BookingStatus.COMPLETED) {
-            router.push('/rate');
+            if (!navigatedToRate.current) { navigatedToRate.current = true; router.replace('/rate'); }
           } else if (booking.status === BookingStatus.CANCELLED) {
             useBookingStore.getState().reset();
             router.replace('/(tabs)/home');
@@ -525,7 +526,7 @@ export default function TrackingScreen() {
               </TouchableOpacity>
             )}
             {isCompleted && (
-              <TouchableOpacity style={[styles.actionBtn, styles.rateActionBtn]} onPress={() => router.push('/rate')}>
+              <TouchableOpacity style={[styles.actionBtn, styles.rateActionBtn]} onPress={() => { if (!navigatedToRate.current) { navigatedToRate.current = true; router.replace('/rate'); } }}>
                 <MaterialIcons name="star" size={20} color="#fff" />
                 <Text style={[styles.actionLabel, { color: '#fff' }]}>Rate</Text>
               </TouchableOpacity>
