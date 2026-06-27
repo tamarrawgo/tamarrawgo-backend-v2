@@ -225,6 +225,9 @@ model Booking {
   rating              Rating?
   chatMessages        ChatMessage[]
 
+  @@index([passengerId, status])
+  @@index([riderId, status])
+  @@index([status, createdAt])
   @@map("bookings")
 }
 
