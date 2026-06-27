@@ -134,7 +134,9 @@ export default function RiderHomeScreen() {
     useCallback(() => {
       if (isOnline && !hasActiveBooking) fetchAvailableBookings();
       fetchStats();
-      useAuthStore.getState().loadUser();
+      api.get('/users/profile').then((profile: any) => {
+        if (profile) useAuthStore.setState({ user: profile });
+      }).catch(() => {});
     }, [isOnline, hasActiveBooking, fetchAvailableBookings, fetchStats])
   );
 

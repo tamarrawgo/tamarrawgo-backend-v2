@@ -46,7 +46,7 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       api.get('/users/profile').then((profile: any) => {
-        useAuthStore.getState().loadUser();
+        if (profile) useAuthStore.setState({ user: profile });
       }).catch(() => {});
     }, [])
   );
