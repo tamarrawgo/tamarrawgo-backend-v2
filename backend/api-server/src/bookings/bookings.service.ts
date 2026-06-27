@@ -46,21 +46,30 @@ export class BookingsService {
       durationMinutes = estimateEtaMinutes(distanceKm);
     }
 
+    // Calculate fare without promo first to check minimum
+    const estimateNoPromo = await this.fare.estimateFare(distanceKm, durationMinutes, 0);
+    const count = Math.min(Math.max(passengerCount, 1), 4);
+    const multiplier = 1 + (count - 1) * 0.20;
+    let baseTotalFare = estimateNoPromo.totalFare;
+    if (count > 1) baseTotalFare = Math.round(baseTotalFare * multiplier * 100) / 100;
+
+    // Only allow promo if fare > ₱100
     let promoDiscount = 0;
+    let promoRejected = false;
     if (promoCode) {
-      promoDiscount = await this.getPromoDiscount(promoCode, 0);
+      if (baseTotalFare >= 100) {
+        promoDiscount = await this.getPromoDiscount(promoCode, 0);
+      } else {
+        promoRejected = true;
+      }
     }
 
     const estimate = await this.fare.estimateFare(distanceKm, durationMinutes, promoDiscount);
-
-    // +20% fare per additional passenger (max 4)
-    const count = Math.min(Math.max(passengerCount, 1), 4);
-    const multiplier = 1 + (count - 1) * 0.20;
     if (count > 1) {
       estimate.totalFare = Math.round(estimate.totalFare * multiplier * 100) / 100;
     }
 
-    return { ...estimate, passengerCount: count, passengerMultiplier: multiplier, polyline };
+    return { ...estimate, passengerCount: count, passengerMultiplier: multiplier, polyline, promoRejected };
   }
 
   async createBooking(passengerId: string, dto: CreateBookingDto) {

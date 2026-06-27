@@ -171,6 +171,9 @@ export default function SearchScreen() {
       const discount = Number(result?.discount ?? 0);
       setPromoApplied(discount > 0);
       setPromoDiscount(discount);
+      if (result?.promoRejected) {
+        Alert.alert('Promo Not Applied', 'Promo codes can only be used on bookings over ₱100.');
+      }
       setFareEstimate({
         totalFare: result?.totalFare ?? 0,
         distanceKm: result?.distanceKm ?? 0,
