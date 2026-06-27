@@ -20,9 +20,17 @@ export class RidersService implements OnModuleInit {
   onModuleInit() {
     const redisUrl = this.config.get('REDIS_URL');
     if (redisUrl) {
-      this.redis = new Redis(redisUrl);
-      this.redis.on('connect', () => this.logger.log('Redis connected for rider locations'));
-      this.redis.on('error', (err) => this.logger.error('Redis error:', err.message));
+      this.redis = new Redis(redisUrl, {
+        connectTimeout: 5000,
+        maxRetriesPerRequest: 1,
+        retryStrategy: (times) => (times > 3 ? null : Math.min(times * 1000, 5000)),
+        lazyConnect: true,
+      });
+      this.redis.connect().then(() => this.logger.log('Redis connected for rider locations')).catch(() => {
+        this.logger.warn('Redis connection failed — falling back to DB only');
+        this.redis = null;
+      });
+      this.redis.on('error', () => {});
     }
   }
 
@@ -64,10 +72,10 @@ export class RidersService implements OnModuleInit {
   async updateLocation(userId: string, dto: UpdateLocationDto) {
     const rider = await this.getRiderProfile(userId);
 
-    // Write to Redis for fast reads (expires in 30s)
-    if (this.redis) {
+    // Write to Redis for fast reads (fire-and-forget, never blocks)
+    if (this.redis?.status === 'ready') {
       const locData = JSON.stringify({ currentLatitude: dto.latitude, currentLongitude: dto.longitude, currentHeading: dto.heading, lastLocationUpdate: new Date().toISOString() });
-      await this.redis.set(`rider:loc:${rider.id}`, locData, 'EX', 30).catch(() => {});
+      this.redis.set(`rider:loc:${rider.id}`, locData, 'EX', 30).catch(() => {});
     }
 
     // Write to DB (persistent)
