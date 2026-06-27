@@ -93,19 +93,38 @@ export class AdminService {
   }
 
   async deleteUser(userId: string) {
-    // Delete all related records in order before deleting the user
     const rider = await this.prisma.riderProfile.findUnique({ where: { userId } });
+
+    // Delete rider-related records
     if (rider) {
+      await this.prisma.walletTransaction.deleteMany({ where: { riderId: rider.id } });
       await this.prisma.riderDocument.deleteMany({ where: { riderId: rider.id } });
       await this.prisma.earning.deleteMany({ where: { riderId: rider.id } });
       await this.prisma.rating.deleteMany({ where: { riderId: rider.id } });
+      await this.prisma.payment.deleteMany({ where: { riderId: rider.id } });
       await this.prisma.booking.updateMany({ where: { riderId: rider.id }, data: { riderId: null } });
       await this.prisma.vehicle.deleteMany({ where: { riderId: rider.id } });
       await this.prisma.riderProfile.delete({ where: { userId } });
     }
-    // Delete passenger-related records
+
+    // Delete bookings and their related records
+    const bookings = await this.prisma.booking.findMany({ where: { passengerId: userId }, select: { id: true } });
+    const bookingIds = bookings.map((b) => b.id);
+    if (bookingIds.length > 0) {
+      await this.prisma.payment.deleteMany({ where: { bookingId: { in: bookingIds } } });
+      await this.prisma.rating.deleteMany({ where: { bookingId: { in: bookingIds } } });
+      await this.prisma.chatMessage.deleteMany({ where: { bookingId: { in: bookingIds } } });
+    }
     await this.prisma.booking.deleteMany({ where: { passengerId: userId } });
+
+    // Delete user-related records
+    await this.prisma.complaint.deleteMany({ where: { OR: [{ userId }, { reportedUserId: userId }] } });
+    await this.prisma.pointTransaction.deleteMany({ where: { userId } });
     await this.prisma.notification.deleteMany({ where: { userId } });
+    await this.prisma.chatMessage.deleteMany({ where: { senderId: userId } });
+    await this.prisma.supportTicket.deleteMany({ where: { userId } });
+    await this.prisma.auditLog.deleteMany({ where: { userId } });
+
     return this.prisma.user.delete({ where: { id: userId } });
   }
 
