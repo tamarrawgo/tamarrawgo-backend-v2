@@ -13,13 +13,19 @@ export class FareService {
     return config;
   }
 
-  async estimateFare(distanceKm: number, durationMinutes: number, promoDiscount = 0): Promise<FareEstimate> {
+  async estimateFare(distanceKm: number, durationMinutes: number, promoDiscount = 0) {
     const config = await this.getActiveFareConfig();
     let surge = 1.0;
-    if (isPeakHour()) surge = Number(config.peakSurge) || 1.5;
-    else if (isNightDifferential()) surge = Number(config.nightSurge) || 1.2;
+    let surgeType: string | null = null;
+    if (isPeakHour()) {
+      surge = Number(config.peakSurge) || 1.5;
+      surgeType = 'PEAK';
+    } else if (isNightDifferential()) {
+      surge = Number(config.nightSurge) || 1.2;
+      surgeType = 'NIGHT';
+    }
 
-    return calculateFare(
+    const estimate = calculateFare(
       distanceKm,
       durationMinutes,
       {
@@ -31,6 +37,7 @@ export class FareService {
       },
       promoDiscount,
     );
+    return { ...estimate, surgeType };
   }
 
   async updateFareConfig(data: {

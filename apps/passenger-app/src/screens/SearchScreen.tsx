@@ -65,7 +65,7 @@ export default function SearchScreen() {
   const [showFareModal, setShowFareModal] = useState(false);
   const [fareEstimate, setFareEstimate] = useState<{
     totalFare: number; distanceKm: number; estimatedDurationMinutes: number;
-    polyline?: string | null;
+    polyline?: string | null; surgeType?: string | null; surgeMultiplier?: number;
   } | null>(null);
   const mapPreviewRef = useRef<MapView>(null);
 
@@ -169,6 +169,8 @@ export default function SearchScreen() {
         distanceKm: result?.distanceKm ?? 0,
         estimatedDurationMinutes: result?.estimatedDurationMinutes ?? 0,
         polyline: result?.polyline ?? null,
+        surgeType: result?.surgeType ?? null,
+        surgeMultiplier: result?.surgeMultiplier ?? 1,
       });
       setShowFareModal(true);
     } catch (err: any) {
@@ -438,6 +440,24 @@ export default function SearchScreen() {
               </View>
             </View>
 
+            {/* Surge pricing indicator */}
+            {fareEstimate?.surgeType && (
+              <View style={[styles.surgeCard, fareEstimate.surgeType === 'PEAK' ? styles.surgePeak : styles.surgeNight]}>
+                <Text style={styles.surgeIcon}>{fareEstimate.surgeType === 'PEAK' ? '⚡' : '🌙'}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.surgeTitle}>
+                    {fareEstimate.surgeType === 'PEAK' ? 'Peak Hour Surge' : 'Night Differential'}
+                    {' '}({fareEstimate.surgeMultiplier}x)
+                  </Text>
+                  <Text style={styles.surgeDesc}>
+                    {fareEstimate.surgeType === 'PEAK'
+                      ? 'Higher demand during rush hour (7-9AM, 5-8PM). Fare is increased.'
+                      : 'Night rate applies from 10PM to 5AM. Fare is slightly higher.'}
+                  </Text>
+                </View>
+              </View>
+            )}
+
             {/* Tricycle fare card */}
             <View style={styles.fareCard}>
               <Text style={styles.fareEmoji}>🛺</Text>
@@ -595,6 +615,15 @@ const styles = StyleSheet.create({
   confirmBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
   goBackBtn: { alignItems: 'center', paddingVertical: 10 },
   goBackText: { color: '#999', fontSize: 14, fontWeight: '600' },
+  surgeCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    borderRadius: 12, padding: 12, marginBottom: 12,
+  },
+  surgePeak: { backgroundColor: '#FFF8E1', borderWidth: 1, borderColor: '#FFE082' },
+  surgeNight: { backgroundColor: '#E8EAF6', borderWidth: 1, borderColor: '#C5CAE9' },
+  surgeIcon: { fontSize: 24 },
+  surgeTitle: { fontSize: 13, fontWeight: '700', color: '#333' },
+  surgeDesc: { fontSize: 11, color: '#777', marginTop: 2, lineHeight: 16 },
   mapPreviewContainer: {
     flex: 1, position: 'relative',
   },

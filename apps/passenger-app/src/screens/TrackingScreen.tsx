@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, Modal, ActivityIndicator, Animated, Dimensions, Linking, Share, Platform } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_DEFAULT, AnimatedRegion, MarkerAnimated } from 'react-native-maps';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, Modal, ActivityIndicator, Animated, Dimensions, Linking, Share } from 'react-native';
+import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const COLLAPSED_HEIGHT = 130;
@@ -69,11 +69,6 @@ export default function TrackingScreen() {
   // Local state for rider marker — ensures re-render on every position change
   const [localRiderLoc, setLocalRiderLoc] = useState<{ latitude: number; longitude: number; heading: number } | null>(null);
   const riderLocation = localRiderLoc ?? storeRiderLoc;
-  const [mapKey, setMapKey] = useState(0);
-  const [lastUpdate, setLastUpdate] = useState('');
-  const riderCoord = useRef(new AnimatedRegion({
-    latitude: 0, longitude: 0, latitudeDelta: 0.01, longitudeDelta: 0.01,
-  })).current;
 
   const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -135,7 +130,6 @@ export default function TrackingScreen() {
             const loc = { latitude: rLat, longitude: rLng, heading: 0 };
             setRiderLocation(loc);
             setLocalRiderLoc(loc);
-            riderCoord.setValue({ latitude: rLat, longitude: rLng, latitudeDelta: 0.01, longitudeDelta: 0.01 });
           }
         }
       } catch {}
@@ -234,8 +228,6 @@ export default function TrackingScreen() {
       const loc = { latitude: data.latitude, longitude: data.longitude, heading: data.heading ?? 0 };
       setRiderLocation(loc);
       setLocalRiderLoc({ ...loc });
-      setMapKey((k) => k + 1);
-      setLastUpdate(`Socket ${new Date().toLocaleTimeString()}`);
       fitMapToRider(data.latitude, data.longitude);
       const p = useBookingStore.getState().pickup;
       const currentStatus = (useBookingStore.getState().activeBooking as any)?.status;
@@ -300,29 +292,21 @@ export default function TrackingScreen() {
             router.replace('/(tabs)/home');
           }
         }
-        // Fetch rider location directly with cache busting
-        const riderId = booking.riderId ?? booking.rider?.id;
-        if (riderId) {
-          try {
-            const riderLoc: any = await api.get(`/riders/${riderId}/location?_t=${Date.now()}`);
-            const rLat = riderLoc?.currentLatitude;
-            const rLng = riderLoc?.currentLongitude;
-            if (rLat && rLng) {
-              const loc = { latitude: rLat, longitude: rLng, heading: riderLoc?.currentHeading ?? 0 };
-              useBookingStore.getState().setRiderLocation(loc);
-              setLocalRiderLoc({ ...loc });
-              setMapKey((k) => k + 1);
-              setLastUpdate(`Live ${new Date().toLocaleTimeString()} [${rLat.toFixed(4)},${rLng.toFixed(4)}]`);
-              fitMapToRider(rLat, rLng);
-              const p = useBookingStore.getState().pickup;
-              if (p && (booking.status === 'ACCEPTED' || booking.status === 'SEARCHING')) {
-                const dLat = (rLat - p.latitude) * 111000;
-                const dLng = (rLng - p.longitude) * 111000 * Math.cos(p.latitude * Math.PI / 180);
-                const distM = Math.sqrt(dLat * dLat + dLng * dLng);
-                setEtaMinutes(Math.max(1, Math.round(distM / 250)));
-              }
-            }
-          } catch {}
+        // Read rider location from booking response directly
+        const rLat = booking.rider?.currentLatitude;
+        const rLng = booking.rider?.currentLongitude;
+        if (rLat && rLng) {
+          const loc = { latitude: Number(rLat), longitude: Number(rLng), heading: 0 };
+          useBookingStore.getState().setRiderLocation(loc);
+          setLocalRiderLoc({ ...loc });
+          fitMapToRider(Number(rLat), Number(rLng));
+          const p = useBookingStore.getState().pickup;
+          if (p && (booking.status === 'ACCEPTED' || booking.status === 'SEARCHING')) {
+            const dLat = (Number(rLat) - p.latitude) * 111000;
+            const dLng = (Number(rLng) - p.longitude) * 111000 * Math.cos(p.latitude * Math.PI / 180);
+            const distM = Math.sqrt(dLat * dLat + dLng * dLng);
+            setEtaMinutes(Math.max(1, Math.round(distM / 250)));
+          }
         }
       } catch {}
     };
@@ -426,6 +410,37 @@ export default function TrackingScreen() {
         </Text>
       </View>
 
+      {/* SOS Button */}
+      {!isCompleted && (
+        <TouchableOpacity
+          style={styles.sosBtn}
+          onPress={() => {
+            Alert.alert(
+              'Emergency SOS',
+              'What would you like to do?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Call 911', style: 'destructive', onPress: () => Linking.openURL('tel:911') },
+                {
+                  text: 'Share Location',
+                  onPress: () => {
+                    const loc = riderLocation ?? pickup;
+                    const mapsLink = loc ? `https://maps.google.com/?q=${loc.latitude},${loc.longitude}` : '';
+                    Share.share({
+                      message: `EMERGENCY - I need help!\n\nI'm on a TamarrawGo ride.\nDriver: ${riderName}\nPlate: ${plateNo}\n${mapsLink ? `My location: ${mapsLink}` : ''}`,
+                      title: 'Emergency - TamarrawGo',
+                    }).catch(() => {});
+                  },
+                },
+              ],
+            );
+          }}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.sosBtnText}>SOS</Text>
+        </TouchableOpacity>
+      )}
+
       {/* Collapsible Bottom Sheet */}
       <Animated.View style={[styles.driverCard, { height: sheetAnim }]}>
         {/* Pull handle */}
@@ -448,7 +463,6 @@ export default function TrackingScreen() {
               <View style={[styles.statusDot, { backgroundColor: isCompleted ? '#34C759' : GREEN }]} />
               <Text style={styles.statusTextCompact}>{STATUS_LABELS[status] ?? 'Processing...'}</Text>
             </View>
-            {lastUpdate ? <Text style={{ fontSize: 9, color: '#F57C00' }}>{lastUpdate}</Text> : null}
           </View>
           <Text style={styles.fareAmountCompact}>{formatCurrency(Number(activeBooking?.estimatedFare ?? 0))}</Text>
         </View>
@@ -573,6 +587,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', borderRadius: 20, padding: 10,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 4,
   },
+  sosBtn: {
+    position: 'absolute', top: 56, right: 16,
+    backgroundColor: '#E53935', borderRadius: 24, width: 48, height: 48,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#E53935', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.4, shadowRadius: 6, elevation: 6,
+  },
+  sosBtnText: { color: '#fff', fontSize: 14, fontWeight: '900', letterSpacing: 1 },
   titleBadge: {
     position: 'absolute', top: 60, alignSelf: 'center', left: 0, right: 0, alignItems: 'center',
   },
