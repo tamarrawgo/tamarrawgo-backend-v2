@@ -205,22 +205,17 @@ export class AdminService {
   }
 
   async cleanupOldTrips() {
-    const maxRecords = 100;
-    const count = await this.prisma.booking.count();
-    if (count <= maxRecords) return;
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    const keep = await this.prisma.booking.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: maxRecords,
+    // Find bookings older than 30 days (only terminal statuses)
+    const oldBookings = await this.prisma.booking.findMany({
+      where: {
+        createdAt: { lt: thirtyDaysAgo },
+        status: { in: ['COMPLETED', 'CANCELLED'] },
+      },
       select: { id: true },
     });
-    const keepIds = keep.map((b) => b.id);
-
-    const toDelete = await this.prisma.booking.findMany({
-      where: { id: { notIn: keepIds } },
-      select: { id: true },
-    });
-    const deleteIds = toDelete.map((b) => b.id);
+    const deleteIds = oldBookings.map((b) => b.id);
 
     if (deleteIds.length === 0) return;
 
@@ -228,6 +223,8 @@ export class AdminService {
     await this.prisma.payment.deleteMany({ where: { bookingId: { in: deleteIds } } });
     await this.prisma.rating.deleteMany({ where: { bookingId: { in: deleteIds } } });
     await this.prisma.booking.deleteMany({ where: { id: { in: deleteIds } } });
+
+    this.logger.log(`Cleaned up ${deleteIds.length} bookings older than 30 days`);
   }
 
   async cancelTrip(bookingId: string) {

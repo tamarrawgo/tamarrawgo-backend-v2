@@ -587,9 +587,11 @@ export class BookingsService {
   }
 
   async getMyBookings(userId: string) {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     return this.prisma.booking.findMany({
       where: {
         OR: [{ passengerId: userId }, { rider: { userId } }],
+        createdAt: { gte: thirtyDaysAgo },
       },
       orderBy: { createdAt: 'desc' },
       take: 50,
