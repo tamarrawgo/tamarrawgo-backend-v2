@@ -451,12 +451,14 @@ export class BookingsService {
 
   async getMyBookings(userId: string) {
     return this.prisma.booking.findMany({
-      where: { passengerId: userId },
+      where: {
+        OR: [{ passengerId: userId }, { rider: { userId } }],
+      },
       orderBy: { createdAt: 'desc' },
       take: 50,
       select: {
-        id: true, status: true, dropoffAddress: true,
-        estimatedFare: true, createdAt: true,
+        id: true, status: true, pickupAddress: true, dropoffAddress: true,
+        estimatedFare: true, createdAt: true, paymentMethod: true,
       },
     });
   }

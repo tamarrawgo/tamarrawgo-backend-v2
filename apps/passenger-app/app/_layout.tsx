@@ -46,6 +46,7 @@ function RootLayoutNav() {
       <Stack.Screen name="searching" />
       <Stack.Screen name="profile" />
       <Stack.Screen name="history" />
+      <Stack.Screen name="trip-detail" />
       <Stack.Screen name="notifications" />
       <Stack.Screen name="support" />
       <Stack.Screen name="saved-places" />

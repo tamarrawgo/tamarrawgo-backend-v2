@@ -59,7 +59,7 @@ export default function HistoryScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: 20 }}
           renderItem={({ item }) => (
-            <View style={styles.card}>
+            <TouchableOpacity style={styles.card} onPress={() => router.push({ pathname: '/trip-detail', params: { id: item.id } } as any)} activeOpacity={0.7}>
               <View style={styles.cardRow}>
                 <Ionicons name="flag" size={16} color="#333" />
                 <Text style={styles.address} numberOfLines={1}>{item.dropoffAddress}</Text>
@@ -68,7 +68,8 @@ export default function HistoryScreen() {
                 <Text style={[styles.status, { color: statusColor(item.status) }]}>{item.status}</Text>
                 <Text style={styles.fare}>₱{Number(item.estimatedFare).toFixed(2)}</Text>
               </View>
-            </View>
+              <Text style={styles.date}>{new Date(item.createdAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</Text>
+            </TouchableOpacity>
           )}
         />
       )}
@@ -96,4 +97,5 @@ const styles = StyleSheet.create({
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   status: { fontSize: 13, fontWeight: '700' },
   fare: { fontSize: 16, fontWeight: '800', color: '#FF6B00' },
+  date: { fontSize: 11, color: '#bbb', marginTop: 6 },
 });
