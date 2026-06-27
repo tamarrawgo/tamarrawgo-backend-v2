@@ -7,14 +7,17 @@ const SOCKET_URL = process.env.EXPO_PUBLIC_SOCKET_URL ?? 'http://localhost:3000'
 let socket: Socket | null = null;
 
 export async function connectSocket(): Promise<Socket> {
-  if (socket?.connected) return socket;
+  if (socket?.connected || socket?.active) return socket;
 
   const token = await SecureStore.getItemAsync('riderAccessToken');
   socket = io(`${SOCKET_URL}/ws`, {
     auth: { token },
     transports: ['websocket'],
     reconnection: true,
-    reconnectionAttempts: 5,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 30000,
+    randomizationFactor: 0.5,
   });
 
   socket.on('connect', () => console.log('[RiderSocket] Connected:', socket?.id));

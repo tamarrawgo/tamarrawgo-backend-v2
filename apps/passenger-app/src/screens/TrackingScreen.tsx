@@ -311,7 +311,7 @@ export default function TrackingScreen() {
         }
       } catch {}
     };
-    const interval = setInterval(poll, 5000);
+    const interval = setInterval(poll, 10000);
     return () => { mounted = false; clearInterval(interval); };
   }, []);
 
