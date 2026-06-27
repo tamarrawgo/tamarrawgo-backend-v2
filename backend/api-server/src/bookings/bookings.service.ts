@@ -135,6 +135,14 @@ export class BookingsService {
       include: { passenger: { select: { firstName: true, lastName: true, phone: true } } },
     });
 
+    // Mark promo as used
+    if (dto.promoCode && Number(booking.discount) > 0) {
+      await this.prisma.promotion.update({
+        where: { code: dto.promoCode },
+        data: { usageCount: { increment: 1 } },
+      }).catch(() => {});
+    }
+
     // Find and notify nearby riders
     await this.dispatchToNearbyRiders(booking);
 
