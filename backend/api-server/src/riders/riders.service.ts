@@ -1,22 +1,30 @@
-import { Injectable, Inject, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
+import Redis from 'ioredis';
 import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateLocationDto, UpdateOnlineStatusDto, AddVehicleDto, UploadDocumentDto } from './dto/rider.dto';
 import { SocketGateway } from '../socket/socket.gateway';
 
 @Injectable()
-export class RidersService {
+export class RidersService implements OnModuleInit {
   private readonly logger = new Logger(RidersService.name);
+  private redis: Redis | null = null;
 
   constructor(
     private prisma: PrismaService,
     private socket: SocketGateway,
     private config: ConfigService,
-    @Inject(CACHE_MANAGER) private cache: Cache,
   ) {}
+
+  onModuleInit() {
+    const redisUrl = this.config.get('REDIS_URL');
+    if (redisUrl) {
+      this.redis = new Redis(redisUrl);
+      this.redis.on('connect', () => this.logger.log('Redis connected for rider locations'));
+      this.redis.on('error', (err) => this.logger.error('Redis error:', err.message));
+    }
+  }
 
   async uploadDocumentFile(userId: string, base64: string, fileName: string, docType: string): Promise<string> {
     const supabaseUrl = this.config.get('SUPABASE_URL');
@@ -57,8 +65,10 @@ export class RidersService {
     const rider = await this.getRiderProfile(userId);
 
     // Write to Redis for fast reads (expires in 30s)
-    const locData = { currentLatitude: dto.latitude, currentLongitude: dto.longitude, currentHeading: dto.heading, lastLocationUpdate: new Date().toISOString() };
-    await this.cache.set(`rider:loc:${rider.id}`, JSON.stringify(locData), 30000).catch(() => {});
+    if (this.redis) {
+      const locData = JSON.stringify({ currentLatitude: dto.latitude, currentLongitude: dto.longitude, currentHeading: dto.heading, lastLocationUpdate: new Date().toISOString() });
+      await this.redis.set(`rider:loc:${rider.id}`, locData, 'EX', 30).catch(() => {});
+    }
 
     // Write to DB (persistent)
     await this.prisma.riderProfile.update({
@@ -98,10 +108,12 @@ export class RidersService {
 
   async getRiderLocation(riderId: string) {
     // Try Redis first (fast, ~1ms)
-    try {
-      const cached = await this.cache.get(`rider:loc:${riderId}`);
-      if (cached) return typeof cached === 'string' ? JSON.parse(cached) : cached;
-    } catch {}
+    if (this.redis) {
+      try {
+        const cached = await this.redis.get(`rider:loc:${riderId}`);
+        if (cached) return JSON.parse(cached);
+      } catch {}
+    }
 
     // Fall back to DB (slower, ~50ms)
     const result: any[] = await this.prisma.$queryRaw`

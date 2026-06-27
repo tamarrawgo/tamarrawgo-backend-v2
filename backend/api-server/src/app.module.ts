@@ -29,14 +29,10 @@ import { SocketModule } from './socket/socket.module';
     CacheModule.registerAsync({
       isGlobal: true,
       inject: [ConfigService],
-      useFactory: async (config: ConfigService) => {
-        const redisUrl = config.get('REDIS_URL');
-        if (redisUrl) {
-          const { redisStore } = await import('cache-manager-ioredis-yet');
-          return { store: await redisStore({ url: redisUrl, ttl: 60 }) as any };
-        }
-        return { ttl: 60, store: 'memory' };
-      },
+      useFactory: (config: ConfigService) => ({
+        ttl: 60,
+        store: 'memory',
+      }),
     }),
 
     PrismaModule,
