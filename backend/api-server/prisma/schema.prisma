@@ -108,6 +108,7 @@ model User {
   refreshTokenHash String?
   otpCode          String?
   otpExpiresAt     DateTime?
+  loyaltyPoints    Int        @default(0)
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
@@ -118,6 +119,7 @@ model User {
   supportTickets   SupportTicket[] @relation("UserTickets")
   complaints       Complaint[]     @relation("UserComplaints")
   reportedIn       Complaint[]     @relation("ReportedComplaints")
+  pointTransactions PointTransaction[]
   auditLogs        AuditLog[]
 
   @@map("users")
@@ -421,6 +423,20 @@ model Complaint {
 
   @@index([userType, createdAt])
   @@map("complaints")
+}
+
+model PointTransaction {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  points      Int
+  type        String   // EARN, REDEEM_TOPUP, REDEEM_DISCOUNT
+  description String
+  bookingId   String?
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("point_transactions")
 }
 
 model AuditLog {

@@ -355,6 +355,95 @@ export class BookingsService {
         data: { type: NotificationType.TRIP_COMPLETED, bookingId: booking.id },
       });
     }
+
+    await this.awardLoyaltyPoints(booking);
+  }
+
+  private async awardLoyaltyPoints(booking: any) {
+    const RIDER_POINTS = 10;
+    const PASSENGER_POINTS = 15;
+    const REDEEM_THRESHOLD = 100;
+    const RIDER_TOPUP_REWARD = 50;
+    const PASSENGER_DISCOUNT_REWARD = 20;
+
+    try {
+      // Award 5 points to rider
+      if (booking.rider?.user?.id) {
+        const riderUser = await this.prisma.user.update({
+          where: { id: booking.rider.user.id },
+          data: { loyaltyPoints: { increment: RIDER_POINTS } },
+        });
+        await this.prisma.pointTransaction.create({
+          data: { userId: riderUser.id, points: RIDER_POINTS, type: 'EARN', description: 'Trip completed (+5 pts)', bookingId: booking.id },
+        });
+
+        if (riderUser.loyaltyPoints >= REDEEM_THRESHOLD) {
+          await this.prisma.$transaction([
+            this.prisma.user.update({
+              where: { id: riderUser.id },
+              data: { loyaltyPoints: { decrement: REDEEM_THRESHOLD } },
+            }),
+            this.prisma.riderProfile.update({
+              where: { id: booking.riderId },
+              data: { walletBalance: { increment: RIDER_TOPUP_REWARD } },
+            }),
+            this.prisma.pointTransaction.create({
+              data: { userId: riderUser.id, points: -REDEEM_THRESHOLD, type: 'REDEEM_TOPUP', description: `Auto-redeemed 100 pts → ₱${RIDER_TOPUP_REWARD} topup` },
+            }),
+          ]);
+          if (riderUser.fcmToken) {
+            await this.notifications.sendPush(riderUser.fcmToken, {
+              title: 'Loyalty Reward!',
+              body: `You reached 100 points! ₱${RIDER_TOPUP_REWARD} added to your topup balance.`,
+              data: { type: NotificationType.PROMO_ALERT },
+            }).catch(() => {});
+          }
+        }
+      }
+
+      // Award 15 points to passenger
+      const passenger = await this.prisma.user.update({
+        where: { id: booking.passengerId },
+        data: { loyaltyPoints: { increment: PASSENGER_POINTS } },
+      });
+      await this.prisma.pointTransaction.create({
+        data: { userId: passenger.id, points: PASSENGER_POINTS, type: 'EARN', description: 'Trip completed (+15 pts)', bookingId: booking.id },
+      });
+
+      if (passenger.loyaltyPoints >= REDEEM_THRESHOLD) {
+        const promoCode = `LOYAL${Date.now().toString(36).toUpperCase()}`;
+        await this.prisma.$transaction([
+          this.prisma.user.update({
+            where: { id: passenger.id },
+            data: { loyaltyPoints: { decrement: REDEEM_THRESHOLD } },
+          }),
+          this.prisma.promotion.create({
+            data: {
+              code: promoCode,
+              type: 'FIXED',
+              value: PASSENGER_DISCOUNT_REWARD,
+              isActive: true,
+              usageLimit: 1,
+              userLimit: 1,
+              startsAt: new Date(),
+              expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            },
+          }),
+          this.prisma.pointTransaction.create({
+            data: { userId: passenger.id, points: -REDEEM_THRESHOLD, type: 'REDEEM_DISCOUNT', description: `Auto-redeemed 100 pts → ₱${PASSENGER_DISCOUNT_REWARD} discount code: ${promoCode}` },
+          }),
+        ]);
+        if (passenger.fcmToken) {
+          await this.notifications.sendPush(passenger.fcmToken, {
+            title: 'Loyalty Reward!',
+            body: `You earned a ₱${PASSENGER_DISCOUNT_REWARD} discount! Use code: ${promoCode} on your next ride.`,
+            data: { type: NotificationType.PROMO_ALERT, promoCode },
+          }).catch(() => {});
+        }
+      }
+    } catch (err) {
+      this.logger.error('Loyalty points error:', err);
+    }
   }
 
   async cancelBooking(_userId: string, bookingId: string, dto: CancelBookingDto, isRider: boolean) {
@@ -500,7 +589,12 @@ export class BookingsService {
     });
   }
 
-  private async getPromoDiscount(_code: string, _fare: number): Promise<number> {
-    return 0;
+  private async getPromoDiscount(code: string, _fare: number): Promise<number> {
+    const promo = await this.prisma.promotion.findUnique({ where: { code } });
+    if (!promo) return 0;
+    if (!promo.isActive) return 0;
+    if (new Date() < promo.startsAt || new Date() > promo.expiresAt) return 0;
+    if (promo.usageLimit && promo.usageCount >= promo.usageLimit) return 0;
+    return Number(promo.value);
   }
 }

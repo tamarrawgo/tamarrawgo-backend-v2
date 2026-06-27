@@ -60,6 +60,9 @@ export default function SearchScreen() {
   const [selectedRide, setSelectedRide] = useState('regular');
   const [selectedPayment, setSelectedPayment] = useState('CASH');
   const [passengerCount, setPassengerCount] = useState(1);
+  const [promoCode, setPromoCode] = useState('');
+  const [promoApplied, setPromoApplied] = useState(false);
+  const [promoDiscount, setPromoDiscount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loadingEstimate, setLoadingEstimate] = useState(false);
   const [showFareModal, setShowFareModal] = useState(false);
@@ -163,7 +166,11 @@ export default function SearchScreen() {
         dropoffLat: dropoff.latitude,
         dropoffLng: dropoff.longitude,
         passengerCount,
+        promoCode: promoCode.trim() || undefined,
       }) as any;
+      const discount = Number(result?.discount ?? 0);
+      setPromoApplied(discount > 0);
+      setPromoDiscount(discount);
       setFareEstimate({
         totalFare: result?.totalFare ?? 0,
         distanceKm: result?.distanceKm ?? 0,
@@ -179,7 +186,7 @@ export default function SearchScreen() {
     } finally {
       setLoadingEstimate(false);
     }
-  }, [pickup, dropoff, dropoffText, passengerCount]);
+  }, [pickup, dropoff, dropoffText, passengerCount, promoCode]);
 
   const handleConfirmBooking = useCallback(async () => {
     if (!pickup || !dropoff) return;
@@ -190,6 +197,7 @@ export default function SearchScreen() {
         dropoff,
         paymentMethod: selectedPayment,
         passengerCount,
+        promoCode: promoCode.trim() || undefined,
       });
       setActiveBooking(booking as any);
       setShowFareModal(false);
@@ -206,7 +214,7 @@ export default function SearchScreen() {
     } finally {
       setLoading(false);
     }
-  }, [pickup, dropoff, selectedPayment, passengerCount]);
+  }, [pickup, dropoff, selectedPayment, passengerCount, promoCode]);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -482,6 +490,31 @@ export default function SearchScreen() {
               </Text>
             </View>
 
+            {/* Promo code */}
+            <View style={styles.promoRow}>
+              <MaterialIcons name="local-offer" size={16} color={promoApplied ? GREEN : '#999'} />
+              <TextInput
+                style={styles.promoInput}
+                placeholder="Enter promo code"
+                placeholderTextColor="#bbb"
+                value={promoCode}
+                onChangeText={(t) => { setPromoCode(t.toUpperCase()); setPromoApplied(false); }}
+                autoCapitalize="characters"
+              />
+              {promoApplied && (
+                <View style={styles.promoAppliedBadge}>
+                  <MaterialIcons name="check-circle" size={14} color={GREEN} />
+                  <Text style={styles.promoAppliedText}>-₱{promoDiscount.toFixed(0)}</Text>
+                </View>
+              )}
+            </View>
+            {promoCode.trim() && !promoApplied && (
+              <Text style={styles.promoHint}>Tap "Find Nearby Tricycle" again to apply promo</Text>
+            )}
+            {promoApplied && (
+              <Text style={styles.promoSuccess}>Promo applied! ₱{promoDiscount.toFixed(0)} discount on this ride</Text>
+            )}
+
             {/* Confirm */}
             <TouchableOpacity
               style={styles.confirmBtn}
@@ -615,6 +648,16 @@ const styles = StyleSheet.create({
   confirmBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
   goBackBtn: { alignItems: 'center', paddingVertical: 10 },
   goBackText: { color: '#999', fontSize: 14, fontWeight: '600' },
+  promoRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    borderWidth: 1, borderColor: '#E8E8E8', borderRadius: 12,
+    paddingHorizontal: 12, paddingVertical: 4, marginBottom: 6,
+  },
+  promoInput: { flex: 1, fontSize: 14, color: '#333', paddingVertical: 8 },
+  promoAppliedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  promoAppliedText: { fontSize: 13, fontWeight: '700', color: GREEN },
+  promoHint: { fontSize: 11, color: '#999', marginBottom: 12, paddingHorizontal: 4 },
+  promoSuccess: { fontSize: 12, color: GREEN, fontWeight: '600', marginBottom: 12, paddingHorizontal: 4 },
   surgeCard: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     borderRadius: 12, padding: 12, marginBottom: 12,

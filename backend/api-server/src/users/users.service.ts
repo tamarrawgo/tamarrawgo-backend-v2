@@ -18,6 +18,7 @@ export class UsersService {
         role: true,
         status: true,
         profilePhoto: true,
+        loyaltyPoints: true,
         createdAt: true,
         rider: {
           select: {

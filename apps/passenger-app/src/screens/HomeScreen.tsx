@@ -279,6 +279,10 @@ export default function HomeScreen() {
                   </View>
                   <Text style={styles.drawerName}>{user?.firstName} {user?.lastName}</Text>
                   <Text style={styles.drawerPhone}>{user?.phone}</Text>
+                  <View style={styles.pointsBadge}>
+                    <MaterialIcons name="stars" size={14} color="#FFD700" />
+                    <Text style={styles.pointsText}>{(user as any)?.loyaltyPoints ?? 0} points</Text>
+                  </View>
                 </View>
 
                 <ScrollView style={styles.drawerMenu}>
@@ -437,6 +441,11 @@ const styles = StyleSheet.create({
   },
   drawerName: { fontSize: 17, fontWeight: '800', color: '#fff' },
   drawerPhone: { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+  pointsBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8,
+    backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
+  },
+  pointsText: { fontSize: 12, fontWeight: '700', color: '#FFD700' },
   drawerMenu: { flex: 1, paddingTop: 8 },
   drawerItem: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
