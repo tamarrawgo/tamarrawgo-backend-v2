@@ -78,11 +78,19 @@ export class BookingsService {
     });
     if (activeBooking) throw new BadRequestException('You already have an active booking');
 
-    const distanceKm = haversineDistance(
-      { latitude: dto.pickup.latitude, longitude: dto.pickup.longitude },
-      { latitude: dto.dropoff.latitude, longitude: dto.dropoff.longitude },
-    );
-    const durationMinutes = estimateEtaMinutes(distanceKm);
+    let distanceKm: number;
+    let durationMinutes: number;
+    try {
+      const directions = await this.maps.getDirections(dto.pickup.latitude, dto.pickup.longitude, dto.dropoff.latitude, dto.dropoff.longitude);
+      distanceKm = directions.distanceKm;
+      durationMinutes = directions.durationMinutes;
+    } catch {
+      distanceKm = haversineDistance(
+        { latitude: dto.pickup.latitude, longitude: dto.pickup.longitude },
+        { latitude: dto.dropoff.latitude, longitude: dto.dropoff.longitude },
+      );
+      durationMinutes = estimateEtaMinutes(distanceKm);
+    }
 
     let promoDiscount = 0;
     if (dto.promoCode) {
