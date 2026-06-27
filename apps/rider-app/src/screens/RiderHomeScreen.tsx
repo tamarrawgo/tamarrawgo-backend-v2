@@ -137,6 +137,16 @@ export default function RiderHomeScreen() {
       api.get('/users/profile').then((profile: any) => {
         if (profile) useAuthStore.setState({ user: profile });
       }).catch(() => {});
+      // Check for unread loyalty reward notifications
+      api.get('/notifications').then((res: any) => {
+        const notifs = res?.data ?? (Array.isArray(res) ? res : []);
+        const reward = notifs.find((n: any) => n.type === 'PROMO_ALERT' && !n.read);
+        if (reward) {
+          Alert.alert('Loyalty Reward!', reward.body, [
+            { text: 'OK', onPress: () => { api.patch(`/notifications/${reward.id}/read`).catch(() => {}); } },
+          ]);
+        }
+      }).catch(() => {});
     }, [isOnline, hasActiveBooking, fetchAvailableBookings, fetchStats])
   );
 

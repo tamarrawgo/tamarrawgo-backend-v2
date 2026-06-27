@@ -94,7 +94,12 @@ export class BookingsService {
 
     let promoDiscount = 0;
     if (dto.promoCode) {
-      promoDiscount = await this.getPromoDiscount(dto.promoCode, 0);
+      const promo = await this.prisma.promotion.findUnique({ where: { code: dto.promoCode } });
+      if (!promo) throw new BadRequestException('Invalid promo code');
+      if (!promo.isActive) throw new BadRequestException('This promo code is no longer active');
+      if (new Date() > promo.expiresAt) throw new BadRequestException('This promo code has expired');
+      if (promo.usageLimit && promo.usageCount >= promo.usageLimit) throw new BadRequestException('This promo code has already been used');
+      promoDiscount = Number(promo.value);
     }
 
     const fareEstimate = await this.fare.estimateFare(distanceKm, durationMinutes, promoDiscount);

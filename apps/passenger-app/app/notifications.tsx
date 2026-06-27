@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Platform, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Platform, StatusBar, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { api } from '../src/services/api';
@@ -62,7 +62,15 @@ export default function NotificationsScreen() {
             return (
               <TouchableOpacity
                 style={[styles.card, !item.read && styles.cardUnread]}
-                onPress={() => markAsRead(item.id)}
+                onPress={() => {
+                  markAsRead(item.id);
+                  const code = item.data?.promoCode;
+                  if (code) {
+                    Alert.alert('Your Promo Code', `\n${code}\n\nEnter this code when booking to get your discount.`, [
+                      { text: 'OK' },
+                    ]);
+                  }
+                }}
                 activeOpacity={0.7}
               >
                 <View style={[styles.iconWrap, { backgroundColor: bg }]}>
