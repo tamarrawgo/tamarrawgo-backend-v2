@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { useAuthStore } from '../store/auth.store';
 import { useBookingStore } from '../store/booking.store';
@@ -40,6 +41,15 @@ export default function HomeScreen() {
   const { places: savedPlaces } = usePlacesStore();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const drawerAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
+
+  // Refresh profile (loyalty points) when screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      api.get('/users/profile').then((profile: any) => {
+        useAuthStore.getState().loadUser();
+      }).catch(() => {});
+    }, [])
+  );
 
   useEffect(() => {
     (async () => {
