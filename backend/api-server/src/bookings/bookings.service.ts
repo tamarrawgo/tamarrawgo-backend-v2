@@ -437,10 +437,11 @@ export class BookingsService {
               data: { userId: riderUser.id, points: -REDEEM_THRESHOLD, type: 'REDEEM_TOPUP', description: `Auto-redeemed 100 pts → ₱${RIDER_TOPUP_REWARD} topup` },
             }),
           ]);
+          const riderMsg = `You reached 100 points! ₱${RIDER_TOPUP_REWARD} added to your topup balance.`;
+          await this.notifications.createNotification(riderUser.id, NotificationType.PROMO_ALERT, 'Loyalty Reward!', riderMsg);
           if (riderUser.fcmToken) {
             await this.notifications.sendPush(riderUser.fcmToken, {
-              title: 'Loyalty Reward!',
-              body: `You reached 100 points! ₱${RIDER_TOPUP_REWARD} added to your topup balance.`,
+              title: 'Loyalty Reward!', body: riderMsg,
               data: { type: NotificationType.PROMO_ALERT },
             }).catch(() => {});
           }
@@ -479,10 +480,11 @@ export class BookingsService {
             data: { userId: passenger.id, points: -REDEEM_THRESHOLD, type: 'REDEEM_DISCOUNT', description: `Auto-redeemed 100 pts → ₱${PASSENGER_DISCOUNT_REWARD} discount code: ${promoCode}` },
           }),
         ]);
+        const passengerMsg = `You earned a ₱${PASSENGER_DISCOUNT_REWARD} discount! Use code: ${promoCode} on your next ride.`;
+        await this.notifications.createNotification(passenger.id, NotificationType.PROMO_ALERT, 'Loyalty Reward!', passengerMsg, { promoCode });
         if (passenger.fcmToken) {
           await this.notifications.sendPush(passenger.fcmToken, {
-            title: 'Loyalty Reward!',
-            body: `You earned a ₱${PASSENGER_DISCOUNT_REWARD} discount! Use code: ${promoCode} on your next ride.`,
+            title: 'Loyalty Reward!', body: passengerMsg,
             data: { type: NotificationType.PROMO_ALERT, promoCode },
           }).catch(() => {});
         }
