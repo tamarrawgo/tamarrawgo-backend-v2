@@ -112,14 +112,17 @@ export default function RiderHomeScreen() {
         fetchAvailableBookings();
       }
     }).catch(() => {});
-    api.get('/riders/earnings').then((data: any) =>
-      setSummary({ today: data.today, totalTrips: data.totalTrips, todayTrips: data.todayTrips ?? 0, averageRating: data.averageRating })
-    ).catch(() => {});
+    fetchStats();
     return () => { if (locationInterval.current) clearInterval(locationInterval.current); };
   }, []);
 
+  const fetchStats = useCallback(() => {
+    api.get('/riders/earnings').then((data: any) =>
+      setSummary({ today: data.today, totalTrips: data.totalTrips, todayTrips: data.todayTrips ?? 0, averageRating: data.averageRating })
+    ).catch(() => {});
+  }, []);
+
   // Poll for available bookings every 10s while online with no active trip.
-  // Covers all return paths: passenger cancel, trip complete, rider cancel, socket miss.
   useEffect(() => {
     if (!isOnline || hasActiveBooking) return;
     fetchAvailableBookings();
@@ -130,7 +133,8 @@ export default function RiderHomeScreen() {
   useFocusEffect(
     useCallback(() => {
       if (isOnline && !hasActiveBooking) fetchAvailableBookings();
-    }, [isOnline, hasActiveBooking, fetchAvailableBookings])
+      fetchStats();
+    }, [isOnline, hasActiveBooking, fetchAvailableBookings, fetchStats])
   );
 
   const setupSocket = async () => {

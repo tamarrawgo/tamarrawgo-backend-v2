@@ -18,13 +18,13 @@ export default function RiderHistoryScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/riders/trips').then((res) => setTrips(Array.isArray(res) ? res : (res?.data ?? []))).catch(() => setTrips([])).finally(() => setLoading(false));
+    api.get('/bookings/my').then((res) => setTrips(Array.isArray(res) ? res : (res?.data ?? []))).catch(() => setTrips([])).finally(() => setLoading(false));
   }, []);
 
   const statusColor = (status: string) => {
     if (status === 'COMPLETED') return '#34C759';
     if (status === 'CANCELLED') return '#FF3B30';
-    return '#FF6B00';
+    return '#1B6B2F';
   };
 
   return (
@@ -38,7 +38,7 @@ export default function RiderHistoryScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color="#1A1A2E" />
+        <ActivityIndicator style={{ marginTop: 40 }} color="#1B6B2F" />
       ) : trips.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="bicycle" size={64} color="#ddd" />
@@ -50,7 +50,7 @@ export default function RiderHistoryScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: 20 }}
           renderItem={({ item }) => (
-            <View style={styles.card}>
+            <TouchableOpacity style={styles.card} onPress={() => router.push({ pathname: '/trip-detail', params: { id: item.id } } as any)} activeOpacity={0.7}>
               <View style={styles.cardRow}>
                 <Ionicons name="flag" size={16} color="#333" />
                 <Text style={styles.address} numberOfLines={1}>{item.dropoffAddress}</Text>
@@ -59,7 +59,8 @@ export default function RiderHistoryScreen() {
                 <Text style={[styles.status, { color: statusColor(item.status) }]}>{item.status}</Text>
                 <Text style={styles.fare}>₱{Number(item.estimatedFare).toFixed(2)}</Text>
               </View>
-            </View>
+              <Text style={styles.date}>{new Date(item.createdAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</Text>
+            </TouchableOpacity>
           )}
         />
       )}
@@ -86,5 +87,6 @@ const styles = StyleSheet.create({
   address: { flex: 1, fontSize: 15, color: '#333', fontWeight: '600' },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   status: { fontSize: 13, fontWeight: '700' },
-  fare: { fontSize: 16, fontWeight: '800', color: '#1A1A2E' },
+  fare: { fontSize: 16, fontWeight: '800', color: '#1B6B2F' },
+  date: { fontSize: 11, color: '#bbb', marginTop: 6 },
 });

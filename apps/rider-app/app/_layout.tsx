@@ -43,6 +43,7 @@ function RootLayoutNav() {
       <Stack.Screen name="earnings" />
       <Stack.Screen name="profile" />
       <Stack.Screen name="history" />
+      <Stack.Screen name="trip-detail" />
       <Stack.Screen name="chat" options={{ presentation: 'modal' }} />
       <Stack.Screen name="upload-documents" />
       <Stack.Screen name="support" />
