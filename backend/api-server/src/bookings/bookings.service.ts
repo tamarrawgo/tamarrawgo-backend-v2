@@ -153,6 +153,7 @@ export class BookingsService {
         pickup: { address: b.pickupAddress, latitude: b.pickupLatitude, longitude: b.pickupLongitude },
         dropoff: { address: b.dropoffAddress, latitude: b.dropoffLatitude, longitude: b.dropoffLongitude },
         estimatedFare: Number(b.estimatedFare),
+        discount: Number(b.discount ?? 0),
         distanceKm: b.distanceKm,
         passengerCount: b.passengerCount,
         expiresAt: b.expiresAt?.getTime() ?? Date.now() + 5 * 60 * 1000,
@@ -192,7 +193,9 @@ export class BookingsService {
       pickup: { address: booking.pickupAddress, latitude: booking.pickupLatitude, longitude: booking.pickupLongitude },
       dropoff: { address: booking.dropoffAddress, latitude: booking.dropoffLatitude, longitude: booking.dropoffLongitude },
       estimatedFare: Number(booking.estimatedFare),
+      discount: Number(booking.discount ?? 0),
       distanceKm: booking.distanceKm,
+      passengerCount: booking.passengerCount ?? 1,
       expiresAt: booking.expiresAt?.getTime() ?? Date.now() + 5 * 60 * 1000,
     };
 
@@ -321,8 +324,33 @@ export class BookingsService {
     if (!booking.riderId) return;
 
     const fare = Number(booking.estimatedFare);
-    const commission = fare * 0.20; // 20% service fee deducted from topup balance
-    const riderEarnings = fare * 0.80; // 80% rider keeps
+    const promoDiscount = Number(booking.discount ?? 0);
+    const hasPromo = promoDiscount > 0;
+    const riderProfile = await this.prisma.riderProfile.findUnique({ where: { id: booking.riderId } });
+    const existingDebt = Number(riderProfile?.promoDebt ?? 0);
+
+    let commission: number;
+    let riderEarnings: number;
+    let newPromoDebt = 0;
+    let notifBody: string;
+
+    if (hasPromo) {
+      // Promo booking: waive commission, track carry-over
+      const normalCommission = fare * 0.20;
+      const carryOver = promoDiscount - normalCommission;
+      commission = 0; // No commission deducted
+      riderEarnings = fare;
+      newPromoDebt = carryOver > 0 ? carryOver : 0;
+      notifBody = `Fare: ₱${fare.toFixed(0)} (₱${promoDiscount.toFixed(0)} promo applied)\nCommission waived! You earned ₱${fare.toFixed(0)}\n${newPromoDebt > 0 ? `₱${newPromoDebt.toFixed(0)} covered by app on next booking` : ''}`;
+    } else {
+      // Normal booking: deduct commission + recover any promo debt from app's share
+      commission = fare * 0.20;
+      riderEarnings = fare - commission;
+      notifBody = `Fare: ₱${fare.toFixed(0)}\nCommission (20%): -₱${commission.toFixed(0)}\nYou earned: ₱${riderEarnings.toFixed(0)}`;
+      if (existingDebt > 0) {
+        notifBody += `\nApp absorbed ₱${existingDebt.toFixed(0)} promo debt from previous booking`;
+      }
+    }
 
     await this.prisma.$transaction([
       this.prisma.payment.create({
@@ -342,16 +370,17 @@ export class BookingsService {
       this.prisma.riderProfile.update({
         where: { id: booking.riderId },
         data: {
-          walletBalance: { decrement: commission }, // Deduct 20% commission from topup balance
+          walletBalance: commission > 0 ? { decrement: commission } : undefined,
           totalTrips: { increment: 1 },
+          promoDebt: newPromoDebt,
         },
       }),
     ]);
 
     if (booking.rider?.user?.fcmToken) {
       await this.notifications.sendPush(booking.rider.user.fcmToken, {
-        title: 'Trip Completed!',
-        body: `You earned ₱${riderEarnings.toFixed(2)}`,
+        title: hasPromo ? 'Promo Trip Completed!' : 'Trip Completed!',
+        body: notifBody,
         data: { type: NotificationType.TRIP_COMPLETED, bookingId: booking.id },
       });
     }

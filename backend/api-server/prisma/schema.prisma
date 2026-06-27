@@ -135,6 +135,7 @@ model RiderProfile {
   rating              Float        @default(5.0)
   totalTrips          Int          @default(0)
   walletBalance       Decimal      @default(0) @db.Decimal(10, 2)
+  promoDebt           Decimal      @default(0) @db.Decimal(10, 2)
   currentLatitude     Float?
   currentLongitude    Float?
   currentHeading      Float?

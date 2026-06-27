@@ -217,6 +217,12 @@ export default function RiderHomeScreen() {
         <MaterialIcons name="place" size={16} color="#333" />
         <Text style={styles.bookingAddr} numberOfLines={1}>{item.dropoff?.address}</Text>
       </View>
+      {Number(item.discount ?? 0) > 0 && (
+        <View style={styles.promoBadge}>
+          <MaterialIcons name="local-offer" size={14} color="#E65100" />
+          <Text style={styles.promoBadgeText}>🏷 ₱{Number(item.discount).toFixed(0)} Promo Applied · No commission on this trip</Text>
+        </View>
+      )}
       <View style={styles.bookingMeta}>
         <Text style={styles.bookingFare}>{formatCurrency(item.estimatedFare)}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -445,6 +451,11 @@ const styles = StyleSheet.create({
   rejectText: { color: '#FF4444', fontWeight: '700' },
   acceptBtn: { flex: 2, backgroundColor: '#1B6B2F', borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
   acceptText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  promoBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#FFF3E0', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, marginTop: 4,
+  },
+  promoBadgeText: { fontSize: 11, fontWeight: '600', color: '#E65100', flex: 1 },
 
   // Drawer
   hamburgerBtn: { padding: 4 },
