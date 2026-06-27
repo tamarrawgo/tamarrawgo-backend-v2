@@ -14,7 +14,7 @@ import { CreateBookingDto, CancelBookingDto, RateRiderDto } from './dto/booking.
 import { haversineDistance, estimateEtaMinutes } from '@tamarrawgo/shared-utils';
 import { BookingStatus, NotificationType, SocketEvent } from '@tamarrawgo/shared-types';
 
-const SEARCH_RADIUS_KM = 5;
+const SEARCH_RADIUS_KM = 10;
 
 @Injectable()
 export class BookingsService {
