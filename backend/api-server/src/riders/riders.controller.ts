@@ -65,6 +65,7 @@ export class RidersController {
   }
 
   @Get('earnings')
+  @CacheTTL(0)
   @Roles(UserRole.RIDER)
   @ApiOperation({ summary: 'Get rider earnings summary' })
   getEarnings(@CurrentUser() user: any) {
