@@ -1,5 +1,7 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateLocationDto, UpdateOnlineStatusDto, AddVehicleDto, UploadDocumentDto } from './dto/rider.dto';
@@ -7,10 +9,13 @@ import { SocketGateway } from '../socket/socket.gateway';
 
 @Injectable()
 export class RidersService {
+  private readonly logger = new Logger(RidersService.name);
+
   constructor(
     private prisma: PrismaService,
     private socket: SocketGateway,
     private config: ConfigService,
+    @Inject(CACHE_MANAGER) private cache: Cache,
   ) {}
 
   async uploadDocumentFile(userId: string, base64: string, fileName: string, docType: string): Promise<string> {
@@ -51,6 +56,11 @@ export class RidersService {
   async updateLocation(userId: string, dto: UpdateLocationDto) {
     const rider = await this.getRiderProfile(userId);
 
+    // Write to Redis for fast reads (expires in 30s)
+    const locData = { currentLatitude: dto.latitude, currentLongitude: dto.longitude, currentHeading: dto.heading, lastLocationUpdate: new Date().toISOString() };
+    await this.cache.set(`rider:loc:${rider.id}`, JSON.stringify(locData), 30000).catch(() => {});
+
+    // Write to DB (persistent)
     await this.prisma.riderProfile.update({
       where: { id: rider.id },
       data: {
@@ -87,6 +97,13 @@ export class RidersService {
   }
 
   async getRiderLocation(riderId: string) {
+    // Try Redis first (fast, ~1ms)
+    try {
+      const cached = await this.cache.get(`rider:loc:${riderId}`);
+      if (cached) return typeof cached === 'string' ? JSON.parse(cached) : cached;
+    } catch {}
+
+    // Fall back to DB (slower, ~50ms)
     const result: any[] = await this.prisma.$queryRaw`
       SELECT "currentLatitude", "currentLongitude", "currentHeading", "lastLocationUpdate"
       FROM rider_profiles WHERE id = ${riderId} LIMIT 1
