@@ -300,8 +300,8 @@ export class BookingsService {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
-        passenger: { select: { fcmToken: true } },
-        rider: { include: { user: { select: { fcmToken: true } } } },
+        passenger: { select: { id: true, fcmToken: true } },
+        rider: { include: { user: { select: { id: true, fcmToken: true } } } },
       },
     });
     if (!booking) throw new NotFoundException('Booking not found');
