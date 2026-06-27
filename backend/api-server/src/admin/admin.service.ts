@@ -1,9 +1,21 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class AdminService {
+  private readonly logger = new Logger(AdminService.name);
   constructor(private prisma: PrismaService) {}
+
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async handleTripCleanup() {
+    try {
+      await this.cleanupOldTrips();
+      this.logger.log('Trip cleanup completed');
+    } catch (err) {
+      this.logger.error('Trip cleanup failed', err);
+    }
+  }
 
   async getDashboardStats() {
     const now = new Date();
@@ -171,13 +183,14 @@ export class AdminService {
   }
 
   async getTripMonitoring(page = 1, limit = 20, status?: string) {
+    const maxRecords = 100;
     const skip = (page - 1) * limit;
     const where = status ? { status: status as any } : {};
     const [bookings, total] = await Promise.all([
       this.prisma.booking.findMany({
         where,
         skip,
-        take: limit,
+        take: Math.min(limit, maxRecords - skip),
         orderBy: { createdAt: 'desc' },
         include: {
           passenger: { select: { firstName: true, lastName: true, phone: true } },
@@ -187,7 +200,34 @@ export class AdminService {
       }),
       this.prisma.booking.count({ where }),
     ]);
-    return { data: bookings, total, page, limit, totalPages: Math.ceil(total / limit) };
+    const capped = Math.min(total, maxRecords);
+    return { data: bookings, total: capped, page, limit, totalPages: Math.ceil(capped / limit) };
+  }
+
+  async cleanupOldTrips() {
+    const maxRecords = 100;
+    const count = await this.prisma.booking.count();
+    if (count <= maxRecords) return;
+
+    const keep = await this.prisma.booking.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: maxRecords,
+      select: { id: true },
+    });
+    const keepIds = keep.map((b) => b.id);
+
+    const toDelete = await this.prisma.booking.findMany({
+      where: { id: { notIn: keepIds } },
+      select: { id: true },
+    });
+    const deleteIds = toDelete.map((b) => b.id);
+
+    if (deleteIds.length === 0) return;
+
+    await this.prisma.chatMessage.deleteMany({ where: { bookingId: { in: deleteIds } } });
+    await this.prisma.payment.deleteMany({ where: { bookingId: { in: deleteIds } } });
+    await this.prisma.rating.deleteMany({ where: { bookingId: { in: deleteIds } } });
+    await this.prisma.booking.deleteMany({ where: { id: { in: deleteIds } } });
   }
 
   async cancelTrip(bookingId: string) {
