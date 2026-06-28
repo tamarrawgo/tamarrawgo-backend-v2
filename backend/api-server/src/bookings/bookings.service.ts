@@ -140,16 +140,7 @@ export class BookingsService {
       include: { passenger: { select: { firstName: true, lastName: true, phone: true } } },
     });
 
-    // Mark promo as used and remove notification
-    if (dto.promoCode && Number(booking.discount) > 0) {
-      await this.prisma.promotion.update({
-        where: { code: dto.promoCode },
-        data: { usageCount: { increment: 1 } },
-      }).catch(() => {});
-      await this.prisma.notification.deleteMany({
-        where: { userId: passengerId, body: { contains: dto.promoCode } },
-      }).catch(() => {});
-    }
+    // Promo is consumed only when a rider accepts (not on booking creation)
 
     // Find and notify nearby riders
     await this.dispatchToNearbyRiders(booking);
@@ -295,6 +286,17 @@ export class BookingsService {
         body: `${rider.user.firstName} is on the way!`,
         data: { type: NotificationType.RIDER_ASSIGNED, bookingId },
       });
+    }
+
+    // Consume promo code now that a rider accepted
+    if (booking.promoCode && Number(booking.discount) > 0) {
+      await this.prisma.promotion.update({
+        where: { code: booking.promoCode },
+        data: { usageCount: { increment: 1 } },
+      }).catch(() => {});
+      await this.prisma.notification.deleteMany({
+        where: { userId: booking.passengerId, body: { contains: booking.promoCode } },
+      }).catch(() => {});
     }
 
     return updated;
