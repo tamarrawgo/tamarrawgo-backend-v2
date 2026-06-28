@@ -425,7 +425,7 @@ export class BookingsService {
     const RIDER_POINTS = 10;
     const PASSENGER_POINTS = 15;
     const REDEEM_THRESHOLD = 100;
-    const RIDER_TOPUP_REWARD = 50;
+    const RIDER_TOPUP_REWARD = 20;
     const PASSENGER_DISCOUNT_REWARD = 20;
 
     try {

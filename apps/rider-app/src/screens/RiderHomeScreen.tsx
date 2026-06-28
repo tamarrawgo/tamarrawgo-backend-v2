@@ -137,14 +137,13 @@ export default function RiderHomeScreen() {
       api.get('/users/profile').then((profile: any) => {
         if (profile) useAuthStore.setState({ user: profile });
       }).catch(() => {});
-      // Check for unread loyalty reward notifications
-      api.get('/notifications').then((res: any) => {
+      // Check for unread loyalty reward notifications (show once, mark read immediately)
+      api.get('/notifications').then(async (res: any) => {
         const notifs = res?.data ?? (Array.isArray(res) ? res : []);
         const reward = notifs.find((n: any) => n.type === 'PROMO_ALERT' && !n.read);
         if (reward) {
-          Alert.alert('Loyalty Reward!', reward.body, [
-            { text: 'OK', onPress: () => { api.patch(`/notifications/${reward.id}/read`).catch(() => {}); } },
-          ]);
+          await api.patch(`/notifications/${reward.id}/read`).catch(() => {});
+          Alert.alert('Loyalty Reward!', reward.body, [{ text: 'OK' }]);
         }
       }).catch(() => {});
     }, [isOnline, hasActiveBooking, fetchAvailableBookings, fetchStats])
