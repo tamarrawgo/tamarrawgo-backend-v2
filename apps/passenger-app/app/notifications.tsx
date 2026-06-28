@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Platform, StatusBar, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Platform, StatusBar, Alert, Clipboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { api } from '../src/services/api';
@@ -67,6 +67,7 @@ export default function NotificationsScreen() {
                   const code = item.data?.promoCode;
                   if (code) {
                     Alert.alert('Your Promo Code', `\n${code}\n\nEnter this code when booking to get your discount.`, [
+                      { text: 'Copy Code', onPress: () => { Clipboard.setString(code); Alert.alert('Copied!', `${code} copied to clipboard`); } },
                       { text: 'OK' },
                     ]);
                   }
