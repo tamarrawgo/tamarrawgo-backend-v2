@@ -36,7 +36,7 @@ export default function LoginPage() {
     <div className="min-h-[80vh] flex items-center justify-center px-6 py-16 bg-gradient-to-br from-[#E8F5E9] via-white to-[#F1F8E9]">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img src="/images/icon.png" alt="TamarrawGo" className="h-16 w-16 mx-auto rounded-2xl mb-4" />
+          <img src="/images/logo.png" alt="TamarrawGo" className="h-16 w-16 mx-auto rounded-2xl mb-4" />
           <h1 className="text-2xl font-black text-[#0D1F13]">Welcome Back</h1>
           <p className="text-gray-500 text-sm mt-1">Login to upload documents or manage your account</p>
         </div>

@@ -8,7 +8,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="md:col-span-2">
             <div className="flex items-center gap-3 mb-4">
-              <img src="/images/icon.png" alt="TamarrawGo" className="h-10 w-10 rounded-xl" />
+              <img src="/images/logo.png" alt="TamarrawGo" className="h-10 w-10 rounded-xl" />
               <span className="text-2xl font-black text-[#1B6B2F]">TamarrawGo</span>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed max-w-sm">

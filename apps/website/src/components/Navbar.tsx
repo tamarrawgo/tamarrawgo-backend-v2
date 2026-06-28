@@ -11,7 +11,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
         <div className="flex items-center justify-between h-16 lg:h-20">
           <Link to="/" className="flex items-center gap-3">
-            <img src="/images/icon.png" alt="TamarrawGo" className="h-10 w-10 rounded-xl" />
+            <img src="/images/logo.png" alt="TamarrawGo" className="h-10 w-10 rounded-xl" />
             <span className="text-xl font-black text-[#1B6B2F]">TamarrawGo</span>
           </Link>
 

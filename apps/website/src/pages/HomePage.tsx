@@ -47,7 +47,7 @@ export default function HomePage() {
             <div className="flex justify-center lg:justify-end">
               <div className="relative">
                 <div className="w-72 h-72 lg:w-96 lg:h-96 rounded-full bg-[#1B6B2F]/10 flex items-center justify-center">
-                  <img src="/images/tamarrawgo.png" alt="TamarrawGo Tricycle" className="w-60 lg:w-80 drop-shadow-2xl" />
+                  <img src="/images/logo.png" alt="TamarrawGo" className="w-60 lg:w-80 rounded-3xl drop-shadow-2xl" />
                 </div>
                 <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-white rounded-2xl shadow-xl px-6 py-3 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-[#E8F5E9] flex items-center justify-center">
@@ -136,7 +136,7 @@ export default function HomePage() {
             </div>
             <div className="flex justify-center">
               <div className="w-64 h-64 lg:w-80 lg:h-80 rounded-full bg-white/10 flex items-center justify-center">
-                <img src="/images/tamarrawgo.png" alt="Rider" className="w-48 lg:w-64 opacity-90" />
+                <img src="/images/logo.png" alt="TamarrawGo" className="w-48 lg:w-64 rounded-3xl opacity-90" />
               </div>
             </div>
           </div>
