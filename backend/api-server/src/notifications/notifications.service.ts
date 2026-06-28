@@ -87,6 +87,14 @@ export class NotificationsService implements OnModuleInit {
     return { data: notifications, total, unread, page, limit };
   }
 
+  async markAsRead(id: string) {
+    await this.prisma.notification.update({
+      where: { id },
+      data: { read: true, readAt: new Date() },
+    });
+    return { message: 'Notification marked as read' };
+  }
+
   async markAllRead(userId: string) {
     await this.prisma.notification.updateMany({
       where: { userId, read: false },

@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { NotificationsService } from './notifications.service';
@@ -14,6 +14,11 @@ export class NotificationsController {
   @Get()
   getNotifications(@CurrentUser() user: any, @Query('page') page = 1, @Query('limit') limit = 20) {
     return this.notifications.getNotifications(user.id, +page, +limit);
+  }
+
+  @Patch(':id/read')
+  markAsRead(@Param('id') id: string) {
+    return this.notifications.markAsRead(id);
   }
 
   @Patch('read-all')
