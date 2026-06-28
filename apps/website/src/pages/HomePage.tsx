@@ -17,10 +17,14 @@ export default function HomePage() {
   return (
     <>
       {/* Hero */}
-      <section className="relative overflow-hidden bg-[#f0f5f0]">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-16 lg:py-24">
-          <div className="grid lg:grid-cols-2 gap-8 items-center">
-          <div>
+      <section className="relative overflow-hidden bg-[#f0f5f0] min-h-[85vh] flex items-center">
+        {/* Full-width background image on right */}
+        <div className="absolute right-0 top-0 bottom-0 w-[55%] hidden lg:block">
+          <img src="/images/Homepage_image.png" alt="" className="w-full h-full object-cover object-left" />
+        </div>
+
+        <div className="relative z-10 w-full px-8 lg:px-16 xl:px-24 py-16 lg:py-24">
+          <div className="max-w-xl">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-[#0D1F13] leading-tight mb-6">
               Your Ride,<br />
               <span className="text-[#1B6B2F]">One Tap Away</span>
@@ -34,17 +38,17 @@ export default function HomePage() {
                 <span className="material-icons mr-2">android</span>
                 Download App
               </a>
-              <Link to="/login" className="btn-outline">
+              <Link to="/login" className="btn-outline bg-white">
                 <span className="material-icons mr-2">upload_file</span>
                 Upload Documents
               </Link>
             </div>
           </div>
-            {/* Tricycle image */}
-            <div className="hidden lg:flex justify-end">
-              <img src="/images/Homepage_image.png" alt="TamarrawGo Tricycle" className="max-h-[520px] object-contain drop-shadow-2xl" />
-            </div>
-          </div>
+        </div>
+
+        {/* Mobile image */}
+        <div className="lg:hidden w-full px-6 pb-8">
+          <img src="/images/Homepage_image.png" alt="TamarrawGo Tricycle" className="w-full rounded-2xl" />
         </div>
       </section>
 
