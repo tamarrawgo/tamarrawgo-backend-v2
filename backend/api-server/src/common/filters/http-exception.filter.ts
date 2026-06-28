@@ -17,11 +17,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         ? (exceptionResponse as any).message
         : exception.message;
 
-    if (status === 401) {
-      const url = request.url;
-      if (url.includes('/riders/location') || url.includes('/auth/logout')) return response.status(status).json({ success: false, statusCode: status, message, timestamp: new Date().toISOString(), path: url });
-      this.logger.warn(`${request.method} ${url} → ${status}: ${JSON.stringify(message)}`);
-    } else {
+    if (status !== 401) {
       this.logger.error(`${request.method} ${request.url} → ${status}: ${JSON.stringify(message)}`);
     }
 
