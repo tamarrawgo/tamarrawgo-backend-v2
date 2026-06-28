@@ -62,16 +62,22 @@ export class AdminService {
 
   async getUsers(page = 1, limit = 20, search?: string) {
     const skip = (page - 1) * limit;
-    const where = search
-      ? {
-          OR: [
-            { firstName: { contains: search, mode: 'insensitive' as const } },
-            { lastName: { contains: search, mode: 'insensitive' as const } },
-            { phone: { contains: search } },
-            { email: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {};
+    const conditions: any[] = [
+      { role: 'PASSENGER' },
+      { role: 'ADMIN' },
+      { role: 'RIDER', rider: { status: 'APPROVED' } },
+    ];
+    const where: any = { OR: conditions };
+    if (search) {
+      where.AND = [{
+        OR: [
+          { firstName: { contains: search, mode: 'insensitive' } },
+          { lastName: { contains: search, mode: 'insensitive' } },
+          { phone: { contains: search } },
+          { email: { contains: search, mode: 'insensitive' } },
+        ],
+      }];
+    }
 
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
@@ -142,9 +148,10 @@ export class AdminService {
 
   async getPendingRiders(page = 1, limit = 20) {
     const skip = (page - 1) * limit;
+    const where = { status: 'PENDING' as any, user: { status: 'ACTIVE' as any } };
     const [riders, total] = await Promise.all([
       this.prisma.riderProfile.findMany({
-        where: { status: 'PENDING' },
+        where,
         skip,
         take: limit,
         include: {
@@ -153,7 +160,7 @@ export class AdminService {
           documents: true,
         },
       }),
-      this.prisma.riderProfile.count({ where: { status: 'PENDING' } }),
+      this.prisma.riderProfile.count({ where }),
     ]);
     return { data: riders, total, page, limit };
   }
@@ -171,6 +178,7 @@ export class AdminService {
   async approveRider(riderId: string) {
     const rider = await this.prisma.riderProfile.findUnique({ where: { id: riderId } });
     if (!rider) throw new NotFoundException('Rider not found');
+    await this.prisma.user.update({ where: { id: rider.userId }, data: { status: 'ACTIVE' } });
     return this.prisma.riderProfile.update({ where: { id: riderId }, data: { status: 'APPROVED' } });
   }
 

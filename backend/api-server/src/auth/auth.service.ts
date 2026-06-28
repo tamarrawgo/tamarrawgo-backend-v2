@@ -73,10 +73,22 @@ export class AuthService {
         otpCode: otp,
         otpExpiresAt,
         rider: {
-          create: { licenseNumber: dto.licenseNumber, status: 'PENDING' },
+          create: {
+            licenseNumber: dto.licenseNumber,
+            status: 'PENDING',
+            vehicle: {
+              create: {
+                plateNumber: dto.plateNumber,
+                brand: dto.vehicleBrand ?? 'Tricycle',
+                model: dto.vehicleModel ?? 'Standard',
+                year: new Date().getFullYear(),
+                color: dto.vehicleColor ?? 'N/A',
+              },
+            },
+          },
         },
       },
-      include: { rider: true },
+      include: { rider: { include: { vehicle: true } } },
     });
 
     await this.sms.sendOtp(user.phone, otp);
@@ -95,6 +107,10 @@ export class AuthService {
       data: { status: 'ACTIVE', otpCode: null, otpExpiresAt: null },
     });
 
+    if (user.role === UserRole.RIDER) {
+      return { message: 'Phone verified! Your account is pending admin approval. You will be able to login once approved.', pendingApproval: true };
+    }
+
     return this.generateTokens(user.id, user.phone, user.role as UserRole);
   }
 
@@ -112,7 +128,10 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    const user = await this.prisma.user.findUnique({ where: { phone: dto.phone } });
+    const user = await this.prisma.user.findUnique({
+      where: { phone: dto.phone },
+      include: { rider: { select: { status: true } } },
+    });
     if (!user) throw new UnauthorizedException('Invalid credentials');
 
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
@@ -123,6 +142,9 @@ export class AuthService {
     }
     if (user.status === 'SUSPENDED') {
       throw new UnauthorizedException('Account has been suspended');
+    }
+    if (user.role === UserRole.RIDER && user.rider?.status !== 'APPROVED') {
+      throw new UnauthorizedException('Your account is pending admin approval. Please wait for the admin to review your documents.');
     }
 
     return this.generateTokens(user.id, user.phone, user.role as UserRole);
