@@ -1,0 +1,23 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: #1a1a1a;
+  background: #fff;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center bg-[#1B6B2F] text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-[#145224] transition-all duration-200 cursor-pointer;
+}
+
+.btn-outline {
+  @apply inline-flex items-center justify-center border-2 border-[#1B6B2F] text-[#1B6B2F] px-8 py-4 rounded-2xl font-bold text-lg hover:bg-[#E8F5E9] transition-all duration-200 cursor-pointer;
+}
+
+.btn-white {
+  @apply inline-flex items-center justify-center bg-white text-[#1B6B2F] px-8 py-4 rounded-2xl font-bold text-lg hover:bg-gray-100 transition-all duration-200 cursor-pointer;
+}

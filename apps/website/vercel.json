@@ -1,0 +1,9 @@
+{
+  "buildCommand": "npx vite build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://tamarrawgo-backend-v2-production.up.railway.app/api/:path*" },
+    { "source": "/((?!api/|images/|apk/).*)", "destination": "/index.html" }
+  ]
+}
