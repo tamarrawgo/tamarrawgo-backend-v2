@@ -4,10 +4,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: { DEFAULT: '#FF6B00', 50: '#FFF0E6', 100: '#FFD4AD', 500: '#FF6B00', 600: '#E05F00', 700: '#C25200' },
-        dark: '#1A1A2E',
+        primary: { DEFAULT: '#1B6B2F', 50: '#E8F5E9', 100: '#C8E6C9', 500: '#1B6B2F', 600: '#145224', 700: '#0D3A19' },
+        dark: '#0D1F13',
       },
       fontFamily: { sans: ['Inter', 'sans-serif'] },
+      animation: { 'slide-in': 'slideIn 0.25s ease-out' },
+      keyframes: { slideIn: { from: { transform: 'translateX(100%)' }, to: { transform: 'translateX(0)' } } },
     },
   },
   plugins: [],
