@@ -8,19 +8,20 @@ export default function Navbar() {
 
   return (
     <nav className={`sticky top-0 z-50 backdrop-blur-md ${isHome ? 'bg-white/80' : 'bg-white shadow-sm'}`}>
-      <div className="max-w-6xl mx-auto px-6 lg:px-12">
+      <div className="w-full px-6 lg:px-16">
         <div className="flex items-center justify-between h-16 lg:h-20">
+          {/* Logo — left */}
           <Link to="/" className="flex items-center gap-3">
-            <img src="/images/logo.png" alt="TamarrawGo" className="h-10 w-10 rounded-xl" />
-            <span className="text-xl font-black text-[#1B6B2F]">TamarrawGo</span>
+            <img src="/images/logo.png" alt="TamarrawGo" className="h-12 w-12 rounded-xl" />
+            <span className="text-2xl font-black text-[#1B6B2F]">TamarrawGo</span>
           </Link>
 
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-8">
-            <Link to="/" className="text-sm font-semibold text-gray-600 hover:text-[#1B6B2F] transition-colors">Home</Link>
-            <a href="/#how-it-works" className="text-sm font-semibold text-gray-600 hover:text-[#1B6B2F] transition-colors">How It Works</a>
-            <Link to="/about" className="text-sm font-semibold text-gray-600 hover:text-[#1B6B2F] transition-colors">About</Link>
-            <Link to="/login" className="bg-[#1B6B2F] text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-[#145224] transition-colors">
+          {/* Desktop nav — right */}
+          <div className="hidden md:flex items-center gap-10">
+            <Link to="/" className="text-base font-semibold text-gray-600 hover:text-[#1B6B2F] transition-colors">Home</Link>
+            <a href="/#how-it-works" className="text-base font-semibold text-gray-600 hover:text-[#1B6B2F] transition-colors">How It Works</a>
+            <Link to="/about" className="text-base font-semibold text-gray-600 hover:text-[#1B6B2F] transition-colors">About</Link>
+            <Link to="/login" className="bg-[#1B6B2F] text-white px-7 py-3 rounded-xl font-bold text-base hover:bg-[#145224] transition-colors">
               Login / Upload Docs
             </Link>
           </div>
