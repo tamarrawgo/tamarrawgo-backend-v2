@@ -17,14 +17,10 @@ export default function HomePage() {
   return (
     <>
       {/* Hero */}
-      <section className="relative overflow-hidden flex items-center bg-gradient-to-br from-[#f5f9f5] to-[#e8f0e8]">
-        {/* Background image — right side */}
-        <div className="absolute inset-0">
-          <img src="/images/Homepage_image.png" alt="" className="w-full h-full object-contain object-right-bottom" />
-        </div>
-
-        <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12 py-20 lg:py-32 w-full">
-          <div className="max-w-xl">
+      <section className="relative overflow-hidden bg-[#f0f5f0]">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-16 lg:py-24">
+          <div className="grid lg:grid-cols-2 gap-8 items-center">
+          <div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-[#0D1F13] leading-tight mb-6">
               Your Ride,<br />
               <span className="text-[#1B6B2F]">One Tap Away</span>
@@ -42,6 +38,11 @@ export default function HomePage() {
                 <span className="material-icons mr-2">upload_file</span>
                 Upload Documents
               </Link>
+            </div>
+          </div>
+            {/* Tricycle image */}
+            <div className="hidden lg:flex justify-end">
+              <img src="/images/Homepage_image.png" alt="TamarrawGo Tricycle" className="max-h-[520px] object-contain drop-shadow-2xl" />
             </div>
           </div>
         </div>
