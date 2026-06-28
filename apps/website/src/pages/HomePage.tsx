@@ -17,54 +17,38 @@ export default function HomePage() {
   return (
     <>
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#E8F5E9] via-white to-[#F1F8E9]">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-20 lg:py-32">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 bg-[#1B6B2F]/10 text-[#1B6B2F] px-4 py-2 rounded-full text-sm font-bold mb-6">
-                <span className="material-icons text-base">location_on</span>
-                Now serving Oriental Mindoro
-              </div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-[#0D1F13] leading-tight mb-6">
-                Your Ride,<br />
-                <span className="text-[#1B6B2F]">One Tap Away</span>
-              </h1>
-              <p className="text-lg text-gray-600 leading-relaxed mb-10 max-w-lg">
-                TamarrawGo connects you with reliable tricycle riders in your area.
-                Book a ride, track in real-time, and arrive safely at your destination.
-              </p>
-              <div className="flex flex-wrap gap-4">
-                <a href="#download" className="btn-primary">
-                  <span className="material-icons mr-2">android</span>
-                  Download App
-                </a>
-                <Link to="/login" className="btn-outline">
-                  <span className="material-icons mr-2">upload_file</span>
-                  Upload Documents
-                </Link>
-              </div>
+      <section className="relative overflow-hidden min-h-[90vh] flex items-center">
+        {/* Background image */}
+        <div className="absolute inset-0">
+          <img src="/images/Homepage_image.png" alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0D1F13]/80 via-[#0D1F13]/50 to-transparent" />
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12 py-20 lg:py-32 w-full">
+          <div className="max-w-xl">
+            <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-bold mb-6 border border-white/20">
+              <span className="material-icons text-base">location_on</span>
+              Now serving Oriental Mindoro
             </div>
-            <div className="flex justify-center lg:justify-end">
-              <div className="relative">
-                <div className="w-72 h-72 lg:w-96 lg:h-96 rounded-full bg-[#1B6B2F]/10 flex items-center justify-center">
-                  <img src="/images/logo.png" alt="TamarrawGo" className="w-60 lg:w-80 rounded-3xl drop-shadow-2xl" />
-                </div>
-                <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-white rounded-2xl shadow-xl px-6 py-3 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#E8F5E9] flex items-center justify-center">
-                    <span className="material-icons text-[#1B6B2F]">verified</span>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400">Verified Riders</p>
-                    <p className="text-sm font-bold text-[#0D1F13]">100% Approved</p>
-                  </div>
-                </div>
-              </div>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight mb-6">
+              Your Ride,<br />
+              <span className="text-[#A5D6A7]">One Tap Away</span>
+            </h1>
+            <p className="text-lg text-white/80 leading-relaxed mb-10 max-w-lg">
+              TamarrawGo connects you with reliable tricycle riders in your area.
+              Book a ride, track in real-time, and arrive safely at your destination.
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <a href="#download" className="btn-primary shadow-lg shadow-[#1B6B2F]/40">
+                <span className="material-icons mr-2">android</span>
+                Download App
+              </a>
+              <Link to="/login" className="btn-white">
+                <span className="material-icons mr-2">upload_file</span>
+                Upload Documents
+              </Link>
             </div>
           </div>
-        </div>
-        {/* Wave divider */}
-        <div className="absolute bottom-0 left-0 right-0">
-          <svg viewBox="0 0 1440 60" className="w-full text-white fill-current"><path d="M0,40 C360,80 1080,0 1440,40 L1440,60 L0,60 Z" /></svg>
         </div>
       </section>
 
