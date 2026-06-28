@@ -1,6 +1,6 @@
 {
   "installCommand": "cd ../.. && npm install --legacy-peer-deps",
-  "buildCommand": "cd ../.. && npm run build --workspace=packages/shared-types && npm run build --workspace=packages/shared-utils && npm run build --workspace=apps/admin-dashboard",
+  "buildCommand": "npx vite build",
   "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
