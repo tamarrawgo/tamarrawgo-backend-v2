@@ -2,9 +2,20 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/api';
 
+const DOC_LABELS: Record<string, string> = {
+  LICENSE: "Driver's License",
+  REGISTRATION: 'OR/CR Document',
+  TRICYCLE_PHOTO: 'Tricycle Photo',
+  PROFILE_PHOTO: 'Rider Photo',
+  INSURANCE: 'Insurance',
+  NBI_CLEARANCE: 'NBI Clearance',
+};
+
 export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [previewImg, setPreviewImg] = useState<string | null>(null);
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -15,20 +26,47 @@ export default function UsersPage() {
 
   const suspend = useMutation({
     mutationFn: (id: string) => api.patch(`/admin/users/${id}/suspend`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
+    onSuccess: () => { setSelectedUser(null); qc.refetchQueries({ queryKey: ['users'] }); },
   });
 
   const activate = useMutation({
     mutationFn: (id: string) => api.patch(`/admin/users/${id}/activate`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
+    onSuccess: () => { setSelectedUser(null); qc.refetchQueries({ queryKey: ['users'] }); },
   });
+
+  const deleteUser = useMutation({
+    mutationFn: (id: string) => api.delete(`/admin/users/${id}`),
+    onSuccess: () => {
+      setSelectedUser(null);
+      qc.refetchQueries({ queryKey: ['users'] });
+    },
+  });
+
+  const topup = useMutation({
+    mutationFn: ({ riderId, amount }: { riderId: string; amount: number }) =>
+      api.post(`/admin/riders/${riderId}/topup`, { amount }),
+    onSuccess: () => { qc.refetchQueries({ queryKey: ['users'] }); },
+  });
+
+  const handleTopup = (rider: any) => {
+    const input = window.prompt(`Add topup balance for ${selectedUser?.firstName} ${selectedUser?.lastName}\nCurrent balance: ₱${Number(rider?.walletBalance ?? 0).toFixed(2)}\n\nEnter amount (₱):`);
+    if (!input) return;
+    const amount = parseFloat(input);
+    if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount.'); return; }
+    topup.mutate({ riderId: rider.id, amount });
+  };
+
+  const handleDelete = (user: any) => {
+    if (!window.confirm(`Permanently delete "${user.firstName} ${user.lastName}"?\n\nThis cannot be undone.`)) return;
+    deleteUser.mutate(user.id);
+  };
 
   const statusBadge = (status: string) => {
     const map: Record<string, string> = {
       ACTIVE: 'badge-green', SUSPENDED: 'badge-red',
       PENDING_VERIFICATION: 'badge-yellow', INACTIVE: 'badge-gray',
     };
-    return <span className={map[status] ?? 'badge-gray'}>{status}</span>;
+    return <span className={`badge ${map[status] ?? 'badge-gray'}`}>{status}</span>;
   };
 
   return (
@@ -36,7 +74,7 @@ export default function UsersPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-black text-gray-900">Users</h1>
-          <p className="text-gray-500 mt-1">{data?.total ?? 0} total passengers</p>
+          <p className="text-gray-500 mt-1">{data?.total ?? 0} total users</p>
         </div>
         <input
           className="input w-72"
@@ -60,17 +98,31 @@ export default function UsersPage() {
               <tr><td colSpan={7} className="px-6 py-12 text-center text-gray-400">Loading...</td></tr>
             ) : data?.data?.map((user: any) => (
               <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-6 py-4 font-medium">{user.firstName} {user.lastName}</td>
+                <td className="px-6 py-4">
+                  <button
+                    onClick={() => setSelectedUser(user)}
+                    className="font-medium text-primary hover:underline text-left"
+                  >
+                    {user.firstName} {user.lastName}
+                  </button>
+                </td>
                 <td className="px-6 py-4 text-gray-500">{user.phone}</td>
                 <td className="px-6 py-4 text-gray-500">{user.email ?? '—'}</td>
                 <td className="px-6 py-4"><span className="badge badge-blue">{user.role}</span></td>
                 <td className="px-6 py-4">{statusBadge(user.status)}</td>
                 <td className="px-6 py-4 text-gray-400">{new Date(user.createdAt).toLocaleDateString()}</td>
                 <td className="px-6 py-4">
-                  {user.status === 'ACTIVE' ? (
-                    <button onClick={() => suspend.mutate(user.id)} className="text-red-500 hover:text-red-700 text-xs font-medium">Suspend</button>
+                  {user.role === 'ADMIN' ? (
+                    <span className="text-xs text-gray-400 font-medium">Protected</span>
                   ) : (
-                    <button onClick={() => activate.mutate(user.id)} className="text-green-600 hover:text-green-800 text-xs font-medium">Activate</button>
+                    <div className="flex items-center gap-3">
+                      {user.status === 'ACTIVE' ? (
+                        <button onClick={() => suspend.mutate(user.id)} className="text-red-500 hover:text-red-700 text-xs font-medium">Suspend</button>
+                      ) : (
+                        <button onClick={() => activate.mutate(user.id)} className="text-green-600 hover:text-green-800 text-xs font-medium">Activate</button>
+                      )}
+                      <button onClick={() => handleDelete(user)} className="text-gray-400 hover:text-red-600 text-xs font-medium">Delete</button>
+                    </div>
                   )}
                 </td>
               </tr>
@@ -78,7 +130,6 @@ export default function UsersPage() {
           </tbody>
         </table>
 
-        {/* Pagination */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
           <p className="text-sm text-gray-500">Page {page} of {data?.totalPages ?? 1}</p>
           <div className="flex gap-2">
@@ -87,6 +138,199 @@ export default function UsersPage() {
           </div>
         </div>
       </div>
+
+      {/* User Profile Drawer */}
+      {selectedUser && (
+        <div className="fixed inset-0 z-50 flex">
+          {/* Overlay */}
+          <div className="flex-1 bg-black bg-opacity-40" onClick={() => setSelectedUser(null)} />
+
+          {/* Drawer */}
+          <div className="w-full max-w-lg bg-white h-full overflow-y-auto shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white z-10">
+              <h2 className="text-xl font-black text-gray-900">User Profile</h2>
+              <button onClick={() => setSelectedUser(null)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 font-bold">✕</button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Avatar + Basic Info */}
+              <div className="flex items-center gap-5">
+                {selectedUser.rider?.documents?.find((d: any) => d.type === 'PROFILE_PHOTO') ? (
+                  <img
+                    src={selectedUser.rider.documents.find((d: any) => d.type === 'PROFILE_PHOTO').fileUrl}
+                    className="w-20 h-20 rounded-full object-cover border-2 border-primary cursor-pointer"
+                    onClick={() => setPreviewImg(selectedUser.rider.documents.find((d: any) => d.type === 'PROFILE_PHOTO').fileUrl)}
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-full bg-primary-50 border-2 border-primary flex items-center justify-center text-primary font-black text-2xl">
+                    {selectedUser.firstName?.[0]}{selectedUser.lastName?.[0]}
+                  </div>
+                )}
+                <div>
+                  <h3 className="text-2xl font-black text-gray-900">{selectedUser.firstName} {selectedUser.lastName}</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="badge badge-blue">{selectedUser.role}</span>
+                    {statusBadge(selectedUser.status)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Info */}
+              <div className="card bg-gray-50 space-y-3">
+                <h4 className="font-bold text-gray-700">Contact Information</h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-gray-400">Phone</p>
+                    <p className="font-semibold">{selectedUser.phone}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400">Email</p>
+                    <p className="font-semibold">{selectedUser.email ?? '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400">Joined</p>
+                    <p className="font-semibold">{new Date(selectedUser.createdAt).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400">User ID</p>
+                    <p className="font-semibold text-xs text-gray-500">{selectedUser.id?.slice(0, 8)}...</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Rider-specific info */}
+              {selectedUser.rider && (
+                <>
+                  <div className="card bg-gray-50 space-y-3">
+                    <h4 className="font-bold text-gray-700">Rider Information</h4>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-gray-400">License No.</p>
+                        <p className="font-semibold">{selectedUser.rider.licenseNumber ?? '—'}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400">Status</p>
+                        <p className="font-semibold">{selectedUser.rider.status}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400">Rating</p>
+                        <p className="font-semibold">⭐ {Number(selectedUser.rider.rating ?? 5).toFixed(1)}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400">Online Status</p>
+                        <p className="font-semibold">{selectedUser.rider.onlineStatus ?? 'OFFLINE'}</p>
+                      </div>
+                    </div>
+                    {/* Topup Balance */}
+                    <div className="flex items-center justify-between bg-green-50 rounded-xl p-3 mt-3 border border-green-200">
+                      <div>
+                        <p className="text-xs text-gray-500">Topup Balance</p>
+                        <p className="font-black text-xl text-primary">₱{Number(selectedUser.rider.walletBalance ?? 0).toFixed(2)}</p>
+                        {Number(selectedUser.rider.walletBalance ?? 0) < 100 && (
+                          <p className="text-xs text-red-500 font-semibold mt-0.5">⚠ Below ₱100 — cannot receive bookings</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleTopup(selectedUser.rider)}
+                        disabled={topup.isPending}
+                        className="bg-primary text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-primary-600 disabled:opacity-50"
+                      >
+                        {topup.isPending ? 'Adding...' : '+ Add Balance'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Vehicle */}
+                  {selectedUser.rider.vehicle && (
+                    <div className="card bg-gray-50 space-y-3">
+                      <h4 className="font-bold text-gray-700">Vehicle</h4>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div><p className="text-gray-400">Brand/Model</p><p className="font-semibold">{selectedUser.rider.vehicle.brand} {selectedUser.rider.vehicle.model}</p></div>
+                        <div><p className="text-gray-400">Plate No.</p><p className="font-semibold">{selectedUser.rider.vehicle.plateNumber}</p></div>
+                        <div><p className="text-gray-400">Year</p><p className="font-semibold">{selectedUser.rider.vehicle.year ?? '—'}</p></div>
+                        <div><p className="text-gray-400">Color</p><p className="font-semibold">{selectedUser.rider.vehicle.color ?? '—'}</p></div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Documents */}
+                  {selectedUser.rider.documents?.length > 0 && (
+                    <div>
+                      <h4 className="font-bold text-gray-700 mb-3">Uploaded Documents ({selectedUser.rider.documents.length})</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        {selectedUser.rider.documents.map((doc: any) => (
+                          <div key={doc.id} className="border rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setPreviewImg(doc.fileUrl)}>
+                            <div className="h-32 bg-gray-100">
+                              <img src={doc.fileUrl} alt={DOC_LABELS[doc.type] ?? doc.type} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                            </div>
+                            <div className="p-2">
+                              <p className="text-xs font-semibold text-gray-700">{DOC_LABELS[doc.type] ?? doc.type}</p>
+                              <p className={`text-xs mt-0.5 ${doc.verified ? 'text-green-600' : 'text-yellow-600'}`}>{doc.verified ? '✓ Verified' : '⏳ Pending'}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedUser.rider.documents?.length === 0 && (
+                    <div className="text-center py-6 text-gray-400 bg-gray-50 rounded-xl">
+                      <p className="text-2xl mb-2">📄</p>
+                      <p className="text-sm">No documents uploaded yet</p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Action Buttons — hidden for Super Admin */}
+              {selectedUser.role === 'ADMIN' ? (
+                <div className="mt-2 text-center text-sm text-gray-400 py-2">Super Admin account is protected</div>
+              ) : (
+              <>
+              <div className="flex gap-3 pt-2">
+                {selectedUser.status === 'ACTIVE' ? (
+                  <button onClick={() => suspend.mutate(selectedUser.id)} className="flex-1 border border-red-200 text-red-600 py-2.5 rounded-xl font-semibold hover:bg-red-50 text-sm">Suspend</button>
+                ) : (
+                  <button onClick={() => activate.mutate(selectedUser.id)} className="flex-1 bg-primary text-white py-2.5 rounded-xl font-semibold hover:bg-primary-600 text-sm">Activate</button>
+                )}
+                <button
+                  onClick={() => handleDelete(selectedUser)}
+                  disabled={deleteUser.isPending}
+                  className="flex-1 bg-red-600 text-white py-2.5 rounded-xl font-semibold hover:bg-red-700 text-sm disabled:opacity-50"
+                >
+                  {deleteUser.isPending ? 'Deleting...' : '🗑 Delete User'}
+                </button>
+              </div>
+              <button
+                onClick={() => {
+                  const newPass = window.prompt(`Reset password for ${selectedUser.firstName} ${selectedUser.lastName}\n\nEnter new password (min 8 characters):`);
+                  if (!newPass) return;
+                  if (newPass.length < 8) { alert('Password must be at least 8 characters'); return; }
+                  api.patch(`/admin/users/${selectedUser.id}/reset-password`, { newPassword: newPass })
+                    .then(() => alert('Password reset successfully!'))
+                    .catch((err: any) => alert(err?.message ?? 'Failed to reset password'));
+                }}
+                className="w-full mt-2 border border-yellow-300 text-yellow-700 py-2.5 rounded-xl font-semibold hover:bg-yellow-50 text-sm"
+              >
+                🔑 Reset Password
+              </button>
+              </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Preview */}
+      {previewImg && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[60] p-4" onClick={() => setPreviewImg(null)}>
+          <div className="relative max-w-2xl w-full">
+            <img src={previewImg} className="w-full rounded-2xl" alt="Document preview" />
+            <button className="absolute top-3 right-3 bg-white rounded-full w-8 h-8 flex items-center justify-center font-bold shadow" onClick={() => setPreviewImg(null)}>✕</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

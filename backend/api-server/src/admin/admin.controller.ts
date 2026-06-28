@@ -43,6 +43,12 @@ export class AdminController {
     return this.admin.getUsers(+page, +limit, search);
   }
 
+  @Patch('users/:id/reset-password')
+  @ApiOperation({ summary: 'Admin reset user password' })
+  resetUserPassword(@Param('id') id: string, @Body() body: { newPassword: string }) {
+    return this.admin.resetUserPassword(id, body.newPassword);
+  }
+
   @Patch('users/:id/suspend')
   suspendUser(@Param('id') id: string) {
     return this.admin.suspendUser(id);

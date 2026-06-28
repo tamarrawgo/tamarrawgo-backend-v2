@@ -102,6 +102,13 @@ export class AdminService {
     return { data: users, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
+  async resetUserPassword(userId: string, newPassword: string) {
+    const bcrypt = await import('bcrypt');
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await this.prisma.user.update({ where: { id: userId }, data: { passwordHash } });
+    return { message: 'Password reset successfully' };
+  }
+
   async suspendUser(userId: string) {
     return this.prisma.user.update({ where: { id: userId }, data: { status: 'SUSPENDED' } });
   }
