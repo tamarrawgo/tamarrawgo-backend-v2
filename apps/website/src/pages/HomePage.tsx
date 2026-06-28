@@ -18,7 +18,7 @@ export default function HomePage() {
     <>
       {/* Hero */}
       <section className="relative overflow-hidden bg-[#f0f5f0]">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-16 lg:py-24">
+        <div className="max-w-5xl mx-auto px-6 lg:px-12 py-16 lg:py-24">
           <div className="grid lg:grid-cols-2 gap-8 items-center">
           <div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-[#0D1F13] leading-tight mb-6">
@@ -49,7 +49,7 @@ export default function HomePage() {
       </section>
 
       {/* Features */}
-      <section className="max-w-7xl mx-auto px-6 lg:px-12 py-20 lg:py-28">
+      <section className="max-w-5xl mx-auto px-6 lg:px-12 py-20 lg:py-28">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-black text-[#0D1F13] mb-4">Why Choose TamarrawGo?</h2>
           <p className="text-gray-500 max-w-xl mx-auto">The most convenient way to get around Oriental Mindoro</p>
@@ -69,7 +69,7 @@ export default function HomePage() {
 
       {/* How It Works */}
       <section id="how-it-works" className="bg-[#F8FAF8] scroll-mt-20">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-20 lg:py-28">
+        <div className="max-w-5xl mx-auto px-6 lg:px-12 py-20 lg:py-28">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-black text-[#0D1F13] mb-4">How It Works</h2>
             <p className="text-gray-500 max-w-xl mx-auto">Get started in 3 easy steps</p>
@@ -93,7 +93,7 @@ export default function HomePage() {
 
       {/* For Riders CTA */}
       <section className="bg-[#1B6B2F] text-white">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-20 lg:py-28">
+        <div className="max-w-5xl mx-auto px-6 lg:px-12 py-20 lg:py-28">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-3xl md:text-4xl font-black mb-6">Earn With TamarrawGo</h2>
@@ -124,7 +124,7 @@ export default function HomePage() {
       </section>
 
       {/* Download */}
-      <section id="download" className="max-w-7xl mx-auto px-6 lg:px-12 py-20 lg:py-28 text-center scroll-mt-20">
+      <section id="download" className="max-w-5xl mx-auto px-6 lg:px-12 py-20 lg:py-28 text-center scroll-mt-20">
         <h2 className="text-3xl md:text-4xl font-black text-[#0D1F13] mb-4">Download TamarrawGo</h2>
         <p className="text-gray-500 max-w-lg mx-auto mb-10">Available for Android. Get the app and start booking rides today.</p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
