@@ -17,32 +17,28 @@ export default function HomePage() {
   return (
     <>
       {/* Hero */}
-      <section className="relative overflow-hidden bg-[#f0f5f0]">
-        <div className="w-full px-6 lg:px-16 py-16 lg:py-24">
-          <div className="grid lg:grid-cols-2 gap-8 items-center">
-          <div>
+      <section className="relative overflow-hidden min-h-[85vh] flex items-center"
+        style={{ background: `url('/images/Homepage_image.png') center/cover no-repeat` }}>
+        <div className="absolute inset-0 bg-[#f0f5f0]/60" />
+        <div className="relative z-10 w-full px-6 lg:px-16 py-20 lg:py-32 flex justify-center">
+          <div className="text-center max-w-2xl">
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-[#0D1F13] leading-tight mb-6">
               Your Ride,<br />
               <span className="text-[#1B6B2F]">One Tap Away</span>
             </h1>
-            <p className="text-xl text-gray-600 leading-relaxed mb-10 max-w-lg">
+            <p className="text-xl text-gray-700 leading-relaxed mb-10 max-w-lg mx-auto">
               TamarrawGo connects you with reliable tricycle riders in your area.
               Book a ride, track in real-time, and arrive safely at your destination.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a href="#download" className="btn-primary">
                 <span className="material-icons mr-2">android</span>
                 Download App
               </a>
-              <Link to="/login" className="btn-outline">
+              <Link to="/login" className="btn-outline bg-white/80 backdrop-blur-sm">
                 <span className="material-icons mr-2">upload_file</span>
                 Upload Documents
               </Link>
-            </div>
-          </div>
-            {/* Tricycle image */}
-            <div className="hidden lg:flex justify-end">
-              <img src="/images/Homepage_image.png" alt="TamarrawGo Tricycle" className="max-h-[520px] object-contain drop-shadow-2xl" />
             </div>
           </div>
         </div>
