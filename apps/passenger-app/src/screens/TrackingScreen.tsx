@@ -257,10 +257,13 @@ export default function TrackingScreen() {
     };
   }, []);
 
-  // Polling fallback — syncs status every 8s in case WebSocket events are missed
+  // Polling fallback — syncs status every 10s in case WebSocket events are missed
   useEffect(() => {
     let mounted = true;
+    let polling = false;
     const poll = async () => {
+      if (polling) return;
+      polling = true;
       try {
         const booking: any = await api.get(`/bookings/active?_t=${Date.now()}`);
         if (!mounted) return;
@@ -309,7 +312,7 @@ export default function TrackingScreen() {
             setEtaMinutes(Math.max(1, Math.round(distM / 250)));
           }
         }
-      } catch {}
+      } catch {} finally { polling = false; }
     };
     const interval = setInterval(poll, 10000);
     return () => { mounted = false; clearInterval(interval); };

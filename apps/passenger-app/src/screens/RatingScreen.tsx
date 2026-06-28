@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -11,13 +11,21 @@ const GREEN = '#1B6B2F';
 export default function RatingScreen() {
   const router = useRouter();
   const { activeBooking, reset } = useBookingStore();
-  const [booking] = useState(() => activeBooking);
+  const bookingRef = useRef(activeBooking);
   const [score, setScore] = useState(5);
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  useEffect(() => {
+    if (!bookingRef.current) {
+      reset();
+      router.replace('/(tabs)/home');
+    }
+  }, []);
+
   const handleSubmit = async () => {
+    const booking = bookingRef.current;
     if (!booking || submitted) return;
     setLoading(true);
     try {
@@ -43,11 +51,7 @@ export default function RatingScreen() {
     router.replace('/(tabs)/home');
   };
 
-  if (!booking) {
-    reset();
-    router.replace('/(tabs)/home');
-    return null;
-  }
+  if (!bookingRef.current) return null;
 
   return (
     <View style={styles.container}>
@@ -56,7 +60,7 @@ export default function RatingScreen() {
           <MaterialIcons name="check-circle" size={64} color="#4CAF50" />
         </View>
         <Text style={styles.title}>Trip Completed!</Text>
-        <Text style={styles.fare}>{formatCurrency(Number((booking as any)?.estimatedFare ?? 0))}</Text>
+        <Text style={styles.fare}>{formatCurrency(Number((bookingRef.current as any)?.estimatedFare ?? 0))}</Text>
 
         <Text style={styles.rateLabel}>How was your ride?</Text>
 

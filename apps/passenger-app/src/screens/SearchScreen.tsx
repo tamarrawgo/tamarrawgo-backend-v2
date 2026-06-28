@@ -168,6 +168,12 @@ export default function SearchScreen() {
         passengerCount,
         promoCode: promoCode.trim() || undefined,
       }) as any;
+      if (Number(result?.totalFare ?? 0) <= 0 || Number(result?.distanceKm ?? 0) <= 0) {
+        Alert.alert('Invalid Trip', 'Pickup and destination are too close. Please choose a different destination.');
+        setLoadingEstimate(false);
+        return;
+      }
+
       const discount = Number(result?.discount ?? 0);
       setPromoApplied(discount > 0);
       setPromoDiscount(discount);
