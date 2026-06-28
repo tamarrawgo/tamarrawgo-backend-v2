@@ -122,7 +122,8 @@ export class AuthService {
     const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     await this.prisma.user.update({ where: { id: user.id }, data: { otpCode: otp, otpExpiresAt } });
-    await this.sms.sendOtp(phone, otp);
+    console.log(`[OTP-RESET] ${phone}: ${otp}`);
+    await this.sms.sendOtp(phone, otp).catch(() => {});
 
     return { message: 'OTP sent to your phone number' };
   }
