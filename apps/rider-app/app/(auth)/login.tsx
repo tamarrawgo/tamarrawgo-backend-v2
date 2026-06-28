@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
+  Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
+
+const TRICYCLE = require('../../assets/tricycle-login.png');
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../src/store/auth.store';
 
@@ -20,10 +22,9 @@ export default function RiderLoginScreen() {
       Alert.alert('Error', 'Please enter your phone number and password');
       return;
     }
-    // Normalize 09XXXXXXXXX → +639XXXXXXXXX
-    const normalizedPhone = phone.trim().startsWith('09')
-      ? '+63' + phone.trim().slice(1)
-      : phone.trim();
+    // Normalize: strip leading 0 or +63, then prepend +63
+    const stripped = phone.trim().replace(/^(\+63|0)/, '');
+    const normalizedPhone = '+63' + stripped;
     setLoading(true);
     try {
       await login(normalizedPhone, password);
@@ -47,7 +48,7 @@ export default function RiderLoginScreen() {
       <ScrollView contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
         <View style={styles.logoArea}>
           <View style={styles.logoCircle}>
-            <Ionicons name="bicycle" size={48} color="#fff" />
+            <Image source={TRICYCLE} style={styles.logoImg} resizeMode="contain" />
           </View>
           <Text style={styles.appName}>TamarrawGo</Text>
           <Text style={styles.appSub}>Rider Portal</Text>
@@ -59,15 +60,17 @@ export default function RiderLoginScreen() {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Phone Number</Text>
           <View style={styles.inputWrap}>
-            <Ionicons name="call-outline" size={18} color="#999" style={styles.inputIcon} />
+            <MaterialIcons name="phone" size={18} color="#999" style={styles.inputIcon} />
+            <Text style={styles.prefix}>+63</Text>
             <TextInput
               style={styles.input}
-              placeholder="09XXXXXXXXX"
+              placeholder="9XXXXXXXXX"
               placeholderTextColor="#bbb"
               keyboardType="phone-pad"
               value={phone}
               onChangeText={setPhone}
               autoCapitalize="none"
+              maxLength={10}
             />
           </View>
         </View>
@@ -75,7 +78,7 @@ export default function RiderLoginScreen() {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Password</Text>
           <View style={styles.inputWrap}>
-            <Ionicons name="lock-closed-outline" size={18} color="#999" style={styles.inputIcon} />
+            <MaterialIcons name="lock-outline" size={18} color="#999" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
               placeholder="Enter your password"
@@ -85,7 +88,7 @@ export default function RiderLoginScreen() {
               onChangeText={setPassword}
             />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color="#999" />
+              <MaterialIcons name={showPassword ? 'visibility-off' : 'visibility'} size={18} color="#999" />
             </TouchableOpacity>
           </View>
         </View>
@@ -95,6 +98,10 @@ export default function RiderLoginScreen() {
             ? <ActivityIndicator color="#fff" />
             : <Text style={styles.loginBtnText}>Sign In</Text>
           }
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => router.push('/forgot-password' as any)} style={{ marginTop: 12 }}>
+          <Text style={{ textAlign: 'center', color: '#1B6B2F', fontSize: 14, fontWeight: '600' }}>Forgot Password?</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.registerLink} onPress={() => router.push('/(auth)/register')}>
@@ -110,10 +117,14 @@ const styles = StyleSheet.create({
   inner: { padding: 24, paddingTop: 60, flexGrow: 1 },
   logoArea: { alignItems: 'center', marginBottom: 40 },
   logoCircle: {
-    width: 96, height: 96, borderRadius: 48, backgroundColor: '#1A1A2E',
-    alignItems: 'center', justifyContent: 'center', marginBottom: 12,
+    width: 130, height: 130, borderRadius: 65,
+    backgroundColor: '#E8F5E9', overflow: 'hidden',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 10,
+    borderWidth: 2, borderColor: '#1B6B2F',
   },
-  appName: { fontSize: 28, fontWeight: '900', color: '#1A1A2E' },
+  logoImg: { width: 110, height: 110 },
+  appName: { fontSize: 28, fontWeight: '900', color: '#1B6B2F' },
   appSub: { fontSize: 14, color: '#999', marginTop: 2 },
   title: { fontSize: 22, fontWeight: '800', color: '#333', marginBottom: 6 },
   subtitle: { fontSize: 14, color: '#999', marginBottom: 32 },
@@ -124,14 +135,15 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: '#E0E0E0', borderRadius: 12,
     paddingHorizontal: 14, paddingVertical: 12,
   },
-  inputIcon: { marginRight: 10 },
+  inputIcon: { marginRight: 8 },
+  prefix: { fontSize: 15, color: '#333', fontWeight: '600', marginRight: 4 },
   input: { flex: 1, fontSize: 15, color: '#333' },
   loginBtn: {
-    backgroundColor: '#1A1A2E', borderRadius: 12,
+    backgroundColor: '#1B6B2F', borderRadius: 12,
     paddingVertical: 16, alignItems: 'center', marginTop: 8,
   },
   loginBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   registerLink: { alignItems: 'center', marginTop: 20, paddingBottom: 20 },
   registerLinkText: { fontSize: 14, color: '#999' },
-  registerLinkBold: { color: '#1A1A2E', fontWeight: '700' },
+  registerLinkBold: { color: '#1B6B2F', fontWeight: '700' },
 });

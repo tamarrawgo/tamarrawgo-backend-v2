@@ -35,3 +35,19 @@ export class RequestOtpDto {
   @IsPhoneNumber('PH')
   phone: string;
 }
+
+export class ResetPasswordDto {
+  @ApiProperty({ example: '+639171234567' })
+  @IsPhoneNumber('PH')
+  phone: string;
+
+  @ApiProperty({ example: '123456' })
+  @IsString()
+  @IsNotEmpty()
+  otp: string;
+
+  @ApiProperty({ example: 'NewSecurePass123!' })
+  @IsString()
+  @MinLength(8)
+  newPassword: string;
+}

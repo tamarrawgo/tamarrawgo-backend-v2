@@ -56,6 +56,7 @@ function RootLayoutNav() {
       <Stack.Screen name="terms" />
       <Stack.Screen name="register" />
       <Stack.Screen name="verify-otp" />
+      <Stack.Screen name="forgot-password" />
     </Stack>
   );
 }

@@ -114,6 +114,35 @@ export class AuthService {
     return this.generateTokens(user.id, user.phone, user.role as UserRole);
   }
 
+  async forgotPassword(phone: string) {
+    const user = await this.prisma.user.findUnique({ where: { phone } });
+    if (!user) throw new NotFoundException('Phone number not registered');
+
+    const otp = generateOtp(6);
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await this.prisma.user.update({ where: { id: user.id }, data: { otpCode: otp, otpExpiresAt } });
+    await this.sms.sendOtp(phone, otp);
+
+    return { message: 'OTP sent to your phone number' };
+  }
+
+  async resetPassword(phone: string, otp: string, newPassword: string) {
+    const user = await this.prisma.user.findUnique({ where: { phone } });
+    if (!user) throw new NotFoundException('User not found');
+    if (!user.otpCode || !user.otpExpiresAt) throw new BadRequestException('No OTP requested');
+    if (new Date() > user.otpExpiresAt) throw new BadRequestException('OTP has expired');
+    if (user.otpCode !== otp) throw new BadRequestException('Invalid OTP');
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash, otpCode: null, otpExpiresAt: null },
+    });
+
+    return { message: 'Password reset successfully. You can now login with your new password.' };
+  }
+
   async requestOtp(phone: string) {
     const user = await this.prisma.user.findUnique({ where: { phone } });
     if (!user) throw new NotFoundException('User not found');
@@ -122,7 +151,7 @@ export class AuthService {
     const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     await this.prisma.user.update({ where: { id: user.id }, data: { otpCode: otp, otpExpiresAt } });
-    console.log(`[OTP] ${phone}: ${otp}`);
+    await this.sms.sendOtp(phone, otp);
 
     return { message: 'OTP sent successfully' };
   }

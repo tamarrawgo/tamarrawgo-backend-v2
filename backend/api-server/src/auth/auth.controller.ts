@@ -4,7 +4,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RegisterPassengerDto, RegisterRiderDto } from './dto/register.dto';
-import { LoginDto, RefreshTokenDto, VerifyOtpDto, RequestOtpDto } from './dto/login.dto';
+import { LoginDto, RefreshTokenDto, VerifyOtpDto, RequestOtpDto, ResetPasswordDto } from './dto/login.dto';
 import { CurrentUser } from '../common/decorators/user.decorator';
 
 @ApiTags('auth')
@@ -39,6 +39,21 @@ export class AuthController {
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   requestOtp(@Body() dto: RequestOtpDto) {
     return this.auth.requestOtp(dto.phone);
+  }
+
+  @Post('forgot-password')
+  @ApiOperation({ summary: 'Send OTP for password reset' })
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  forgotPassword(@Body() dto: RequestOtpDto) {
+    return this.auth.forgotPassword(dto.phone);
+  }
+
+  @Post('reset-password')
+  @ApiOperation({ summary: 'Reset password with OTP verification' })
+  @HttpCode(HttpStatus.OK)
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.auth.resetPassword(dto.phone, dto.otp, dto.newPassword);
   }
 
   @Post('login')
