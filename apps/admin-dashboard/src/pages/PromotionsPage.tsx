@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 
 export default function PromotionsPage() {
   return (
-    <div className="p-8">
+    <div className="p-4 lg:p-8">
       <div className="mb-8">
         <h1 className="text-3xl font-black text-gray-900">Promotions</h1>
         <p className="text-gray-500 mt-1">Manage promo codes and discounts</p>

@@ -10,7 +10,7 @@ export default function ReportsPage() {
   });
 
   return (
-    <div className="p-8">
+    <div className="p-4 lg:p-8">
       <div className="mb-8">
         <h1 className="text-3xl font-black text-gray-900">Reports</h1>
         <p className="text-gray-500 mt-1">Revenue and system analytics</p>
@@ -24,7 +24,7 @@ export default function ReportsPage() {
             <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(v) => v.slice(5)} />
             <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `₱${(v / 1000).toFixed(0)}k`} />
             <Tooltip formatter={(v: any) => formatCurrency(v)} />
-            <Bar dataKey="revenue" fill="#FF6B00" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="revenue" fill="#1B6B2F" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

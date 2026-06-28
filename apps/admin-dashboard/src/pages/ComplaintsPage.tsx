@@ -86,7 +86,7 @@ export default function ComplaintsPage() {
   };
 
   return (
-    <div className="p-8">
+    <div className="p-4 lg:p-8">
       <div className="mb-6">
         <h1 className="text-3xl font-black text-gray-900">Complaints</h1>
         <p className="text-gray-500 mt-1">Users reported by riders and passengers</p>

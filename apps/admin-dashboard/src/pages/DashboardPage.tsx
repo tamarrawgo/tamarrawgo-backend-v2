@@ -37,21 +37,21 @@ export default function DashboardPage() {
   );
 
   return (
-    <div className="p-8">
+    <div className="p-4 lg:p-8">
       <div className="mb-8">
         <h1 className="text-3xl font-black text-gray-900">Dashboard</h1>
         <p className="text-gray-500 mt-1">Welcome back! Here's what's happening.</p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
         <StatCard title="Total Passengers" value={stats?.totalUsers?.toLocaleString() ?? 0} icon="👥" color="bg-blue-50" />
-        <StatCard title="Active Riders" value={stats?.activeRiders ?? 0} subtitle={`${stats?.totalRiders ?? 0} total`} icon="🏍️" color="bg-orange-50" />
+        <StatCard title="Active Riders" value={stats?.activeRiders ?? 0} subtitle={`${stats?.totalRiders ?? 0} total`} icon="🏍️" color="bg-green-50" />
         <StatCard title="Today's Bookings" value={stats?.todayBookings?.toLocaleString() ?? 0} icon="🗺️" color="bg-green-50" />
         <StatCard title="Today's Revenue" value={formatCurrency(stats?.todayRevenue ?? 0)} icon="💰" color="bg-purple-50" />
       </div>
 
-      <div className="grid grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-6 mb-8">
         <StatCard title="Monthly Revenue" value={formatCurrency(stats?.monthlyRevenue ?? 0)} icon="📈" color="bg-yellow-50" />
         <StatCard title="Pending Approvals" value={stats?.pendingRiders ?? 0} subtitle="Riders awaiting review" icon="⏳" color="bg-red-50" />
         <StatCard title="Open Tickets" value={stats?.openTickets ?? 0} subtitle="Support tickets" icon="🎫" color="bg-indigo-50" />
@@ -64,15 +64,15 @@ export default function DashboardPage() {
           <AreaChart data={revenue ?? []}>
             <defs>
               <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#FF6B00" stopOpacity={0.2} />
-                <stop offset="95%" stopColor="#FF6B00" stopOpacity={0} />
+                <stop offset="5%" stopColor="#1B6B2F" stopOpacity={0.2} />
+                <stop offset="95%" stopColor="#1B6B2F" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
             <XAxis dataKey="date" tick={{ fontSize: 12 }} tickFormatter={(v) => v.slice(5)} />
             <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `₱${(v / 1000).toFixed(0)}k`} />
             <Tooltip formatter={(v: any) => formatCurrency(v)} />
-            <Area type="monotone" dataKey="revenue" stroke="#FF6B00" strokeWidth={2} fill="url(#colorRevenue)" />
+            <Area type="monotone" dataKey="revenue" stroke="#1B6B2F" strokeWidth={2} fill="url(#colorRevenue)" />
           </AreaChart>
         </ResponsiveContainer>
       </div>
