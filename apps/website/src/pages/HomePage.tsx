@@ -17,16 +17,18 @@ export default function HomePage() {
   return (
     <>
       {/* Hero */}
-      <section className="relative overflow-hidden min-h-[85vh] flex items-center"
-        style={{ background: `url('/images/Homepage_image.png') center/cover no-repeat` }}>
-        <div className="absolute inset-0 bg-[#f0f5f0]/60" />
-        <div className="relative z-10 w-full px-6 lg:px-16 py-20 lg:py-32 flex justify-center">
-          <div className="text-center max-w-2xl">
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-[#0D1F13] leading-tight mb-6">
+      <section className="relative overflow-hidden flex items-center">
+        <div className="absolute inset-0">
+          <img src="/images/Homepage_image.png" alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-[#f0f5f0]/60" />
+        </div>
+        <div className="relative z-10 w-full px-6 lg:px-16 py-24 lg:py-36 flex justify-center">
+          <div className="text-center max-w-3xl">
+            <h1 className="text-6xl md:text-7xl lg:text-8xl font-black text-[#0D1F13] leading-none mb-8">
               Your Ride,<br />
               <span className="text-[#1B6B2F]">One Tap Away</span>
             </h1>
-            <p className="text-xl text-gray-700 leading-relaxed mb-10 max-w-lg mx-auto">
+            <p className="text-xl md:text-2xl text-gray-700 leading-relaxed mb-12 max-w-xl mx-auto">
               TamarrawGo connects you with reliable tricycle riders in your area.
               Book a ride, track in real-time, and arrive safely at your destination.
             </p>
