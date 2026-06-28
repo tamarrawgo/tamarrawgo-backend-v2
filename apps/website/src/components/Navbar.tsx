@@ -8,7 +8,7 @@ export default function Navbar() {
 
   return (
     <nav className={`sticky top-0 z-50 backdrop-blur-md ${isHome ? 'bg-white/80' : 'bg-white shadow-sm'}`}>
-      <div className="max-w-5xl mx-auto px-6 lg:px-12">
+      <div className="max-w-6xl mx-auto px-6 lg:px-12">
         <div className="flex items-center justify-between h-16 lg:h-20">
           <Link to="/" className="flex items-center gap-3">
             <img src="/images/logo.png" alt="TamarrawGo" className="h-10 w-10 rounded-xl" />
