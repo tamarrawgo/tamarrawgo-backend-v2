@@ -199,8 +199,12 @@ export default function RiderHomeScreen() {
       const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
       lastKnownLocation.current = coords;
       setUserLocation(coords);
-      await api.post('/riders/location', { ...coords, heading: loc.coords.heading ?? 0, speed: loc.coords.speed ?? 0 }).catch(() => {});
-    } catch {
+      await api.post('/riders/location', { ...coords, heading: loc.coords.heading ?? 0, speed: loc.coords.speed ?? 0 });
+    } catch (err: any) {
+      if (err?.statusCode === 401 || err?.status === 401) {
+        if (locationInterval.current) { clearInterval(locationInterval.current); locationInterval.current = null; }
+        return;
+      }
       if (lastKnownLocation.current) {
         await api.post('/riders/location', { ...lastKnownLocation.current, heading: 0, speed: 0 }).catch(() => {});
       }
