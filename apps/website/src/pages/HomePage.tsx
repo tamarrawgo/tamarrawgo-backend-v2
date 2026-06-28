@@ -17,33 +17,28 @@ export default function HomePage() {
   return (
     <>
       {/* Hero */}
-      <section className="relative overflow-hidden min-h-[90vh] flex items-center">
-        {/* Background image */}
+      <section className="relative overflow-hidden flex items-center bg-gradient-to-br from-[#f5f9f5] to-[#e8f0e8]">
+        {/* Background image — right side */}
         <div className="absolute inset-0">
-          <img src="/images/Homepage_image.png" alt="" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0D1F13]/80 via-[#0D1F13]/50 to-transparent" />
+          <img src="/images/Homepage_image.png" alt="" className="w-full h-full object-contain object-right-bottom" />
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12 py-20 lg:py-32 w-full">
           <div className="max-w-xl">
-            <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-bold mb-6 border border-white/20">
-              <span className="material-icons text-base">location_on</span>
-              Now serving Oriental Mindoro
-            </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight mb-6">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-[#0D1F13] leading-tight mb-6">
               Your Ride,<br />
-              <span className="text-[#A5D6A7]">One Tap Away</span>
+              <span className="text-[#1B6B2F]">One Tap Away</span>
             </h1>
-            <p className="text-lg text-white/80 leading-relaxed mb-10 max-w-lg">
+            <p className="text-lg text-gray-600 leading-relaxed mb-10 max-w-md">
               TamarrawGo connects you with reliable tricycle riders in your area.
               Book a ride, track in real-time, and arrive safely at your destination.
             </p>
-            <div className="flex flex-wrap gap-4">
-              <a href="#download" className="btn-primary shadow-lg shadow-[#1B6B2F]/40">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <a href="#download" className="btn-primary">
                 <span className="material-icons mr-2">android</span>
                 Download App
               </a>
-              <Link to="/login" className="btn-white">
+              <Link to="/login" className="btn-outline">
                 <span className="material-icons mr-2">upload_file</span>
                 Upload Documents
               </Link>
