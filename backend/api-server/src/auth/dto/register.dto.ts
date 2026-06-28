@@ -32,4 +32,24 @@ export class RegisterRiderDto extends RegisterPassengerDto {
   @IsString()
   @IsNotEmpty()
   licenseNumber: string;
+
+  @ApiProperty({ example: 'ABC 1234' })
+  @IsString()
+  @IsNotEmpty()
+  plateNumber: string;
+
+  @ApiPropertyOptional({ example: 'Honda' })
+  @IsString()
+  @IsOptional()
+  vehicleBrand?: string;
+
+  @ApiPropertyOptional({ example: 'TMX 155' })
+  @IsString()
+  @IsOptional()
+  vehicleModel?: string;
+
+  @ApiPropertyOptional({ example: 'Red' })
+  @IsString()
+  @IsOptional()
+  vehicleColor?: string;
 }
