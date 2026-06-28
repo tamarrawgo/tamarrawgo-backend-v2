@@ -1,0 +1,9 @@
+{
+  "buildCommand": "cd ../.. && npm run build --workspace=packages/shared-types && npm run build --workspace=packages/shared-utils && npm run build --workspace=apps/admin-dashboard",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://tamarrawgo-backend-v2-production.up.railway.app/api/:path*" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}
