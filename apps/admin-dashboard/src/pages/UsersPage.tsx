@@ -206,10 +206,6 @@ export default function UsersPage() {
                     <h4 className="font-bold text-gray-700">Rider Information</h4>
                     <div className="grid grid-cols-2 gap-3 text-sm">
                       <div>
-                        <p className="text-gray-400">License No.</p>
-                        <p className="font-semibold">{selectedUser.rider.licenseNumber ?? '—'}</p>
-                      </div>
-                      <div>
                         <p className="text-gray-400">Status</p>
                         <p className="font-semibold">{selectedUser.rider.status}</p>
                       </div>
