@@ -18,14 +18,14 @@ export default function HomePage() {
     <>
       {/* Hero */}
       <section className="relative overflow-hidden bg-[#f0f5f0]">
-        <div className="max-w-6xl mx-auto px-6 lg:px-12 py-16 lg:py-24">
+        <div className="w-full px-6 lg:px-16 py-16 lg:py-24">
           <div className="grid lg:grid-cols-2 gap-8 items-center">
           <div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-[#0D1F13] leading-tight mb-6">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-[#0D1F13] leading-tight mb-6">
               Your Ride,<br />
               <span className="text-[#1B6B2F]">One Tap Away</span>
             </h1>
-            <p className="text-lg text-gray-600 leading-relaxed mb-10 max-w-md">
+            <p className="text-xl text-gray-600 leading-relaxed mb-10 max-w-lg">
               TamarrawGo connects you with reliable tricycle riders in your area.
               Book a ride, track in real-time, and arrive safely at your destination.
             </p>
