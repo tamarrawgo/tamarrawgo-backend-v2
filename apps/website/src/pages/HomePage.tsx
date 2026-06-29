@@ -18,7 +18,7 @@ export default function HomePage() {
     <>
       {/* Hero */}
       <section className="relative flex items-center bg-no-repeat bg-[#f0f5f0]"
-        style={{ backgroundImage: `url('/images/Homepage_image.png')`, backgroundSize: '100% auto', backgroundPosition: 'center' }}>
+        style={{ backgroundImage: `url('/images/Hero.png')`, backgroundSize: '100% auto', backgroundPosition: 'center' }}>
         <div className="absolute inset-0 bg-[#f0f5f0]/70 md:bg-[#f0f5f0]/50" />
         <div className="relative z-10 w-full px-5 md:px-10 lg:px-16 py-20 md:py-32 lg:py-44">
           <div className="max-w-2xl">
