@@ -55,7 +55,7 @@ export class AuthService {
     const existing = await this.prisma.user.findFirst({
       where: { OR: [{ phone: dto.phone }, { rider: { licenseNumber: dto.licenseNumber } }] },
     });
-    if (existing) throw new ConflictException('Phone or license number already registered');
+    if (existing) throw new ConflictException('This phone number or license number is already registered. Please login instead.');
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const otp = generateOtp(6);
@@ -96,10 +96,15 @@ export class AuthService {
   }
 
   async verifyOtp(dto: VerifyOtpDto) {
-    const user = await this.prisma.user.findUnique({ where: { phone: dto.phone } });
+    const user = await this.prisma.user.findUnique({ where: { phone: dto.phone }, include: { rider: true } });
     if (!user) throw new NotFoundException('User not found');
-    if (!user.otpCode || !user.otpExpiresAt) throw new BadRequestException('No OTP requested');
-    if (new Date() > user.otpExpiresAt) throw new BadRequestException('OTP has expired');
+    if (!user.otpCode || !user.otpExpiresAt) {
+      if (user.status === 'ACTIVE') {
+        throw new BadRequestException('This account is already verified. Please login instead.');
+      }
+      throw new BadRequestException('No OTP requested. Please tap Resend OTP.');
+    }
+    if (new Date() > user.otpExpiresAt) throw new BadRequestException('OTP has expired. Please tap Resend OTP.');
     if (user.otpCode !== dto.otp) throw new BadRequestException('Invalid OTP');
 
     await this.prisma.user.update({
