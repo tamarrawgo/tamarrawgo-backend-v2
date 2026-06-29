@@ -5,8 +5,8 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useAuthStore } from '../src/store/auth.store';
-import { useBookingStore } from '../src/store/booking.store';
+import { useRiderStore } from '../src/store/rider.store';
+import { api } from '../src/services/api';
 import { sendChatMessage, listenToChat } from '../src/services/firebase';
 
 const GREEN = '#1B6B2F';
@@ -19,20 +19,24 @@ interface Message {
   timestamp: number;
 }
 
-export default function ChatScreen() {
+export default function RiderChatScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
-  const { activeBooking } = useBookingStore();
+  const { activeBooking } = useRiderStore();
   const booking = activeBooking as any;
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [riderId, setRiderId] = useState('');
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
-    if (!booking?.id) return;
-    const unsubscribe = listenToChat(booking.id, (msg) => {
+    api.get('/users/profile').then((p: any) => setRiderId(p?.id ?? '')).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!booking?.bookingId) return;
+    const unsubscribe = listenToChat(booking.bookingId, (msg) => {
       setMessages((prev) => {
         if (prev.some((m) => m.id === msg.id)) return prev;
         return [...prev, msg];
@@ -40,30 +44,30 @@ export default function ChatScreen() {
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
     });
     return unsubscribe;
-  }, [booking?.id]);
+  }, [booking?.bookingId]);
 
   const sendMessage = useCallback(async () => {
-    if (!input.trim() || !booking?.id || !user || sending) return;
+    if (!input.trim() || !booking?.bookingId || !riderId || sending) return;
     const text = input.trim();
     setInput('');
     setSending(true);
     try {
-      await sendChatMessage(booking.id, {
-        senderId: (user as any).id,
-        senderRole: 'PASSENGER',
+      await sendChatMessage(booking.bookingId, {
+        senderId: riderId,
+        senderRole: 'RIDER',
         message: text,
       });
     } finally {
       setSending(false);
     }
-  }, [input, booking, user, sending]);
+  }, [input, booking, riderId, sending]);
 
-  const riderName = booking?.rider
-    ? `${booking.rider.user?.firstName ?? ''} ${booking.rider.user?.lastName ?? ''}`.trim()
-    : 'Driver';
+  const passengerName = booking?.passenger
+    ? `${booking.passenger.firstName ?? ''} ${booking.passenger.lastName ?? ''}`.trim()
+    : 'Passenger';
 
   const renderMessage = ({ item }: { item: Message }) => {
-    const isMe = item.senderRole === 'PASSENGER';
+    const isMe = item.senderRole === 'RIDER';
     return (
       <View style={[styles.msgRow, isMe ? styles.msgRowMe : styles.msgRowOther]}>
         {!isMe && (
@@ -88,8 +92,8 @@ export default function ChatScreen() {
           <MaterialIcons name="arrow-back" size={22} color="#333" />
         </TouchableOpacity>
         <View style={styles.headerInfo}>
-          <Text style={styles.headerName}>{riderName}</Text>
-          <Text style={styles.headerSub}>Driver</Text>
+          <Text style={styles.headerName}>{passengerName}</Text>
+          <Text style={styles.headerSub}>Passenger</Text>
         </View>
       </View>
 
@@ -102,7 +106,7 @@ export default function ChatScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <MaterialIcons name="chat" size={48} color="#ddd" />
-              <Text style={styles.emptyText}>Send a message to your driver</Text>
+              <Text style={styles.emptyText}>Send a message to your passenger</Text>
             </View>
           }
           renderItem={renderMessage}
