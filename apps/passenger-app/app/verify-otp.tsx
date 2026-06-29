@@ -3,10 +3,8 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   Alert, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { api } from '../src/services/api';
-import { getPendingSelfieBase64, clearPendingSelfie } from '../src/store/pending-selfie';
 
 export default function VerifyOtpScreen() {
   const router = useRouter();
@@ -22,22 +20,7 @@ export default function VerifyOtpScreen() {
     }
     setLoading(true);
     try {
-      const res: any = await api.post('/auth/verify-otp', { phone, otp });
-      const accessToken = res?.accessToken;
-
-      // Upload selfie if we have tokens and a selfie
-      const base64 = getPendingSelfieBase64();
-      if (accessToken && base64) {
-        try {
-          await AsyncStorage.setItem('@passenger_access_token', accessToken);
-          await api.post('/users/upload-photo', { base64, fileName: 'selfie.jpg' });
-        } catch (e) {
-          console.log('Selfie upload error:', e);
-        }
-        clearPendingSelfie();
-        await AsyncStorage.removeItem('@passenger_access_token');
-      }
-
+      await api.post('/auth/verify-otp', { phone, otp });
       Alert.alert(
         'Phone Verified!',
         'Your account is now active. You can now sign in.',

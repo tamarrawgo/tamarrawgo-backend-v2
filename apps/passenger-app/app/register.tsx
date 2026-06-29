@@ -1,14 +1,11 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  Alert, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Image, Modal,
+  Alert, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Image,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import * as FileSystem from 'expo-file-system';
 import { api } from '../src/services/api';
-import { setPendingSelfie } from '../src/store/pending-selfie';
-import FaceScanCamera from '../src/components/FaceScanCamera';
 
 const GREEN = '#1B6B2F';
 const TRICYCLE = require('../assets/tricycle-login.png');
@@ -18,8 +15,6 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [selfieUri, setSelfieUri] = useState<string | null>(null);
-  const [cameraOpen, setCameraOpen] = useState(false);
   const [form, setForm] = useState({
     firstName: '', lastName: '', phone: '', email: '', password: '', confirmPassword: '',
   });
@@ -31,10 +26,6 @@ export default function RegisterScreen() {
     const { firstName, lastName, phone, password, confirmPassword } = form;
     if (!firstName || !lastName || !phone || !password) {
       Alert.alert('Missing Fields', 'Please fill in all required fields.');
-      return;
-    }
-    if (!selfieUri) {
-      Alert.alert('Selfie Required', 'Please take a selfie using the face scan camera.');
       return;
     }
     if (password.length < 8) {
@@ -75,7 +66,6 @@ export default function RegisterScreen() {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
 
-        {/* Logo — same as login */}
         <View style={styles.logoArea}>
           <View style={styles.logoCircle}>
             <Image source={TRICYCLE} style={styles.logoImg} resizeMode="contain" />
@@ -87,39 +77,6 @@ export default function RegisterScreen() {
         <Text style={styles.title}>Create Passenger Account</Text>
         <Text style={styles.subtitle}>Fill in your details to get started</Text>
 
-        {/* Face Scan Selfie */}
-        <TouchableOpacity style={[styles.selfieWrap, selfieUri && styles.selfieWrapDone]} onPress={() => setCameraOpen(true)}>
-          {selfieUri ? (
-            <Image source={{ uri: selfieUri }} style={styles.selfieImg} />
-          ) : (
-            <View style={styles.selfieEmpty}>
-              <MaterialIcons name="face" size={40} color={GREEN} />
-            </View>
-          )}
-          <View style={styles.selfieInfo}>
-            <Text style={styles.selfieLabel}>{selfieUri ? 'Profile Photo Captured' : 'Take a Selfie *'}</Text>
-            <Text style={[styles.selfieSub, selfieUri && { color: GREEN }]}>
-              {selfieUri ? 'Tap to retake' : 'Face scan required'}
-            </Text>
-          </View>
-          <MaterialIcons name={selfieUri ? 'check-circle' : 'camera-alt'} size={24} color={selfieUri ? GREEN : '#999'} />
-        </TouchableOpacity>
-
-        <Modal visible={cameraOpen} animationType="slide">
-          <FaceScanCamera
-            onCapture={async (uri) => {
-              setSelfieUri(uri);
-              setCameraOpen(false);
-              try {
-                const b64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' as any });
-                setPendingSelfie(uri, b64);
-              } catch (e) { console.log('Base64 convert error:', e); }
-            }}
-            onClose={() => setCameraOpen(false)}
-          />
-        </Modal>
-
-        {/* First & Last Name */}
         <View style={styles.row}>
           <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
             <Text style={styles.label}>First Name *</Text>
@@ -137,7 +94,6 @@ export default function RegisterScreen() {
           </View>
         </View>
 
-        {/* Phone */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Phone Number *</Text>
           <View style={styles.inputWrap}>
@@ -149,7 +105,6 @@ export default function RegisterScreen() {
           </View>
         </View>
 
-        {/* Email */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Email (optional)</Text>
           <View style={styles.inputWrap}>
@@ -160,7 +115,6 @@ export default function RegisterScreen() {
           </View>
         </View>
 
-        {/* Password */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Password *</Text>
           <View style={styles.inputWrap}>
@@ -174,7 +128,6 @@ export default function RegisterScreen() {
           </View>
         </View>
 
-        {/* Confirm Password */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Confirm Password *</Text>
           <View style={styles.inputWrap}>
@@ -237,18 +190,4 @@ const styles = StyleSheet.create({
   loginLink: { alignItems: 'center', marginTop: 20, paddingBottom: 10 },
   loginLinkText: { fontSize: 14, color: '#999' },
   loginLinkBold: { color: GREEN, fontWeight: '700' },
-  selfieWrap: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    borderWidth: 2, borderColor: '#E0E0E0', borderRadius: 16, borderStyle: 'dashed',
-    padding: 16, marginBottom: 20, backgroundColor: '#FAFAFA',
-  },
-  selfieWrapDone: { borderColor: GREEN, borderStyle: 'solid', backgroundColor: '#E8F5E9' },
-  selfieImg: { width: 60, height: 60, borderRadius: 30, borderWidth: 2, borderColor: GREEN },
-  selfieEmpty: {
-    width: 60, height: 60, borderRadius: 30, backgroundColor: '#E8F5E9',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  selfieInfo: { flex: 1 },
-  selfieLabel: { fontSize: 14, fontWeight: '700', color: '#1A1A1A' },
-  selfieSub: { fontSize: 12, color: '#999', marginTop: 2 },
 });

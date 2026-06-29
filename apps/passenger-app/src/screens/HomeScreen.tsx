@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity,
+  View, Text, StyleSheet, TouchableOpacity, Alert,
   ScrollView, SafeAreaView, StatusBar, Image, Platform,
   Animated, Dimensions, TouchableWithoutFeedback,
 } from 'react-native';
@@ -43,11 +43,25 @@ export default function HomeScreen() {
   const [unreadCount, setUnreadCount] = useState(0);
   const drawerAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
 
+  const selfieAlertShown = useRef(false);
+
   // Refresh profile + unread count when screen gains focus
   useFocusEffect(
     useCallback(() => {
       api.get('/users/profile').then((profile: any) => {
-        if (profile) useAuthStore.setState({ user: profile });
+        if (profile) {
+          useAuthStore.setState({ user: profile });
+          if (!profile.profilePhoto && !selfieAlertShown.current) {
+            selfieAlertShown.current = true;
+            setTimeout(() => {
+              Alert.alert(
+                'Complete Your Profile',
+                'Take a selfie to start earning loyalty points! Go to Profile → tap your photo.',
+                [{ text: 'Go to Profile', onPress: () => router.push('/(tabs)/profile' as any) }, { text: 'Later' }]
+              );
+            }, 1000);
+          }
+        }
       }).catch(() => {});
       api.get('/notifications').then((res: any) => {
         const notifs = res?.data ?? (Array.isArray(res) ? res : []);

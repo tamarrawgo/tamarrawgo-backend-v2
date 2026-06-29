@@ -8,7 +8,7 @@ const CAMERA_SIZE = SCREEN_W * 0.85;
 const CIRCLE_SIZE = CAMERA_SIZE * 0.75;
 
 interface Props {
-  onCapture: (uri: string) => void;
+  onCapture: (uri: string, base64: string) => void;
   onClose: () => void;
 }
 
@@ -42,8 +42,8 @@ export default function FaceScanCamera({ onCapture, onClose }: Props) {
   const handleCapture = async () => {
     if (!cameraRef.current) return;
     try {
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.5, skipProcessing: true });
-      onCapture(photo.uri);
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.5, base64: true });
+      onCapture(photo.uri, photo.base64 ?? '');
     } catch (e) {
       console.log('Capture error', e);
     }
