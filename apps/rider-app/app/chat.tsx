@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, color: '#aaa' },
   inputRow: {
     flexDirection: 'row', alignItems: 'flex-end', gap: 10,
-    backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 12, paddingBottom: Platform.OS === 'android' ? 28 : 12,
+    backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 12, paddingBottom: Platform.OS === 'android' ? 48 : 12,
     borderTopWidth: 1, borderTopColor: '#F0F0F0',
   },
   input: {
