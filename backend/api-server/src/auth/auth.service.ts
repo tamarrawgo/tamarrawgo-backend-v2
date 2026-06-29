@@ -173,11 +173,13 @@ export class AuthService {
     if (user.status === 'SUSPENDED') {
       throw new UnauthorizedException('Account has been suspended');
     }
+    const tokens = await this.generateTokens(user.id, user.phone, user.role as UserRole);
+
     if (user.role === UserRole.RIDER && user.rider?.status !== 'APPROVED') {
-      throw new UnauthorizedException('Your account is pending admin approval. Please wait for the admin to review your documents.');
+      return { ...tokens, riderStatus: user.rider?.status ?? 'PENDING', pendingApproval: true };
     }
 
-    return this.generateTokens(user.id, user.phone, user.role as UserRole);
+    return tokens;
   }
 
   async refresh(dto: RefreshTokenDto) {

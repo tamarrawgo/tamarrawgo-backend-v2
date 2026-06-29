@@ -1,6 +1,18 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
+import * as Notifications from 'expo-notifications';
 import { api } from '../services/api';
+
+async function registerFcmToken() {
+  try {
+    const { status } = await Notifications.requestPermissionsAsync();
+    if (status !== 'granted') return;
+    const token = await Notifications.getExpoPushTokenAsync();
+    if (token?.data) {
+      await api.put('/users/fcm-token', { fcmToken: token.data }).catch(() => {});
+    }
+  } catch {}
+}
 
 interface AuthState {
   user: any | null;
@@ -18,10 +30,14 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   login: async (phone, password) => {
     const tokens = await api.post('/auth/login', { phone, password });
+    if (tokens.pendingApproval) {
+      throw { message: 'Your account is pending admin approval. Please upload your documents on the TamarrawGo website and wait for approval.' };
+    }
     await SecureStore.setItemAsync('riderAccessToken', tokens.accessToken);
     await SecureStore.setItemAsync('riderRefreshToken', tokens.refreshToken);
     const user = await api.get('/users/profile');
     set({ user, isAuthenticated: true });
+    registerFcmToken();
   },
 
   logout: async () => {
@@ -37,6 +53,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (!token) { set({ isLoading: false }); return; }
       const user = await api.get('/users/profile');
       set({ user, isAuthenticated: true, isLoading: false });
+      registerFcmToken();
     } catch {
       set({ isLoading: false });
     }

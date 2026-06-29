@@ -40,13 +40,18 @@ export default function HomeScreen() {
   const { setActiveBooking, setDropoff, setPickup, setRiderLocation, activeBooking } = useBookingStore();
   const { places: savedPlaces } = usePlacesStore();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const drawerAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
 
-  // Refresh profile (loyalty points) when screen gains focus
+  // Refresh profile + unread count when screen gains focus
   useFocusEffect(
     useCallback(() => {
       api.get('/users/profile').then((profile: any) => {
         if (profile) useAuthStore.setState({ user: profile });
+      }).catch(() => {});
+      api.get('/notifications').then((res: any) => {
+        const notifs = res?.data ?? (Array.isArray(res) ? res : []);
+        setUnreadCount(notifs.filter((n: any) => !n.read).length);
       }).catch(() => {});
     }, [])
   );
@@ -177,7 +182,9 @@ export default function HomeScreen() {
           </View>
           <TouchableOpacity style={styles.bellBtn} onPress={() => router.push('/notifications')}>
             <MaterialIcons name="notifications-none" size={26} color="#333" />
-            <View style={styles.bellBadge}><Text style={styles.bellBadgeText}>3</Text></View>
+            {unreadCount > 0 && (
+              <View style={styles.bellBadge}><Text style={styles.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text></View>
+            )}
           </TouchableOpacity>
         </View>
 

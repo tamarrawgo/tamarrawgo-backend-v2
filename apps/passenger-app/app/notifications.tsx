@@ -21,7 +21,14 @@ export default function NotificationsScreen() {
 
   useEffect(() => {
     api.get('/notifications')
-      .then((res: any) => setNotifications(res?.data ?? (Array.isArray(res) ? res : [])))
+      .then((res: any) => {
+        const notifs = res?.data ?? (Array.isArray(res) ? res : []);
+        setNotifications(notifs);
+        // Mark all unread as read
+        notifs.filter((n: any) => !n.read).forEach((n: any) => {
+          api.patch(`/notifications/${n.id}/read`).catch(() => {});
+        });
+      })
       .catch(() => setNotifications([]))
       .finally(() => setLoading(false));
   }, []);
