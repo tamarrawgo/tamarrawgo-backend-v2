@@ -206,6 +206,7 @@ export class AdminService {
     const rider = await this.prisma.riderProfile.findUnique({ where: { id: riderId } });
     if (!rider) throw new NotFoundException('Rider not found');
     await this.prisma.user.update({ where: { id: rider.userId }, data: { status: 'ACTIVE' } });
+    await this.prisma.riderDocument.updateMany({ where: { riderId }, data: { verified: true, verifiedAt: new Date() } });
     return this.prisma.riderProfile.update({ where: { id: riderId }, data: { status: 'APPROVED' } });
   }
 
