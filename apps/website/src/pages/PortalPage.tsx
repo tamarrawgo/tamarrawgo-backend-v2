@@ -17,11 +17,15 @@ const TRICYCLE_TYPES = [
   { key: 'TRICYCLE_RIGHT', label: 'Right Side' },
 ];
 
+const ALL_KEYS = [...DOC_TYPES.map(d => d.key), ...TRICYCLE_TYPES.map(d => d.key)];
+
 export default function PortalPage() {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
-  const [docs, setDocs] = useState<any[]>([]);
-  const [uploading, setUploading] = useState<string | null>(null);
+  const [savedDocs, setSavedDocs] = useState<any[]>([]);
+  const [stagedFiles, setStagedFiles] = useState<Record<string, { file: File; preview: string }>>({});
+  const [saving, setSaving] = useState(false);
+  const [saveProgress, setSaveProgress] = useState('');
   const [message, setMessage] = useState('');
   const [tricycleOpen, setTricycleOpen] = useState(false);
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -38,39 +42,46 @@ export default function PortalPage() {
       const profile: any = await api.get('/users/profile');
       setUser(profile);
       localStorage.setItem('tg_user', JSON.stringify(profile));
-      setDocs(profile?.rider?.documents ?? []);
+      setSavedDocs(profile?.rider?.documents ?? []);
     } catch { }
   };
 
-  const handleUpload = async (docType: string, file: File) => {
-    setUploading(docType);
+  const stageFile = (docType: string, file: File) => {
+    const preview = URL.createObjectURL(file);
+    setStagedFiles(prev => ({ ...prev, [docType]: { file, preview } }));
     setMessage('');
-    try {
-      const base64 = await fileToBase64(file);
-      await api.post('/riders/upload-file', {
-        base64,
-        fileName: file.name,
-        docType,
-      });
-      setMessage(`${docType} uploaded successfully!`);
-      await loadDocs();
-    } catch (err: any) {
-      setMessage(err?.message ?? 'Upload failed');
-    } finally {
-      setUploading(null);
-    }
   };
 
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        resolve(result.split(',')[1]);
-      };
+      reader.onload = () => resolve((reader.result as string).split(',')[1]);
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
+  };
+
+  const handleSaveAll = async () => {
+    setSaving(true);
+    setMessage('');
+    let uploaded = 0;
+    const entries = Object.entries(stagedFiles);
+    try {
+      for (const [docType, { file }] of entries) {
+        setSaveProgress(`Uploading ${uploaded + 1} of ${entries.length}...`);
+        const base64 = await fileToBase64(file);
+        await api.post('/riders/upload-file', { base64, fileName: file.name, docType });
+        uploaded++;
+      }
+      setStagedFiles({});
+      setMessage(`All ${uploaded} documents saved successfully!`);
+      await loadDocs();
+    } catch (err: any) {
+      setMessage(`Failed at document ${uploaded + 1}: ${err?.message ?? 'Upload error'}`);
+    } finally {
+      setSaving(false);
+      setSaveProgress('');
+    }
   };
 
   const handleLogout = () => {
@@ -81,7 +92,44 @@ export default function PortalPage() {
   };
 
   const isRider = user?.role === 'RIDER';
-  const getDoc = (type: string) => docs.find((d: any) => d.type === type);
+  const getSaved = (type: string) => savedDocs.find((d: any) => d.type === type);
+  const getStaged = (type: string) => stagedFiles[type];
+  const hasFile = (type: string) => !!getSaved(type) || !!getStaged(type);
+  const allFilled = ALL_KEYS.every(k => hasFile(k));
+  const stagedCount = Object.keys(stagedFiles).length;
+
+  const renderDocRow = (dt: { key: string; label: string; icon?: string }, compact = false) => {
+    const saved = getSaved(dt.key);
+    const staged = getStaged(dt.key);
+    const hasIt = !!saved || !!staged;
+    const imgSrc = staged?.preview ?? saved?.fileUrl;
+
+    return (
+      <div key={dt.key} className={`flex items-center gap-${compact ? '3' : '4'} p-${compact ? '4' : '5'} rounded-${compact ? 'xl' : '2xl'} border-2 transition-colors ${hasIt ? 'border-[#1B6B2F] bg-[#E8F5E9]/50' : 'border-gray-200 bg-gray-50'}`}>
+        {imgSrc ? (
+          <img src={imgSrc} alt={dt.label} className={`${compact ? 'w-12 h-12 rounded-lg' : 'w-14 h-14 rounded-xl'} object-cover`} />
+        ) : (
+          <div className={`${compact ? 'w-12 h-12 rounded-lg' : 'w-14 h-14 rounded-xl'} bg-white border border-gray-200 flex items-center justify-center`}>
+            <span className={`material-icons ${compact ? 'text-xl text-gray-400' : 'text-2xl text-[#1B6B2F]'}`}>{dt.icon ?? 'photo_camera'}</span>
+          </div>
+        )}
+        <div className="flex-1">
+          <p className={`font-bold ${compact ? 'text-sm' : 'text-sm'} text-[#0D1F13]`}>{dt.label}</p>
+          <p className={`text-xs mt-0.5 ${hasIt ? 'text-[#1B6B2F] font-semibold' : 'text-gray-400'}`}>
+            {staged ? 'Ready to save' : saved ? 'Saved' : 'Required'}
+          </p>
+        </div>
+        <input type="file" accept="image/*" className="hidden"
+          ref={(el) => { fileRefs.current[dt.key] = el; }}
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) stageFile(dt.key, f); e.target.value = ''; }}
+        />
+        <button onClick={() => fileRefs.current[dt.key]?.click()} disabled={saving}
+          className={`${compact ? 'px-4 py-2 rounded-lg text-xs' : 'px-5 py-2.5 rounded-xl text-sm'} font-bold transition-colors ${hasIt ? 'bg-white border border-[#1B6B2F] text-[#1B6B2F] hover:bg-[#E8F5E9]' : 'bg-[#1B6B2F] text-white hover:bg-[#145224]'} disabled:opacity-50`}>
+          {hasIt ? 'Change' : 'Select'}
+        </button>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-[80vh] bg-gray-50 py-12 px-6">
@@ -127,7 +175,7 @@ export default function PortalPage() {
         {isRider ? (
           <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
             <h3 className="text-lg font-bold text-[#0D1F13] mb-2">Document Upload</h3>
-            <p className="text-sm text-gray-500 mb-6">Upload clear photos of your documents for verification.</p>
+            <p className="text-sm text-gray-500 mb-6">Select all required documents first, then click "Save Documents" to upload them all at once.</p>
 
             {message && (
               <div className={`rounded-xl px-4 py-3 text-sm mb-6 flex items-center gap-2 ${message.includes('success') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
@@ -137,48 +185,10 @@ export default function PortalPage() {
             )}
 
             <div className="space-y-4">
-              {DOC_TYPES.map((dt) => {
-                const existing = getDoc(dt.key);
-                const isUploading = uploading === dt.key;
-                return (
-                  <div key={dt.key} className={`flex items-center gap-4 p-5 rounded-2xl border-2 transition-colors ${existing ? 'border-[#1B6B2F] bg-[#E8F5E9]/50' : 'border-gray-200 bg-gray-50'}`}>
-                    {existing ? (
-                      <img src={existing.fileUrl} alt={dt.label} className="w-14 h-14 rounded-xl object-cover" />
-                    ) : (
-                      <div className="w-14 h-14 rounded-xl bg-white border border-gray-200 flex items-center justify-center">
-                        <span className="material-icons text-2xl text-[#1B6B2F]">{dt.icon}</span>
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <p className="font-bold text-sm text-[#0D1F13]">{dt.label}</p>
-                      <p className={`text-xs mt-0.5 ${existing ? 'text-[#1B6B2F] font-semibold' : 'text-gray-400'}`}>
-                        {existing ? 'Uploaded' : 'Not uploaded yet'}
-                      </p>
-                    </div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      ref={(el) => { fileRefs.current[dt.key] = el; }}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleUpload(dt.key, file);
-                        e.target.value = '';
-                      }}
-                    />
-                    <button
-                      onClick={() => fileRefs.current[dt.key]?.click()}
-                      disabled={isUploading}
-                      className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-colors ${existing ? 'bg-white border border-[#1B6B2F] text-[#1B6B2F] hover:bg-[#E8F5E9]' : 'bg-[#1B6B2F] text-white hover:bg-[#145224]'} disabled:opacity-50`}
-                    >
-                      {isUploading ? 'Uploading...' : existing ? 'Replace' : 'Upload'}
-                    </button>
-                  </div>
-                );
-              })}
+              {DOC_TYPES.map((dt) => renderDocRow(dt))}
 
               {/* Tricycle Photos — expandable */}
-              <div className={`rounded-2xl border-2 transition-colors ${TRICYCLE_TYPES.every(t => getDoc(t.key)) ? 'border-[#1B6B2F] bg-[#E8F5E9]/50' : 'border-gray-200 bg-gray-50'}`}>
+              <div className={`rounded-2xl border-2 transition-colors ${TRICYCLE_TYPES.every(t => hasFile(t.key)) ? 'border-[#1B6B2F] bg-[#E8F5E9]/50' : 'border-gray-200 bg-gray-50'}`}>
                 <button onClick={() => setTricycleOpen(!tricycleOpen)} className="flex items-center gap-4 p-5 w-full text-left">
                   <div className="w-14 h-14 rounded-xl bg-white border border-gray-200 flex items-center justify-center">
                     <span className="material-icons text-2xl text-[#1B6B2F]">local_taxi</span>
@@ -186,7 +196,7 @@ export default function PortalPage() {
                   <div className="flex-1">
                     <p className="font-bold text-sm text-[#0D1F13]">Photos of Tricycle</p>
                     <p className="text-xs mt-0.5 text-gray-400">
-                      {TRICYCLE_TYPES.filter(t => getDoc(t.key)).length} of {TRICYCLE_TYPES.length} uploaded
+                      {TRICYCLE_TYPES.filter(t => hasFile(t.key)).length} of {TRICYCLE_TYPES.length} selected
                     </p>
                   </div>
                   <span className="material-icons text-gray-400">{tricycleOpen ? 'expand_less' : 'expand_more'}</span>
@@ -194,39 +204,38 @@ export default function PortalPage() {
 
                 {tricycleOpen && (
                   <div className="px-5 pb-5 space-y-3 border-t border-gray-200 pt-4">
-                    {TRICYCLE_TYPES.map((dt) => {
-                      const existing = getDoc(dt.key);
-                      const isUploading = uploading === dt.key;
-                      return (
-                        <div key={dt.key} className={`flex items-center gap-3 p-4 rounded-xl border transition-colors ${existing ? 'border-[#1B6B2F] bg-[#E8F5E9]/30' : 'border-gray-200 bg-white'}`}>
-                          {existing ? (
-                            <img src={existing.fileUrl} alt={dt.label} className="w-12 h-12 rounded-lg object-cover" />
-                          ) : (
-                            <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
-                              <span className="material-icons text-xl text-gray-400">photo_camera</span>
-                            </div>
-                          )}
-                          <div className="flex-1">
-                            <p className="font-semibold text-sm text-[#0D1F13]">{dt.label}</p>
-                            <p className={`text-xs ${existing ? 'text-[#1B6B2F]' : 'text-gray-400'}`}>
-                              {existing ? 'Uploaded' : 'Required'}
-                            </p>
-                          </div>
-                          <input type="file" accept="image/*" className="hidden"
-                            ref={(el) => { fileRefs.current[dt.key] = el; }}
-                            onChange={(e) => { const file = e.target.files?.[0]; if (file) handleUpload(dt.key, file); e.target.value = ''; }}
-                          />
-                          <button onClick={() => fileRefs.current[dt.key]?.click()} disabled={isUploading}
-                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors ${existing ? 'bg-white border border-[#1B6B2F] text-[#1B6B2F]' : 'bg-[#1B6B2F] text-white'} disabled:opacity-50`}>
-                            {isUploading ? '...' : existing ? 'Replace' : 'Upload'}
-                          </button>
-                        </div>
-                      );
-                    })}
+                    {TRICYCLE_TYPES.map((dt) => renderDocRow(dt, true))}
                   </div>
                 )}
               </div>
             </div>
+
+            {/* Progress bar */}
+            <div className="mt-6 mb-2">
+              <div className="flex justify-between text-xs text-gray-400 mb-1">
+                <span>{ALL_KEYS.filter(k => hasFile(k)).length} of {ALL_KEYS.length} documents ready</span>
+                {!allFilled && <span className="text-yellow-600">All fields required</span>}
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-[#1B6B2F] h-2 rounded-full transition-all" style={{ width: `${(ALL_KEYS.filter(k => hasFile(k)).length / ALL_KEYS.length) * 100}%` }} />
+              </div>
+            </div>
+
+            {/* Save button */}
+            <button
+              onClick={handleSaveAll}
+              disabled={!allFilled || saving || stagedCount === 0}
+              className={`w-full mt-4 py-4 rounded-2xl font-bold text-lg transition-all flex items-center justify-center gap-2 ${allFilled && stagedCount > 0 ? 'bg-[#1B6B2F] text-white hover:bg-[#145224] cursor-pointer' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+            >
+              {saving ? (
+                <>{saveProgress}</>
+              ) : (
+                <>
+                  <span className="material-icons">cloud_upload</span>
+                  Save Documents ({stagedCount} new)
+                </>
+              )}
+            </button>
 
             {user?.rider?.status === 'PENDING' && (
               <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-xl px-5 py-4 flex items-start gap-3">
