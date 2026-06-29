@@ -1,11 +1,13 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class AdminService {
   private readonly logger = new Logger(AdminService.name);
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private config: ConfigService) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleTripCleanup() {
@@ -122,6 +124,24 @@ export class AdminService {
 
     // Delete rider-related records
     if (rider) {
+      // Delete uploaded files from Supabase Storage
+      try {
+        const supabaseUrl = this.config.get('SUPABASE_URL');
+        const serviceKey = this.config.get('SUPABASE_SERVICE_ROLE_KEY');
+        if (supabaseUrl && serviceKey) {
+          const { data } = await axios.post(`${supabaseUrl}/storage/v1/object/list/rider-documents`, { prefix: `${userId}/` }, {
+            headers: { Authorization: `Bearer ${serviceKey}` },
+          });
+          if (Array.isArray(data) && data.length > 0) {
+            const filePaths = data.map((f: any) => `${userId}/${f.name}`);
+            await axios.delete(`${supabaseUrl}/storage/v1/object/rider-documents`, {
+              headers: { Authorization: `Bearer ${serviceKey}` },
+              data: { prefixes: filePaths },
+            });
+          }
+        }
+      } catch (e) { this.logger.warn('Failed to delete storage files', e); }
+
       await this.prisma.walletTransaction.deleteMany({ where: { riderId: rider.id } });
       await this.prisma.riderDocument.deleteMany({ where: { riderId: rider.id } });
       await this.prisma.earning.deleteMany({ where: { riderId: rider.id } });
