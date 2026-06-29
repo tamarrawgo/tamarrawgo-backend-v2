@@ -3,11 +3,10 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   Alert, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
-import * as FileSystem from 'expo-file-system';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { api } from '../src/services/api';
-import { getPendingSelfie, clearPendingSelfie } from '../src/store/pending-selfie';
+import { getPendingSelfieBase64, clearPendingSelfie } from '../src/store/pending-selfie';
 
 export default function VerifyOtpScreen() {
   const router = useRouter();
@@ -27,11 +26,10 @@ export default function VerifyOtpScreen() {
       const accessToken = res?.accessToken;
 
       // Upload selfie if we have tokens and a selfie
-      const selfie = getPendingSelfie();
-      if (accessToken && selfie) {
+      const base64 = getPendingSelfieBase64();
+      if (accessToken && base64) {
         try {
           await AsyncStorage.setItem('@passenger_access_token', accessToken);
-          const base64 = await FileSystem.readAsStringAsync(selfie, { encoding: 'base64' as any });
           await api.post('/users/upload-photo', { base64, fileName: 'selfie.jpg' });
         } catch (e) {
           console.log('Selfie upload error:', e);

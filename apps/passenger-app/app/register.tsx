@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as FileSystem from 'expo-file-system';
 import { api } from '../src/services/api';
 import { setPendingSelfie } from '../src/store/pending-selfie';
 import FaceScanCamera from '../src/components/FaceScanCamera';
@@ -60,10 +61,7 @@ export default function RegisterScreen() {
       Alert.alert(
         'Registration Successful!',
         'Your OTP will be sent. Please verify your phone to activate your account.',
-        [{ text: 'Enter OTP', onPress: () => {
-          if (selfieUri) setPendingSelfie(selfieUri);
-          router.replace({ pathname: '/verify-otp', params: { phone: normalizedPhone } });
-        }}],
+        [{ text: 'Enter OTP', onPress: () => router.replace({ pathname: '/verify-otp', params: { phone: normalizedPhone } }) }],
       );
     } catch (err: any) {
       const msg = Array.isArray(err?.message) ? err.message.join('\n') : (err?.message ?? 'Registration failed');
@@ -109,7 +107,14 @@ export default function RegisterScreen() {
 
         <Modal visible={cameraOpen} animationType="slide">
           <FaceScanCamera
-            onCapture={(uri) => { setSelfieUri(uri); setCameraOpen(false); }}
+            onCapture={async (uri) => {
+              setSelfieUri(uri);
+              setCameraOpen(false);
+              try {
+                const b64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' as any });
+                setPendingSelfie(uri, b64);
+              } catch (e) { console.log('Base64 convert error:', e); }
+            }}
             onClose={() => setCameraOpen(false)}
           />
         </Modal>
