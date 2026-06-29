@@ -43,8 +43,8 @@ export default function HomePage() {
             </div>
             {/* Circle image — right */}
             <div className="flex justify-center lg:justify-end animate-hero-2">
-              <div className="w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 lg:w-[480px] lg:h-[480px] rounded-full overflow-hidden border-4 border-[#1B6B2F]/20 shadow-2xl">
-                <img src="/images/Hero.png" alt="TamarrawGo Tricycle" className="w-full h-full object-cover" />
+              <div className="w-72 h-72 sm:w-96 sm:h-96 md:w-[500px] md:h-[500px] lg:w-[600px] lg:h-[600px] rounded-full overflow-hidden border-4 border-[#1B6B2F]/20 shadow-2xl">
+                <img src="/images/Hero.png" alt="TamarrawGo Tricycle" className="w-full h-full object-cover scale-125" />
               </div>
             </div>
           </div>
