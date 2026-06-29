@@ -4,7 +4,7 @@
     "slug": "tamarrawgo-passenger",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/passenger-app-icon.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
@@ -21,20 +21,22 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FF6B00"
+        "foregroundImage": "./assets/passenger-app-icon.png",
+        "backgroundColor": "#1B6B2F"
       },
       "package": "com.tamarrawgo.passenger",
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE"
+        "VIBRATE",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "googleServicesFile": "./google-services.json",
       "config": {
         "googleMaps": {
-          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+          "apiKey": ""
         }
       }
     },
@@ -50,6 +52,13 @@
       ],
       "expo-secure-store"
     ],
-    "scheme": "tamarrawgo"
+    "scheme": "tamarrawgo",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "af91fb9a-6193-4578-a07e-08609f2a740d"
+      }
+    },
+    "owner": "kummiiiiii"
   }
 }

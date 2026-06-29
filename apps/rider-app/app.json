@@ -4,9 +4,19 @@
     "slug": "tamarrawgo-rider",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/rider-app-icon.png",
     "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FF6B00"
+    },
     "ios": { "bundleIdentifier": "com.tamarrawgo.rider", "supportsTablet": false },
     "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/rider-app-icon.png",
+        "backgroundColor": "#1B6B2F"
+      },
       "package": "com.tamarrawgo.rider",
       "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "ACCESS_BACKGROUND_LOCATION"]
     },
