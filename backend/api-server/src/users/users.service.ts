@@ -1,10 +1,12 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private config: ConfigService) {}
 
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
@@ -62,6 +64,25 @@ export class UsersService {
   async updateFcmToken(userId: string, fcmToken: string) {
     await this.prisma.user.update({ where: { id: userId }, data: { fcmToken } });
     return { message: 'FCM token updated' };
+  }
+
+  async uploadProfilePhoto(userId: string, base64: string, fileName: string) {
+    const supabaseUrl = this.config.get('SUPABASE_URL');
+    const serviceKey = this.config.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !serviceKey) throw new Error('Storage not configured');
+
+    const buffer = Buffer.from(base64, 'base64');
+    const ext = fileName.split('.').pop() ?? 'jpg';
+    const path = `profile-photos/${userId}-${Date.now()}.${ext}`;
+    const contentType = ext === 'png' ? 'image/png' : 'image/jpeg';
+
+    await axios.put(`${supabaseUrl}/storage/v1/object/rider-documents/${path}`, buffer, {
+      headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': contentType, 'x-upsert': 'true' },
+    });
+
+    const photoUrl = `${supabaseUrl}/storage/v1/object/public/rider-documents/${path}`;
+    await this.prisma.user.update({ where: { id: userId }, data: { profilePhoto: photoUrl } });
+    return { url: photoUrl };
   }
 
   async getTripHistory(userId: string, page = 1, limit = 10) {

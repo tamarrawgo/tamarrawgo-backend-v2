@@ -3,12 +3,14 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   Alert, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
+import * as FileSystem from 'expo-file-system';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { api } from '../src/services/api';
 
 export default function VerifyOtpScreen() {
   const router = useRouter();
-  const { phone } = useLocalSearchParams<{ phone: string }>();
+  const { phone, selfieUri } = useLocalSearchParams<{ phone: string; selfieUri?: string }>();
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -20,7 +22,21 @@ export default function VerifyOtpScreen() {
     }
     setLoading(true);
     try {
-      await api.post('/auth/verify-otp', { phone, otp });
+      const res: any = await api.post('/auth/verify-otp', { phone, otp });
+      const accessToken = res?.accessToken;
+
+      // Upload selfie if we have tokens and a selfie
+      if (accessToken && selfieUri) {
+        try {
+          await AsyncStorage.setItem('accessToken', accessToken);
+          const base64 = await FileSystem.readAsStringAsync(selfieUri, { encoding: FileSystem.EncodingType.Base64 });
+          await api.post('/users/upload-photo', { base64, fileName: 'selfie.jpg' });
+        } catch (e) {
+          console.log('Selfie upload error:', e);
+        }
+        await AsyncStorage.removeItem('accessToken');
+      }
+
       Alert.alert(
         'Phone Verified!',
         'Your account is now active. You can now sign in.',
@@ -88,7 +104,7 @@ export default function VerifyOtpScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', justifyContent: 'center' },
   inner: { padding: 32, alignItems: 'center' },
-  logo: { fontSize: 32, fontWeight: '800', color: '#FF6B00', marginBottom: 24 },
+  logo: { fontSize: 32, fontWeight: '800', color: '#1B6B2F', marginBottom: 24 },
   title: { fontSize: 22, fontWeight: '800', color: '#333', marginBottom: 8, textAlign: 'center' },
   subtitle: { fontSize: 14, color: '#666', textAlign: 'center', lineHeight: 22, marginBottom: 20 },
   phone: { fontWeight: '700', color: '#333' },
@@ -96,17 +112,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF5EE', borderRadius: 10, padding: 12,
     marginBottom: 24, width: '100%',
   },
-  devNoteText: { fontSize: 13, color: '#FF6B00', textAlign: 'center' },
+  devNoteText: { fontSize: 13, color: '#1B6B2F', textAlign: 'center' },
   otpInput: {
-    width: '100%', borderWidth: 2, borderColor: '#FF6B00', borderRadius: 16,
+    width: '100%', borderWidth: 2, borderColor: '#1B6B2F', borderRadius: 16,
     paddingVertical: 18, fontSize: 32, fontWeight: '800',
     color: '#333', letterSpacing: 12, marginBottom: 24,
   },
   btn: {
-    backgroundColor: '#FF6B00', borderRadius: 12, paddingVertical: 16,
+    backgroundColor: '#1B6B2F', borderRadius: 12, paddingVertical: 16,
     alignItems: 'center', width: '100%', marginBottom: 16,
   },
   btnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   link: { textAlign: 'center', color: '#666', fontSize: 14 },
-  linkBold: { color: '#FF6B00', fontWeight: '700' },
+  linkBold: { color: '#1B6B2F', fontWeight: '700' },
 });

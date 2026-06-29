@@ -59,7 +59,7 @@ export default function RegisterScreen() {
       Alert.alert(
         'Registration Successful!',
         'Your OTP will be sent. Please verify your phone to activate your account.',
-        [{ text: 'Enter OTP', onPress: () => router.replace({ pathname: '/verify-otp', params: { phone: normalizedPhone } }) }],
+        [{ text: 'Enter OTP', onPress: () => router.replace({ pathname: '/verify-otp', params: { phone: normalizedPhone, selfieUri: selfieUri ?? '' } }) }],
       );
     } catch (err: any) {
       const msg = Array.isArray(err?.message) ? err.message.join('\n') : (err?.message ?? 'Registration failed');

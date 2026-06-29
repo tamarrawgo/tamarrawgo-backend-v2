@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Body, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Put, Post, Body, UseGuards, Query } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { UsersService } from './users.service';
@@ -28,6 +28,12 @@ export class UsersController {
   @ApiOperation({ summary: 'Update FCM push notification token' })
   updateFcmToken(@CurrentUser() user: any, @Body() dto: UpdateFcmTokenDto) {
     return this.users.updateFcmToken(user.id, dto.fcmToken);
+  }
+
+  @Post('upload-photo')
+  @ApiOperation({ summary: 'Upload profile photo' })
+  uploadPhoto(@CurrentUser() user: any, @Body() body: { base64: string; fileName: string }) {
+    return this.users.uploadProfilePhoto(user.id, body.base64, body.fileName);
   }
 
   @Get('trips')
