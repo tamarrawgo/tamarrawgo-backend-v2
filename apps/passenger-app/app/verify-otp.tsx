@@ -7,10 +7,11 @@ import * as FileSystem from 'expo-file-system';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { api } from '../src/services/api';
+import { getPendingSelfie, clearPendingSelfie } from '../src/store/pending-selfie';
 
 export default function VerifyOtpScreen() {
   const router = useRouter();
-  const { phone, selfieUri } = useLocalSearchParams<{ phone: string; selfieUri?: string }>();
+  const { phone } = useLocalSearchParams<{ phone: string }>();
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -26,14 +27,16 @@ export default function VerifyOtpScreen() {
       const accessToken = res?.accessToken;
 
       // Upload selfie if we have tokens and a selfie
-      if (accessToken && selfieUri) {
+      const selfie = getPendingSelfie();
+      if (accessToken && selfie) {
         try {
           await AsyncStorage.setItem('@passenger_access_token', accessToken);
-          const base64 = await FileSystem.readAsStringAsync(selfieUri, { encoding: 'base64' as any });
+          const base64 = await FileSystem.readAsStringAsync(selfie, { encoding: 'base64' as any });
           await api.post('/users/upload-photo', { base64, fileName: 'selfie.jpg' });
         } catch (e) {
           console.log('Selfie upload error:', e);
         }
+        clearPendingSelfie();
         await AsyncStorage.removeItem('@passenger_access_token');
       }
 

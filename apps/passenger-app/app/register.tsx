@@ -6,6 +6,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { api } from '../src/services/api';
+import { setPendingSelfie } from '../src/store/pending-selfie';
 import FaceScanCamera from '../src/components/FaceScanCamera';
 
 const GREEN = '#1B6B2F';
@@ -59,7 +60,10 @@ export default function RegisterScreen() {
       Alert.alert(
         'Registration Successful!',
         'Your OTP will be sent. Please verify your phone to activate your account.',
-        [{ text: 'Enter OTP', onPress: () => router.replace({ pathname: '/verify-otp', params: { phone: normalizedPhone, selfieUri: selfieUri ?? '' } }) }],
+        [{ text: 'Enter OTP', onPress: () => {
+          if (selfieUri) setPendingSelfie(selfieUri);
+          router.replace({ pathname: '/verify-otp', params: { phone: normalizedPhone } });
+        }}],
       );
     } catch (err: any) {
       const msg = Array.isArray(err?.message) ? err.message.join('\n') : (err?.message ?? 'Registration failed');
