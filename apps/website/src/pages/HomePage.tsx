@@ -20,15 +20,15 @@ export default function HomePage() {
       <section className="relative overflow-hidden flex items-center min-h-[60vh] md:min-h-[80vh] lg:min-h-[100vh]">
         <div className="absolute inset-0">
           <img src="/images/Hero.png" alt="" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-[#f0f5f0]/60 md:bg-[#f0f5f0]/40" />
+          <div className="absolute inset-0 bg-white/20" />
         </div>
         <div className="relative z-10 w-full px-5 md:px-10 lg:px-16 py-20 md:py-28 lg:py-36">
-          <div className="max-w-xl">
-            <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-[6rem] font-black text-[#0D1F13] leading-none mb-5 md:mb-8 animate-hero-1">
+          <div className="max-w-2xl">
+            <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-[8rem] font-black text-[#0D1F13] leading-[0.9] mb-6 md:mb-10 animate-hero-1" style={{ textShadow: '0 2px 10px rgba(255,255,255,0.5)' }}>
               Your Ride,<br />
-              <span className="text-[#1B6B2F]">One Tap Away</span>
+              <span className="text-[#1B6B2F]">One Tap<br className="hidden sm:block" /> Away</span>
             </h1>
-            <p className="text-base sm:text-lg md:text-xl text-gray-700 leading-relaxed mb-8 md:mb-12 max-w-lg animate-hero-2">
+            <p className="text-lg sm:text-xl md:text-2xl text-gray-800 leading-relaxed mb-8 md:mb-12 max-w-xl animate-hero-2">
               TamarrawGo connects you with reliable tricycle riders in your area.
               Book a ride, track in real-time, and arrive safely at your destination.
             </p>
