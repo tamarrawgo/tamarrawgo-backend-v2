@@ -17,28 +17,35 @@ export default function HomePage() {
   return (
     <>
       {/* Hero */}
-      <section className="relative flex items-center bg-no-repeat bg-[#f0f5f0]"
-        style={{ backgroundImage: `url('/images/Hero.png')`, backgroundSize: '100% auto', backgroundPosition: 'center' }}>
-        <div className="absolute inset-0 bg-[#f0f5f0]/70 md:bg-[#f0f5f0]/50" />
-        <div className="relative z-10 w-full px-5 md:px-10 lg:px-16 py-20 md:py-32 lg:py-44">
-          <div className="max-w-2xl">
-            <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-[6rem] font-black text-[#0D1F13] leading-none mb-5 md:mb-8 animate-hero-1">
-              Your Ride,<br />
-              <span className="text-[#1B6B2F]">One Tap Away</span>
-            </h1>
-            <p className="text-base sm:text-lg md:text-2xl text-gray-700 leading-relaxed mb-8 md:mb-12 max-w-lg animate-hero-2">
-              TamarrawGo connects you with reliable tricycle riders in your area.
-              Book a ride, track in real-time, and arrive safely at your destination.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 md:gap-4 animate-hero-3">
-              <a href="#download" className="btn-primary text-base md:text-lg px-6 md:px-8 py-3 md:py-4">
-                <span className="material-icons mr-2">android</span>
-                Download App
-              </a>
-              <Link to="/login" className="btn-outline bg-white/80 backdrop-blur-sm text-base md:text-lg px-6 md:px-8 py-3 md:py-4">
-                <span className="material-icons mr-2">upload_file</span>
-                Upload Documents
-              </Link>
+      <section className="relative overflow-hidden bg-[#f0f5f0]">
+        <div className="w-full px-5 md:px-10 lg:px-16 py-16 md:py-24 lg:py-32">
+          <div className="grid lg:grid-cols-2 gap-10 items-center">
+            {/* Text — left */}
+            <div>
+              <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-[6rem] font-black text-[#0D1F13] leading-none mb-5 md:mb-8 animate-hero-1">
+                Your Ride,<br />
+                <span className="text-[#1B6B2F]">One Tap Away</span>
+              </h1>
+              <p className="text-base sm:text-lg md:text-2xl text-gray-700 leading-relaxed mb-8 md:mb-12 max-w-lg animate-hero-2">
+                TamarrawGo connects you with reliable tricycle riders in your area.
+                Book a ride, track in real-time, and arrive safely at your destination.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 md:gap-4 animate-hero-3">
+                <a href="#download" className="btn-primary text-base md:text-lg px-6 md:px-8 py-3 md:py-4">
+                  <span className="material-icons mr-2">android</span>
+                  Download App
+                </a>
+                <Link to="/login" className="btn-outline text-base md:text-lg px-6 md:px-8 py-3 md:py-4">
+                  <span className="material-icons mr-2">upload_file</span>
+                  Upload Documents
+                </Link>
+              </div>
+            </div>
+            {/* Circle image — right */}
+            <div className="flex justify-center lg:justify-end animate-hero-2">
+              <div className="w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 lg:w-[480px] lg:h-[480px] rounded-full overflow-hidden border-4 border-[#1B6B2F]/20 shadow-2xl">
+                <img src="/images/Hero.png" alt="TamarrawGo Tricycle" className="w-full h-full object-cover" />
+              </div>
             </div>
           </div>
         </div>
