@@ -20,9 +20,9 @@ export default function HomePage() {
       <section className="relative overflow-hidden flex items-center min-h-[60vh] md:min-h-[80vh] lg:min-h-[100vh]">
         <div className="absolute inset-0">
           <img src="/images/Hero.png" alt="" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-white/20" />
+          {/* no overlay — show original image colors */}
         </div>
-        <div className="relative z-10 w-full px-5 md:px-10 lg:px-16 py-20 md:py-28 lg:py-36">
+        <div className="relative z-10 w-full px-8 md:px-16 lg:px-28 py-20 md:py-28 lg:py-36">
           <div className="max-w-2xl">
             <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-[8rem] font-black text-[#0D1F13] leading-[0.9] mb-6 md:mb-10 animate-hero-1" style={{ textShadow: '0 2px 10px rgba(255,255,255,0.5)' }}>
               Your Ride,<br />
