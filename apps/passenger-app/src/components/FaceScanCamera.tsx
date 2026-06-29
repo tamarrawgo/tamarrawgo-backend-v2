@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -14,8 +14,13 @@ interface Props {
 
 export default function FaceScanCamera({ onCapture, onClose }: Props) {
   const [permission, requestPermission] = useCameraPermissions();
-  const [faceDetected, setFaceDetected] = useState(false);
+  const [ready, setReady] = useState(false);
   const cameraRef = useRef<any>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setReady(true), 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   if (!permission) return null;
 
@@ -35,7 +40,7 @@ export default function FaceScanCamera({ onCapture, onClose }: Props) {
   }
 
   const handleCapture = async () => {
-    if (!cameraRef.current || !faceDetected) return;
+    if (!cameraRef.current) return;
     try {
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.5, skipProcessing: true });
       onCapture(photo.uri);
@@ -59,28 +64,26 @@ export default function FaceScanCamera({ onCapture, onClose }: Props) {
           ref={cameraRef}
           style={styles.camera}
           facing="front"
-          onFacesDetected={({ faces }: any) => setFaceDetected(faces && faces.length > 0)}
-          faceDetectorSettings={{ mode: 'fast', detectLandmarks: 'none', runClassifications: 'none', minDetectionInterval: 300, tracking: false }}
         />
         {/* Circle overlay */}
         <View style={styles.overlay} pointerEvents="none">
-          <View style={[styles.circle, faceDetected ? styles.circleDetected : styles.circleWaiting]} />
+          <View style={[styles.circle, ready ? styles.circleDetected : styles.circleWaiting]} />
         </View>
       </View>
 
       <Text style={styles.instruction}>
-        {faceDetected
-          ? 'Face detected! Tap the button to capture.'
-          : 'Position your face inside the circle'}
+        {ready
+          ? 'Position your face inside the circle and tap capture'
+          : 'Getting camera ready...'}
       </Text>
 
       <View style={styles.controls}>
         <TouchableOpacity
-          style={[styles.captureBtn, !faceDetected && styles.captureBtnDisabled]}
+          style={[styles.captureBtn, !ready && styles.captureBtnDisabled]}
           onPress={handleCapture}
-          disabled={!faceDetected}
+          disabled={!ready}
         >
-          <MaterialIcons name="camera" size={36} color={faceDetected ? '#fff' : '#aaa'} />
+          <MaterialIcons name="camera" size={36} color={ready ? '#fff' : '#aaa'} />
         </TouchableOpacity>
       </View>
     </View>
@@ -96,7 +99,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
   cameraWrap: {
     width: CAMERA_SIZE, height: CAMERA_SIZE, alignSelf: 'center',
-    borderRadius: 20, overflow: 'hidden', position: 'relative',
+    borderRadius: CAMERA_SIZE / 2, overflow: 'hidden', position: 'relative',
   },
   camera: { flex: 1 },
   overlay: {

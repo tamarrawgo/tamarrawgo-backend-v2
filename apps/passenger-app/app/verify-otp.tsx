@@ -28,13 +28,13 @@ export default function VerifyOtpScreen() {
       // Upload selfie if we have tokens and a selfie
       if (accessToken && selfieUri) {
         try {
-          await AsyncStorage.setItem('accessToken', accessToken);
-          const base64 = await FileSystem.readAsStringAsync(selfieUri, { encoding: FileSystem.EncodingType.Base64 });
+          await AsyncStorage.setItem('@passenger_access_token', accessToken);
+          const base64 = await FileSystem.readAsStringAsync(selfieUri, { encoding: 'base64' as any });
           await api.post('/users/upload-photo', { base64, fileName: 'selfie.jpg' });
         } catch (e) {
           console.log('Selfie upload error:', e);
         }
-        await AsyncStorage.removeItem('accessToken');
+        await AsyncStorage.removeItem('@passenger_access_token');
       }
 
       Alert.alert(
