@@ -7,11 +7,14 @@ const DOC_TYPES = [
   { key: 'REGISTRATION', label: 'OR/CR Document', icon: 'description' },
   { key: 'NBI_CLEARANCE', label: 'NBI or Police Clearance', icon: 'verified_user' },
   { key: 'MEDICAL_CERT', label: 'Medical Certificate', icon: 'medical_services' },
-  { key: 'TRICYCLE_FRONT', label: 'Tricycle — Front View', icon: 'local_taxi' },
-  { key: 'TRICYCLE_BACK', label: 'Tricycle — Back (with Plate Number)', icon: 'local_taxi' },
-  { key: 'TRICYCLE_LEFT', label: 'Tricycle — Left Side', icon: 'local_taxi' },
-  { key: 'TRICYCLE_RIGHT', label: 'Tricycle — Right Side', icon: 'local_taxi' },
   { key: 'PROFILE_PHOTO', label: 'Your Photo (Selfie)', icon: 'person' },
+];
+
+const TRICYCLE_TYPES = [
+  { key: 'TRICYCLE_FRONT', label: 'Front View' },
+  { key: 'TRICYCLE_BACK', label: 'Back (with Plate Number)' },
+  { key: 'TRICYCLE_LEFT', label: 'Left Side' },
+  { key: 'TRICYCLE_RIGHT', label: 'Right Side' },
 ];
 
 export default function PortalPage() {
@@ -20,6 +23,7 @@ export default function PortalPage() {
   const [docs, setDocs] = useState<any[]>([]);
   const [uploading, setUploading] = useState<string | null>(null);
   const [message, setMessage] = useState('');
+  const [tricycleOpen, setTricycleOpen] = useState(false);
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   useEffect(() => {
@@ -172,6 +176,56 @@ export default function PortalPage() {
                   </div>
                 );
               })}
+
+              {/* Tricycle Photos — expandable */}
+              <div className={`rounded-2xl border-2 transition-colors ${TRICYCLE_TYPES.every(t => getDoc(t.key)) ? 'border-[#1B6B2F] bg-[#E8F5E9]/50' : 'border-gray-200 bg-gray-50'}`}>
+                <button onClick={() => setTricycleOpen(!tricycleOpen)} className="flex items-center gap-4 p-5 w-full text-left">
+                  <div className="w-14 h-14 rounded-xl bg-white border border-gray-200 flex items-center justify-center">
+                    <span className="material-icons text-2xl text-[#1B6B2F]">local_taxi</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-sm text-[#0D1F13]">Photos of Tricycle</p>
+                    <p className="text-xs mt-0.5 text-gray-400">
+                      {TRICYCLE_TYPES.filter(t => getDoc(t.key)).length} of {TRICYCLE_TYPES.length} uploaded
+                    </p>
+                  </div>
+                  <span className="material-icons text-gray-400">{tricycleOpen ? 'expand_less' : 'expand_more'}</span>
+                </button>
+
+                {tricycleOpen && (
+                  <div className="px-5 pb-5 space-y-3 border-t border-gray-200 pt-4">
+                    {TRICYCLE_TYPES.map((dt) => {
+                      const existing = getDoc(dt.key);
+                      const isUploading = uploading === dt.key;
+                      return (
+                        <div key={dt.key} className={`flex items-center gap-3 p-4 rounded-xl border transition-colors ${existing ? 'border-[#1B6B2F] bg-[#E8F5E9]/30' : 'border-gray-200 bg-white'}`}>
+                          {existing ? (
+                            <img src={existing.fileUrl} alt={dt.label} className="w-12 h-12 rounded-lg object-cover" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
+                              <span className="material-icons text-xl text-gray-400">photo_camera</span>
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <p className="font-semibold text-sm text-[#0D1F13]">{dt.label}</p>
+                            <p className={`text-xs ${existing ? 'text-[#1B6B2F]' : 'text-gray-400'}`}>
+                              {existing ? 'Uploaded' : 'Required'}
+                            </p>
+                          </div>
+                          <input type="file" accept="image/*" className="hidden"
+                            ref={(el) => { fileRefs.current[dt.key] = el; }}
+                            onChange={(e) => { const file = e.target.files?.[0]; if (file) handleUpload(dt.key, file); e.target.value = ''; }}
+                          />
+                          <button onClick={() => fileRefs.current[dt.key]?.click()} disabled={isUploading}
+                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors ${existing ? 'bg-white border border-[#1B6B2F] text-[#1B6B2F]' : 'bg-[#1B6B2F] text-white'} disabled:opacity-50`}>
+                            {isUploading ? '...' : existing ? 'Replace' : 'Upload'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
 
             {user?.rider?.status === 'PENDING' && (
