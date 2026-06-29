@@ -19,6 +19,10 @@ export default function Footer() {
               <span className="material-icons text-sm align-middle mr-1">email</span>
               tamarrawgo@gmail.com
             </p>
+            <a href="https://m.me/61590194953679" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 mt-3 text-sm text-[#1B6B2F] font-bold hover:underline">
+              <span className="material-icons text-sm">chat</span>
+              Chat with us on Messenger
+            </a>
           </div>
 
           {/* Quick Links */}

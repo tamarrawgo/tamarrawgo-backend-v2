@@ -42,9 +42,15 @@ export default function AboutPage() {
         <p>
           Have questions or feedback? We'd love to hear from you.
         </p>
-        <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-4 w-fit">
-          <span className="material-icons text-[#1B6B2F]">email</span>
-          <a href="mailto:tamarrawgo@gmail.com" className="text-[#1B6B2F] font-bold hover:underline">tamarrawgo@gmail.com</a>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-4 w-fit">
+            <span className="material-icons text-[#1B6B2F]">email</span>
+            <a href="mailto:tamarrawgo@gmail.com" className="text-[#1B6B2F] font-bold hover:underline">tamarrawgo@gmail.com</a>
+          </div>
+          <a href="https://m.me/61590194953679" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 bg-[#E8F5E9] rounded-xl p-4 w-fit hover:bg-[#C8E6C9] transition-colors">
+            <span className="material-icons text-[#1B6B2F]">chat</span>
+            <span className="text-[#1B6B2F] font-bold">Chat with us on Messenger</span>
+          </a>
         </div>
       </div>
     </div>

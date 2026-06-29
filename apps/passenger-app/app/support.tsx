@@ -30,6 +30,13 @@ export default function SupportScreen() {
             <Text style={styles.cardSub}>+63 (2) 8888-0000</Text>
           </View>
         </View>
+        <TouchableOpacity style={[styles.card, { backgroundColor: '#E8F5E9', borderColor: '#C8E6C9' }]} onPress={() => Linking.openURL('https://m.me/61590194953679')}>
+          <Ionicons name="logo-facebook" size={24} color="#1B6B2F" />
+          <View style={styles.cardText}>
+            <Text style={styles.cardTitle}>Chat with Us</Text>
+            <Text style={styles.cardSub}>Message us on Facebook Messenger</Text>
+          </View>
+        </TouchableOpacity>
         <View style={styles.card}>
           <Ionicons name="time-outline" size={24} color="#FF6B00" />
           <View style={styles.cardText}>

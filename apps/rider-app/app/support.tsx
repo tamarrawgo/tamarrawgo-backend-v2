@@ -18,6 +18,13 @@ export default function SupportScreen() {
       </View>
 
       <View style={styles.content}>
+        <TouchableOpacity style={styles.card} onPress={() => Linking.openURL('https://m.me/61590194953679')}>
+          <MaterialIcons name="chat" size={24} color={GREEN} />
+          <View style={styles.cardText}>
+            <Text style={styles.cardTitle}>Chat with Us</Text>
+            <Text style={styles.cardSub}>Message us on Facebook Messenger</Text>
+          </View>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.card} onPress={() => Linking.openURL('mailto:tamarrawgo@gmail.com')}>
           <MaterialIcons name="mail-outline" size={24} color={GREEN} />
           <View style={styles.cardText}>
