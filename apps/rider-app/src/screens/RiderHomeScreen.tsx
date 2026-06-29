@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, FlatList, Animated, Dimensions, TouchableWithoutFeedback, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, FlatList, Animated, Dimensions, TouchableWithoutFeedback, ScrollView, Image } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -368,9 +368,13 @@ export default function RiderHomeScreen() {
               <Animated.View style={[styles.drawer, { transform: [{ translateX: drawerAnim }] }]}>
                 {/* Profile header */}
                 <View style={styles.drawerHeader}>
-                  <View style={styles.drawerAvatar}>
-                    <MaterialIcons name="person" size={32} color="#fff" />
-                  </View>
+                  {(user as any)?.profilePhoto ? (
+                    <Image source={{ uri: (user as any).profilePhoto }} style={{ width: 56, height: 56, borderRadius: 28, borderWidth: 2, borderColor: '#fff' }} />
+                  ) : (
+                    <View style={styles.drawerAvatar}>
+                      <MaterialIcons name="person" size={32} color="#fff" />
+                    </View>
+                  )}
                   <Text style={styles.drawerName}>{user?.firstName} {user?.lastName}</Text>
                   <Text style={styles.drawerPhone}>{user?.phone}</Text>
                   <View style={styles.pointsBadge}>

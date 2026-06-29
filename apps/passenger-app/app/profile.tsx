@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../src/store/auth.store';
@@ -33,9 +33,13 @@ export default function ProfileScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.avatar}>
-          <Ionicons name="person" size={48} color="#FF6B00" />
-        </View>
+        {(user as any)?.profilePhoto ? (
+          <Image source={{ uri: (user as any).profilePhoto }} style={{ width: 96, height: 96, borderRadius: 48, marginBottom: 12, borderWidth: 2, borderColor: '#1B6B2F' }} />
+        ) : (
+          <View style={styles.avatar}>
+            <Ionicons name="person" size={48} color="#1B6B2F" />
+          </View>
+        )}
         <Text style={styles.name}>{user?.firstName} {user?.lastName}</Text>
         <Text style={styles.phone}>{user?.phone}</Text>
 

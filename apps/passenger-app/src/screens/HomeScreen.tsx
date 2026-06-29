@@ -291,9 +291,13 @@ export default function HomeScreen() {
               <Animated.View style={[styles.drawer, { transform: [{ translateX: drawerAnim }] }]}>
                 {/* Profile header */}
                 <View style={styles.drawerHeader}>
-                  <View style={styles.drawerAvatar}>
-                    <MaterialIcons name="person" size={32} color="#fff" />
-                  </View>
+                  {(user as any)?.profilePhoto ? (
+                    <Image source={{ uri: (user as any).profilePhoto }} style={{ width: 60, height: 60, borderRadius: 30, borderWidth: 2, borderColor: '#fff' }} />
+                  ) : (
+                    <View style={styles.drawerAvatar}>
+                      <MaterialIcons name="person" size={32} color="#fff" />
+                    </View>
+                  )}
                   <Text style={styles.drawerName}>{user?.firstName} {user?.lastName}</Text>
                   <Text style={styles.drawerPhone}>{user?.phone}</Text>
                   <View style={styles.pointsBadge}>

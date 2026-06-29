@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, TextInput, TouchableOpacity,
+  View, Text, StyleSheet, TextInput, TouchableOpacity, Image,
   FlatList, KeyboardAvoidingView, Platform, SafeAreaView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -71,9 +71,9 @@ export default function RiderChatScreen() {
     return (
       <View style={[styles.msgRow, isMe ? styles.msgRowMe : styles.msgRowOther]}>
         {!isMe && (
-          <View style={styles.avatar}>
-            <MaterialIcons name="person" size={16} color={GREEN} />
-          </View>
+          booking?.passenger?.profilePhoto
+            ? <Image source={{ uri: booking.passenger.profilePhoto }} style={{ width: 28, height: 28, borderRadius: 14 }} />
+            : <View style={styles.avatar}><MaterialIcons name="person" size={16} color={GREEN} /></View>
         )}
         <View style={[styles.bubble, isMe ? styles.bubbleMe : styles.bubbleOther]}>
           <Text style={[styles.bubbleText, isMe && styles.bubbleTextMe]}>{item.message}</Text>

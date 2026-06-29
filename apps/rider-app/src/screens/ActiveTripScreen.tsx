@@ -404,7 +404,10 @@ export default function ActiveTripScreen() {
 
         {/* Always visible: passenger + fare + chat + navigate */}
         <View style={styles.passengerRow}>
-          <View style={styles.avatar}><MaterialIcons name="person-outline" size={22} color={GREEN} /></View>
+          {activeBooking?.passenger?.profilePhoto
+            ? <Image source={{ uri: activeBooking.passenger.profilePhoto }} style={{ width: 40, height: 40, borderRadius: 20 }} />
+            : <View style={styles.avatar}><MaterialIcons name="person-outline" size={22} color={GREEN} /></View>
+          }
           <View style={{ flex: 1 }}>
             <Text style={styles.passengerName} numberOfLines={1}>{activeBooking?.passenger?.firstName} {activeBooking?.passenger?.lastName}</Text>
             {(activeBooking?.passengerCount ?? 1) > 1 && (

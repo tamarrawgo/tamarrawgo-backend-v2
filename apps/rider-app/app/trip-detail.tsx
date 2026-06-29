@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Platform, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Platform, StatusBar, Image } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
@@ -177,9 +177,10 @@ export default function TripDetailScreen() {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Driver</Text>
             <View style={styles.driverRow}>
-              <View style={styles.driverAvatar}>
-                <MaterialIcons name="person" size={24} color={GREEN} />
-              </View>
+              {(booking as any)?.rider?.user?.profilePhoto
+                ? <Image source={{ uri: booking.rider.user.profilePhoto }} style={{ width: 44, height: 44, borderRadius: 22 }} />
+                : <View style={styles.driverAvatar}><MaterialIcons name="person" size={24} color={GREEN} /></View>
+              }
               <View style={{ flex: 1 }}>
                 <Text style={styles.driverName}>{riderName}</Text>
                 <Text style={styles.driverSub}>Plate: {plateNo}</Text>
