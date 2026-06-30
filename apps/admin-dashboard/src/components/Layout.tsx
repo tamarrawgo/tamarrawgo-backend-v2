@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../store/auth.store';
+import { api } from '../services/api';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard',  icon: 'dashboard' },
@@ -20,6 +22,13 @@ export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const { data: pendingTopups } = useQuery({
+    queryKey: ['topup-requests-pending-count'],
+    queryFn: () => api.get('/admin/topup-requests?status=PENDING&limit=1'),
+    refetchInterval: 30000,
+  });
+  const pendingTopupCount = (pendingTopups as any)?.total ?? 0;
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
@@ -57,7 +66,12 @@ export default function Layout() {
               }
             >
               <span className="material-icons text-xl">{item.icon}</span>
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {item.path === '/topup-requests' && pendingTopupCount > 0 && (
+                <span className="bg-red-500 text-white text-xs font-bold rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                  {pendingTopupCount}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>

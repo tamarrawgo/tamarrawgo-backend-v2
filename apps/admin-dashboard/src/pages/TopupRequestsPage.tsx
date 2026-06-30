@@ -19,9 +19,19 @@ export default function TopupRequestsPage() {
     refetchInterval: 15000,
   });
 
+  const { data: pendingData } = useQuery({
+    queryKey: ['topup-requests-pending-count'],
+    queryFn: () => api.get('/admin/topup-requests?status=PENDING&limit=1'),
+    refetchInterval: 30000,
+  });
+  const pendingCount = (pendingData as any)?.total ?? 0;
+
   const approve = useMutation({
     mutationFn: (id: string) => api.patch(`/admin/topup-requests/${id}/approve`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['topup-requests'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['topup-requests'] });
+      qc.invalidateQueries({ queryKey: ['topup-requests-pending-count'] });
+    },
   });
 
   const reject = useMutation({
@@ -29,6 +39,7 @@ export default function TopupRequestsPage() {
       api.patch(`/admin/topup-requests/${id}/reject`, { reason }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['topup-requests'] });
+      qc.invalidateQueries({ queryKey: ['topup-requests-pending-count'] });
       setRejectingId(null);
       setRejectReason('');
     },
@@ -39,7 +50,14 @@ export default function TopupRequestsPage() {
   return (
     <div className="p-4 lg:p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-black text-gray-900">Topup Requests</h1>
+        <h1 className="text-3xl font-black text-gray-900">
+          Topup Requests
+          {pendingCount > 0 && (
+            <span className="ml-3 bg-red-500 text-white text-sm font-bold rounded-full px-3 py-1 align-middle">
+              {pendingCount} pending
+            </span>
+          )}
+        </h1>
         <p className="text-gray-500 mt-1">Review rider wallet topup requests with payment receipts</p>
       </div>
 
@@ -58,6 +76,9 @@ export default function TopupRequestsPage() {
             }`}
           >
             {opt.label}
+            {opt.key === 'PENDING' && pendingCount > 0 && (
+              <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">{pendingCount}</span>
+            )}
           </button>
         ))}
       </div>
