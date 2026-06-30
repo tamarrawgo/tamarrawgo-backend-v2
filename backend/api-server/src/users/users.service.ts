@@ -76,16 +76,30 @@ export class UsersService {
     const serviceKey = this.config.get('SUPABASE_SERVICE_ROLE_KEY');
     if (!supabaseUrl || !serviceKey) throw new Error('Storage not configured');
 
+    // Delete any previous profile photo for this user (different extensions, old timestamped files)
+    try {
+      const { data: existing } = await axios.post(`${supabaseUrl}/storage/v1/object/list/rider-documents`, { prefix: 'profile-photos/' }, {
+        headers: { Authorization: `Bearer ${serviceKey}` },
+      });
+      const oldFiles = Array.isArray(existing) ? existing.filter((f: any) => f.name.startsWith(`${userId}-`) || f.name.startsWith(`${userId}.`)) : [];
+      if (oldFiles.length > 0) {
+        await axios.delete(`${supabaseUrl}/storage/v1/object/rider-documents`, {
+          headers: { Authorization: `Bearer ${serviceKey}` },
+          data: { prefixes: oldFiles.map((f: any) => `profile-photos/${f.name}`) },
+        });
+      }
+    } catch { /* non-fatal — proceed with upload */ }
+
     const buffer = Buffer.from(base64, 'base64');
     const ext = fileName.split('.').pop() ?? 'jpg';
-    const path = `profile-photos/${userId}-${Date.now()}.${ext}`;
+    const path = `profile-photos/${userId}.${ext}`;
     const contentType = ext === 'png' ? 'image/png' : 'image/jpeg';
 
     await axios.put(`${supabaseUrl}/storage/v1/object/rider-documents/${path}`, buffer, {
       headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': contentType, 'x-upsert': 'true' },
     });
 
-    const photoUrl = `${supabaseUrl}/storage/v1/object/public/rider-documents/${path}`;
+    const photoUrl = `${supabaseUrl}/storage/v1/object/public/rider-documents/${path}?t=${Date.now()}`;
     await this.prisma.user.update({ where: { id: userId }, data: { profilePhoto: photoUrl } });
     return { url: photoUrl };
   }
