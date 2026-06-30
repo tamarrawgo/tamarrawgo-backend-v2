@@ -217,6 +217,22 @@ export class AdminService {
     });
   }
 
+  private async deleteReceiptFile(receiptUrl: string) {
+    try {
+      const supabaseUrl = this.config.get('SUPABASE_URL');
+      const serviceKey = this.config.get('SUPABASE_SERVICE_ROLE_KEY');
+      if (!supabaseUrl || !serviceKey) return;
+      const path = receiptUrl.split('/rider-documents/')[1];
+      if (!path) return;
+      await axios.delete(`${supabaseUrl}/storage/v1/object/rider-documents`, {
+        headers: { Authorization: `Bearer ${serviceKey}` },
+        data: { prefixes: [path] },
+      });
+    } catch (e) {
+      this.logger.warn('Failed to delete topup receipt file', e);
+    }
+  }
+
   async getTopupRequests(status?: string, page = 1, limit = 20) {
     const skip = (page - 1) * limit;
     const where = status ? { status: status as any } : {};
@@ -267,6 +283,8 @@ export class AdminService {
       await this.notifications.sendPush(request.rider.user.fcmToken, { title: 'Topup Approved', body: msg }).catch(() => {});
     }
 
+    await this.deleteReceiptFile(request.receiptUrl);
+
     return { message: 'Topup approved and wallet credited' };
   }
 
@@ -290,6 +308,8 @@ export class AdminService {
     if (request.rider.user.fcmToken) {
       await this.notifications.sendPush(request.rider.user.fcmToken, { title: 'Topup Rejected', body: msg }).catch(() => {});
     }
+
+    await this.deleteReceiptFile(request.receiptUrl);
 
     return { message: 'Topup request rejected' };
   }

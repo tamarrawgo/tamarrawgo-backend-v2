@@ -77,12 +77,19 @@ export default function TopupRequestsPage() {
               <div key={req.id} className="card">
                 <div className="flex items-start justify-between gap-6 flex-wrap">
                   <div className="flex items-start gap-4">
-                    <img
-                      src={req.receiptUrl}
-                      className="w-20 h-20 rounded-xl object-cover border border-gray-200 cursor-pointer hover:opacity-90"
-                      onClick={() => setPreviewImg(req.receiptUrl)}
-                      alt="Receipt"
-                    />
+                    {req.status === 'PENDING' ? (
+                      <img
+                        src={req.receiptUrl}
+                        className="w-20 h-20 rounded-xl object-cover border border-gray-200 cursor-pointer hover:opacity-90"
+                        onClick={() => setPreviewImg(req.receiptUrl)}
+                        alt="Receipt"
+                      />
+                    ) : (
+                      <div className="w-20 h-20 rounded-xl border border-gray-200 bg-gray-50 flex flex-col items-center justify-center text-gray-400">
+                        <span className="material-icons text-2xl">image_not_supported</span>
+                        <span className="text-[10px] mt-0.5">Deleted</span>
+                      </div>
+                    )}
                     <div>
                       <p className="font-bold text-gray-900 text-lg">
                         {req.rider?.user?.firstName} {req.rider?.user?.lastName}
