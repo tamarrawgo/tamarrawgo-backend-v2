@@ -51,9 +51,10 @@ export default function RequestTopupScreen() {
       if (!result.canceled && result.assets?.[0]?.uri) {
         setReceiptUri(result.assets[0].uri);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.log('Pick receipt error:', e);
-      Alert.alert('Error', 'Could not open camera/gallery. Please try again.');
+      const detail = e?.message ?? e?.code ?? String(e);
+      Alert.alert('Error', `Could not open ${fromCamera ? 'camera' : 'gallery'}:\n${detail}`);
     }
   };
 
