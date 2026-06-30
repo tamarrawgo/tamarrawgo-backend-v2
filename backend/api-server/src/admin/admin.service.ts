@@ -128,12 +128,12 @@ export class AdminService {
   async deleteUser(userId: string) {
     const rider = await this.prisma.riderProfile.findUnique({ where: { userId } });
 
-    // Delete uploaded files from Supabase Storage (rider docs under userId/, profile photo under profile-photos/)
+    // Delete uploaded files from Supabase Storage (rider docs under userId/, profile photo under profile-photos/, receipts under topup-receipts/)
     try {
       const supabaseUrl = this.config.get('SUPABASE_URL');
       const serviceKey = this.config.get('SUPABASE_SERVICE_ROLE_KEY');
       if (supabaseUrl && serviceKey) {
-        const prefixesToCheck = [`${userId}/`, 'profile-photos/'];
+        const prefixesToCheck = [`${userId}/`, 'profile-photos/', 'topup-receipts/'];
         const filePaths: string[] = [];
         for (const prefix of prefixesToCheck) {
           const { data } = await axios.post(`${supabaseUrl}/storage/v1/object/list/rider-documents`, { prefix }, {
@@ -141,7 +141,7 @@ export class AdminService {
           });
           if (Array.isArray(data)) {
             for (const f of data) {
-              if (prefix === 'profile-photos/' && !f.name.startsWith(`${userId}-`)) continue;
+              if ((prefix === 'profile-photos/' || prefix === 'topup-receipts/') && !f.name.startsWith(`${userId}-`)) continue;
               filePaths.push(`${prefix}${f.name}`);
             }
           }

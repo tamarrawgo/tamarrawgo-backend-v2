@@ -5,7 +5,6 @@ import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateLocationDto, UpdateOnlineStatusDto, AddVehicleDto, UploadDocumentDto, CreateTopupRequestDto } from './dto/rider.dto';
 import { SocketGateway } from '../socket/socket.gateway';
-import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class RidersService implements OnModuleInit {
@@ -173,7 +172,7 @@ export class RidersService implements OnModuleInit {
 
     const buffer = Buffer.from(dto.base64, 'base64');
     const ext = dto.fileName.split('.').pop() ?? 'jpg';
-    const path = `${userId}/topup-receipt-${Date.now()}.${ext}`;
+    const path = `topup-receipts/${userId}-${Date.now()}.${ext}`;
     const contentType = ext === 'png' ? 'image/png' : 'image/jpeg';
 
     const supabaseUrl = this.config.get('SUPABASE_URL');
