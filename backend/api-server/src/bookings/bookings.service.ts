@@ -318,7 +318,7 @@ export class BookingsService {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
-        passenger: { select: { id: true, fcmToken: true } },
+        passenger: { select: { id: true, fcmToken: true, profilePhoto: true } },
         rider: { include: { user: { select: { id: true, fcmToken: true } } } },
       },
     });
@@ -466,7 +466,10 @@ export class BookingsService {
         }
       }
 
-      // Award 15 points to passenger
+      // Award 15 points to passenger — only if they have a profile photo
+      if (!booking.passenger?.profilePhoto) {
+        return;
+      }
       const passenger = await this.prisma.user.update({
         where: { id: booking.passengerId },
         data: { loyaltyPoints: { increment: PASSENGER_POINTS } },
