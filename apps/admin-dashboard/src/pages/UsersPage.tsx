@@ -11,9 +11,12 @@ const DOC_LABELS: Record<string, string> = {
   NBI_CLEARANCE: 'NBI Clearance',
 };
 
+type RoleFilter = 'ALL' | 'RIDER' | 'PASSENGER';
+
 export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [previewImg, setPreviewImg] = useState<string | null>(null);
   const qc = useQueryClient();
@@ -23,6 +26,10 @@ export default function UsersPage() {
     queryFn: () => api.get(`/admin/users?page=${page}&limit=20&search=${search}`),
     placeholderData: (prev) => prev,
   });
+
+  const filteredUsers = (data?.data ?? []).filter((u: any) =>
+    roleFilter === 'ALL' ? true : u.role === roleFilter
+  );
 
   const suspend = useMutation({
     mutationFn: (id: string) => api.patch(`/admin/users/${id}/suspend`),
@@ -71,10 +78,10 @@ export default function UsersPage() {
 
   return (
     <div className="p-4 lg:p-8">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-black text-gray-900">Users</h1>
-          <p className="text-gray-500 mt-1">{data?.total ?? 0} total users</p>
+          <p className="text-gray-500 mt-1">{filteredUsers.length} of {data?.total ?? 0} total users</p>
         </div>
         <input
           className="input w-72"
@@ -82,6 +89,24 @@ export default function UsersPage() {
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
         />
+      </div>
+
+      <div className="flex gap-2 mb-6">
+        {([
+          { key: 'RIDER', label: 'Riders' },
+          { key: 'PASSENGER', label: 'Passengers' },
+          { key: 'ALL', label: 'All Users' },
+        ] as { key: RoleFilter; label: string }[]).map((opt) => (
+          <button
+            key={opt.key}
+            onClick={() => setRoleFilter(opt.key)}
+            className={`px-5 py-2 rounded-xl text-sm font-bold transition-colors ${
+              roleFilter === opt.key ? 'bg-primary text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
       </div>
 
       <div className="card p-0 overflow-hidden">
@@ -96,7 +121,9 @@ export default function UsersPage() {
           <tbody className="divide-y divide-gray-50">
             {isLoading ? (
               <tr><td colSpan={7} className="px-6 py-12 text-center text-gray-400">Loading...</td></tr>
-            ) : data?.data?.map((user: any) => (
+            ) : filteredUsers.length === 0 ? (
+              <tr><td colSpan={7} className="px-6 py-12 text-center text-gray-400">No users found</td></tr>
+            ) : filteredUsers.map((user: any) => (
               <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4">
                   <button
