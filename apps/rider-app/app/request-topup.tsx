@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  TextInput, Image, Alert, ActivityIndicator, SafeAreaView, Platform, StatusBar,
+  TextInput, Image, Alert, ActivityIndicator, SafeAreaView, Platform, StatusBar, Linking,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -33,14 +33,28 @@ export default function RequestTopupScreen() {
       const perm = fromCamera
         ? await ImagePicker.requestCameraPermissionsAsync()
         : await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (perm.status !== 'granted') return;
+      if (perm.status !== 'granted') {
+        Alert.alert(
+          fromCamera ? 'Camera Permission Needed' : 'Photos Permission Needed',
+          perm.canAskAgain === false
+            ? `TamarrawGo needs ${fromCamera ? 'camera' : 'photo library'} access to attach a receipt. Please enable it in your phone Settings.`
+            : `Please allow ${fromCamera ? 'camera' : 'photo library'} access to attach a receipt.`,
+          perm.canAskAgain === false
+            ? [{ text: 'Cancel', style: 'cancel' }, { text: 'Open Settings', onPress: () => Linking.openSettings() }]
+            : [{ text: 'OK' }],
+        );
+        return;
+      }
       const result = fromCamera
         ? await ImagePicker.launchCameraAsync({ quality: 0.5 })
         : await ImagePicker.launchImageLibraryAsync({ quality: 0.5 });
       if (!result.canceled && result.assets?.[0]?.uri) {
         setReceiptUri(result.assets[0].uri);
       }
-    } catch (e) { console.log('Pick receipt error:', e); }
+    } catch (e) {
+      console.log('Pick receipt error:', e);
+      Alert.alert('Error', 'Could not open camera/gallery. Please try again.');
+    }
   };
 
   const handleSubmit = async () => {
