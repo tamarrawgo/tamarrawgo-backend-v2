@@ -67,6 +67,11 @@ export class UsersService {
   }
 
   async uploadProfilePhoto(userId: string, base64: string, fileName: string) {
+    const hasFace = await this.detectFace(base64);
+    if (!hasFace) {
+      throw new BadRequestException('No face detected in the photo. Please retake with your face clearly visible.');
+    }
+
     const supabaseUrl = this.config.get('SUPABASE_URL');
     const serviceKey = this.config.get('SUPABASE_SERVICE_ROLE_KEY');
     if (!supabaseUrl || !serviceKey) throw new Error('Storage not configured');
@@ -83,6 +88,23 @@ export class UsersService {
     const photoUrl = `${supabaseUrl}/storage/v1/object/public/rider-documents/${path}`;
     await this.prisma.user.update({ where: { id: userId }, data: { profilePhoto: photoUrl } });
     return { url: photoUrl };
+  }
+
+  private async detectFace(base64: string): Promise<boolean> {
+    const apiKey = this.config.get('GOOGLE_MAPS_API_KEY');
+    if (!apiKey) return true; // skip check if not configured
+
+    try {
+      const { data } = await axios.post(
+        `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`,
+        { requests: [{ image: { content: base64 }, features: [{ type: 'FACE_DETECTION', maxResults: 1 }] }] },
+      );
+      const faces = data?.responses?.[0]?.faceAnnotations;
+      return Array.isArray(faces) && faces.length > 0;
+    } catch (e) {
+      // If Vision API fails (quota, network), don't block the user — allow upload
+      return true;
+    }
   }
 
   async getTripHistory(userId: string, page = 1, limit = 10) {

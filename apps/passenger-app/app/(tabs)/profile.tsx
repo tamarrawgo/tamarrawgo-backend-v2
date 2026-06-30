@@ -30,7 +30,13 @@ export default function ProfileScreen() {
       if (profile) useAuthStore.setState({ user: profile });
       Alert.alert('Success', 'Profile photo updated!');
     } catch (e: any) {
-      Alert.alert('Upload Failed', e?.message ?? 'Could not upload photo');
+      const msg = e?.message ?? 'Could not upload photo';
+      const isFaceError = msg.toLowerCase().includes('face');
+      Alert.alert(
+        isFaceError ? 'No Face Detected' : 'Upload Failed',
+        msg,
+        isFaceError ? [{ text: 'Retake', onPress: () => setCameraOpen(true) }, { text: 'Cancel', style: 'cancel' }] : undefined,
+      );
     } finally {
       setUploading(false);
     }
