@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import * as ImageManipulator from 'expo-image-manipulator';
 import { MaterialIcons } from '@expo/vector-icons';
 
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -43,13 +42,8 @@ export default function FaceScanCamera({ onCapture, onClose }: Props) {
   const handleCapture = async () => {
     if (!cameraRef.current) return;
     try {
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.7 });
-      const resized = await ImageManipulator.manipulateAsync(
-        photo.uri,
-        [{ resize: { width: 600 } }],
-        { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG, base64: true },
-      );
-      onCapture(resized.uri, resized.base64 ?? '');
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.5, base64: true });
+      onCapture(photo.uri, photo.base64 ?? '');
     } catch (e) {
       console.log('Capture error', e);
     }
