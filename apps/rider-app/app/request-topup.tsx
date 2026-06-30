@@ -45,9 +45,14 @@ export default function RequestTopupScreen() {
         );
         return;
       }
+      // quality must be exactly 1 (MAXIMUM_QUALITY) on Android — any other value routes through
+      // expo-image-picker's CompressionImageExporter, which depends on the legacy expo-image-loader
+      // module that's incompatible with this Expo SDK's modules-core and gets skipped at link time,
+      // throwing "Module 'ImageLoader' not found". quality: 1 uses RawImageExporter instead, which
+      // has no such dependency. Also better for the backend's OCR amount-reading anyway.
       const result = fromCamera
-        ? await ImagePicker.launchCameraAsync({ quality: 0.5 })
-        : await ImagePicker.launchImageLibraryAsync({ quality: 0.5 });
+        ? await ImagePicker.launchCameraAsync({ quality: 1 })
+        : await ImagePicker.launchImageLibraryAsync({ quality: 1 });
       if (!result.canceled && result.assets?.[0]?.uri) {
         setReceiptUri(result.assets[0].uri);
       }
