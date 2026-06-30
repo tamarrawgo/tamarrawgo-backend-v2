@@ -80,6 +80,14 @@ enum NotificationType {
   PAYMENT_RECEIVED
   PROMO_ALERT
   SYSTEM
+  TOPUP_APPROVED
+  TOPUP_REJECTED
+}
+
+enum TopupRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum SupportTicketStatus {
@@ -155,6 +163,7 @@ model RiderProfile {
   walletTransactions  WalletTransaction[]
   earnings            Earning[]
   ratings             Rating[]     @relation("RiderRatings")
+  topupRequests       TopupRequest[]
 
   @@map("rider_profiles")
 }
@@ -278,6 +287,23 @@ model WalletTransaction {
   createdAt   DateTime              @default(now())
 
   @@map("wallet_transactions")
+}
+
+model TopupRequest {
+  id              String              @id @default(uuid())
+  riderId         String
+  rider           RiderProfile        @relation(fields: [riderId], references: [id])
+  amount          Decimal             @db.Decimal(10, 2)
+  receiptUrl      String
+  referenceNumber String?
+  ocrAmount       Decimal?            @db.Decimal(10, 2)
+  status          TopupRequestStatus  @default(PENDING)
+  rejectionReason String?
+  createdAt       DateTime            @default(now())
+  reviewedAt      DateTime?
+
+  @@index([riderId, status])
+  @@map("topup_requests")
 }
 
 model Earning {

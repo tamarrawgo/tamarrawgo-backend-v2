@@ -46,6 +46,7 @@ function RootLayoutNav() {
       <Stack.Screen name="trip-detail" />
       <Stack.Screen name="chat" options={{ presentation: 'modal' }} />
       <Stack.Screen name="upload-documents" />
+      <Stack.Screen name="request-topup" />
       <Stack.Screen name="forgot-password" />
       <Stack.Screen name="support" />
       <Stack.Screen name="complaints" />

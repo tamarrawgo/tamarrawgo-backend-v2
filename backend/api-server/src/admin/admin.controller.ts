@@ -71,6 +71,24 @@ export class AdminController {
     return this.admin.topupRiderWallet(id, body.amount);
   }
 
+  @Get('topup-requests')
+  @ApiOperation({ summary: 'List rider topup requests with optional status filter' })
+  getTopupRequests(@Query('status') status?: string, @Query('page') page = 1, @Query('limit') limit = 20) {
+    return this.admin.getTopupRequests(status, +page, +limit);
+  }
+
+  @Patch('topup-requests/:id/approve')
+  @ApiOperation({ summary: 'Approve a topup request and credit rider wallet' })
+  approveTopupRequest(@Param('id') id: string) {
+    return this.admin.approveTopupRequest(id);
+  }
+
+  @Patch('topup-requests/:id/reject')
+  @ApiOperation({ summary: 'Reject a topup request' })
+  rejectTopupRequest(@Param('id') id: string, @Body() body: { reason?: string }) {
+    return this.admin.rejectTopupRequest(id, body.reason ?? '');
+  }
+
   @Get('riders/pending')
   @ApiOperation({ summary: 'Get pending rider approvals' })
   getPendingRiders(@Query('page') page = 1, @Query('limit') limit = 20) {

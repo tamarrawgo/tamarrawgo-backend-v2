@@ -1,13 +1,19 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '@tamarrawgo/shared-types';
 
 @Injectable()
 export class AdminService {
   private readonly logger = new Logger(AdminService.name);
-  constructor(private prisma: PrismaService, private config: ConfigService) {}
+  constructor(
+    private prisma: PrismaService,
+    private config: ConfigService,
+    private notifications: NotificationsService,
+  ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleTripCleanup() {
@@ -209,6 +215,83 @@ export class AdminService {
       where: { id: riderId },
       data: { walletBalance: { increment: amount } },
     });
+  }
+
+  async getTopupRequests(status?: string, page = 1, limit = 20) {
+    const skip = (page - 1) * limit;
+    const where = status ? { status: status as any } : {};
+    const [data, total] = await Promise.all([
+      this.prisma.topupRequest.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: { rider: { include: { user: { select: { firstName: true, lastName: true, phone: true, fcmToken: true } } } } },
+      }),
+      this.prisma.topupRequest.count({ where }),
+    ]);
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  async approveTopupRequest(id: string) {
+    const request = await this.prisma.topupRequest.findUnique({
+      where: { id },
+      include: { rider: { include: { user: true } } },
+    });
+    if (!request) throw new NotFoundException('Topup request not found');
+    if (request.status !== 'PENDING') throw new BadRequestException('Request already reviewed');
+
+    await this.prisma.$transaction([
+      this.prisma.riderProfile.update({
+        where: { id: request.riderId },
+        data: { walletBalance: { increment: request.amount } },
+      }),
+      this.prisma.topupRequest.update({
+        where: { id },
+        data: { status: 'APPROVED', reviewedAt: new Date() },
+      }),
+      this.prisma.walletTransaction.create({
+        data: {
+          riderId: request.riderId,
+          amount: request.amount,
+          type: 'CREDIT',
+          description: 'Topup approved by admin',
+          referenceId: request.id,
+        },
+      }),
+    ]);
+
+    const msg = `Your topup of ₱${Number(request.amount).toFixed(2)} has been approved and added to your wallet.`;
+    await this.notifications.createNotification(request.rider.userId, NotificationType.PAYMENT_RECEIVED, 'Topup Approved', msg);
+    if (request.rider.user.fcmToken) {
+      await this.notifications.sendPush(request.rider.user.fcmToken, { title: 'Topup Approved', body: msg }).catch(() => {});
+    }
+
+    return { message: 'Topup approved and wallet credited' };
+  }
+
+  async rejectTopupRequest(id: string, reason: string) {
+    const request = await this.prisma.topupRequest.findUnique({
+      where: { id },
+      include: { rider: { include: { user: true } } },
+    });
+    if (!request) throw new NotFoundException('Topup request not found');
+    if (request.status !== 'PENDING') throw new BadRequestException('Request already reviewed');
+
+    await this.prisma.topupRequest.update({
+      where: { id },
+      data: { status: 'REJECTED', rejectionReason: reason, reviewedAt: new Date() },
+    });
+
+    const msg = reason
+      ? `Your topup request of ₱${Number(request.amount).toFixed(2)} was rejected: ${reason}`
+      : `Your topup request of ₱${Number(request.amount).toFixed(2)} was rejected. Please contact support.`;
+    await this.notifications.createNotification(request.rider.userId, NotificationType.SYSTEM, 'Topup Rejected', msg);
+    if (request.rider.user.fcmToken) {
+      await this.notifications.sendPush(request.rider.user.fcmToken, { title: 'Topup Rejected', body: msg }).catch(() => {});
+    }
+
+    return { message: 'Topup request rejected' };
   }
 
   async approveRider(riderId: string) {

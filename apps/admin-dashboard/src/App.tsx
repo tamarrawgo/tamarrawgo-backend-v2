@@ -7,6 +7,7 @@ import UsersPage from './pages/UsersPage';
 import RidersPage from './pages/RidersPage';
 import TripsPage from './pages/TripsPage';
 import PaymentsPage from './pages/PaymentsPage';
+import TopupRequestsPage from './pages/TopupRequestsPage';
 import PromotionsPage from './pages/PromotionsPage';
 import ReportsPage from './pages/ReportsPage';
 import ComplaintsPage from './pages/ComplaintsPage';
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="riders" element={<RidersPage />} />
           <Route path="trips" element={<TripsPage />} />
           <Route path="payments" element={<PaymentsPage />} />
+          <Route path="topup-requests" element={<TopupRequestsPage />} />
           <Route path="promotions" element={<PromotionsPage />} />
           <Route path="complaints" element={<ComplaintsPage />} />
           <Route path="reports" element={<ReportsPage />} />

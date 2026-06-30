@@ -25,3 +25,10 @@ export class UploadDocumentDto {
   @ApiProperty() @IsString() @IsNotEmpty() type: string;
   @ApiProperty() @IsString() @IsNotEmpty() fileUrl: string;
 }
+
+export class CreateTopupRequestDto {
+  @ApiProperty() @IsNumber() @Min(1) amount: number;
+  @ApiProperty() @IsString() @IsNotEmpty() base64: string;
+  @ApiProperty() @IsString() @IsNotEmpty() fileName: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() referenceNumber?: string;
+}

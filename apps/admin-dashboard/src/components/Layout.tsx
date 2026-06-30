@@ -8,6 +8,7 @@ const navItems = [
   { path: '/riders',    label: 'Riders',      icon: 'badge' },
   { path: '/trips',     label: 'Trips',       icon: 'route' },
   { path: '/payments',  label: 'Payments',    icon: 'payments' },
+  { path: '/topup-requests', label: 'Topup Requests', icon: 'account_balance_wallet' },
   { path: '/promotions',label: 'Promotions',  icon: 'local_offer' },
   { path: '/complaints',label: 'Complaints',  icon: 'report_problem' },
   { path: '/reports',   label: 'Reports',     icon: 'assessment' },

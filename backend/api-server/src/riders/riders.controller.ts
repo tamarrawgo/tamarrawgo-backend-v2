@@ -3,7 +3,7 @@ import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { RidersService } from './riders.service';
-import { UpdateLocationDto, UpdateOnlineStatusDto, AddVehicleDto, UploadDocumentDto } from './dto/rider.dto';
+import { UpdateLocationDto, UpdateOnlineStatusDto, AddVehicleDto, UploadDocumentDto, CreateTopupRequestDto } from './dto/rider.dto';
 import { CurrentUser } from '../common/decorators/user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -87,5 +87,19 @@ export class RidersController {
     @Query('radius') radius = 5,
   ) {
     return this.riders.getNearbyRiders(+lat, +lng, +radius);
+  }
+
+  @Post('topup-request')
+  @Roles(UserRole.RIDER)
+  @ApiOperation({ summary: 'Submit a wallet topup request with receipt photo' })
+  createTopupRequest(@CurrentUser() user: any, @Body() dto: CreateTopupRequestDto) {
+    return this.riders.createTopupRequest(user.id, dto);
+  }
+
+  @Get('topup-requests')
+  @Roles(UserRole.RIDER)
+  @ApiOperation({ summary: 'Get my topup request history' })
+  getMyTopupRequests(@CurrentUser() user: any) {
+    return this.riders.getMyTopupRequests(user.id);
   }
 }

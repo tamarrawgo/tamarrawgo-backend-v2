@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { api } from '../services/api';
 import { formatCurrency } from '@tamarrawgo/shared-utils';
@@ -14,13 +14,13 @@ export default function EarningsScreen() {
     api.get('/riders/earnings').then(setEarnings).finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#FF6B00" /></View>;
+  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#1B6B2F" /></View>;
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <MaterialIcons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.title}>Earnings</Text>
       </View>
@@ -28,16 +28,20 @@ export default function EarningsScreen() {
       <View style={styles.walletCard}>
         <Text style={styles.walletLabel}>Wallet Balance</Text>
         <Text style={styles.walletAmount}>{formatCurrency(earnings?.walletBalance ?? 0)}</Text>
+        <TouchableOpacity style={styles.topupBtn} onPress={() => router.push('/request-topup' as any)}>
+          <MaterialIcons name="add-circle-outline" size={18} color="#1B6B2F" />
+          <Text style={styles.topupBtnText}>Request Topup</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.statsGrid}>
         {[
           { label: 'Today', value: earnings?.today, icon: 'today' },
-          { label: 'This Week', value: earnings?.thisWeek, icon: 'calendar' },
-          { label: 'This Month', value: earnings?.thisMonth, icon: 'calendar-outline' },
+          { label: 'This Week', value: earnings?.thisWeek, icon: 'date-range' },
+          { label: 'This Month', value: earnings?.thisMonth, icon: 'calendar-month' },
         ].map((item) => (
           <View key={item.label} style={styles.statCard}>
-            <Ionicons name={item.icon as any} size={24} color="#FF6B00" />
+            <MaterialIcons name={item.icon as any} size={24} color="#1B6B2F" />
             <Text style={styles.statAmount}>{formatCurrency(item.value ?? 0)}</Text>
             <Text style={styles.statLabel}>{item.label}</Text>
           </View>
@@ -66,10 +70,15 @@ const styles = StyleSheet.create({
   backBtn: { padding: 4 },
   title: { fontSize: 28, fontWeight: '800', color: '#333' },
   walletCard: {
-    margin: 16, backgroundColor: '#FF6B00', borderRadius: 16, padding: 24, alignItems: 'center',
+    margin: 16, backgroundColor: '#1B6B2F', borderRadius: 16, padding: 24, alignItems: 'center',
   },
   walletLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 14, marginBottom: 8 },
   walletAmount: { color: '#fff', fontSize: 36, fontWeight: '900' },
+  topupBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8, marginTop: 16,
+  },
+  topupBtnText: { color: '#1B6B2F', fontWeight: '700', fontSize: 13 },
   statsGrid: { flexDirection: 'row', paddingHorizontal: 16, gap: 12, marginBottom: 16 },
   statCard: {
     flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 16, alignItems: 'center', gap: 6,

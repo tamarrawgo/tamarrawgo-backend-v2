@@ -3,8 +3,9 @@ import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service';
-import { UpdateLocationDto, UpdateOnlineStatusDto, AddVehicleDto, UploadDocumentDto } from './dto/rider.dto';
+import { UpdateLocationDto, UpdateOnlineStatusDto, AddVehicleDto, UploadDocumentDto, CreateTopupRequestDto } from './dto/rider.dto';
 import { SocketGateway } from '../socket/socket.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class RidersService implements OnModuleInit {
@@ -164,6 +165,66 @@ export class RidersService implements OnModuleInit {
     const rider = await this.getRiderProfile(userId);
     return this.prisma.riderDocument.create({
       data: { riderId: rider.id, type: dto.type as any, fileUrl: dto.fileUrl },
+    });
+  }
+
+  async createTopupRequest(userId: string, dto: CreateTopupRequestDto) {
+    const rider = await this.getRiderProfile(userId);
+
+    const buffer = Buffer.from(dto.base64, 'base64');
+    const ext = dto.fileName.split('.').pop() ?? 'jpg';
+    const path = `${userId}/topup-receipt-${Date.now()}.${ext}`;
+    const contentType = ext === 'png' ? 'image/png' : 'image/jpeg';
+
+    const supabaseUrl = this.config.get('SUPABASE_URL');
+    const serviceKey = this.config.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !serviceKey) throw new Error('Storage not configured');
+
+    await axios.put(`${supabaseUrl}/storage/v1/object/rider-documents/${path}`, buffer, {
+      headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': contentType, 'x-upsert': 'true' },
+    });
+    const receiptUrl = `${supabaseUrl}/storage/v1/object/public/rider-documents/${path}`;
+
+    const ocrAmount = await this.extractAmountFromReceipt(dto.base64);
+
+    return this.prisma.topupRequest.create({
+      data: {
+        riderId: rider.id,
+        amount: dto.amount,
+        receiptUrl,
+        referenceNumber: dto.referenceNumber,
+        ocrAmount: ocrAmount ?? undefined,
+      },
+    });
+  }
+
+  private async extractAmountFromReceipt(base64: string): Promise<number | null> {
+    const apiKey = this.config.get('GOOGLE_MAPS_API_KEY');
+    if (!apiKey) return null;
+    try {
+      const { data } = await axios.post(
+        `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`,
+        { requests: [{ image: { content: base64 }, features: [{ type: 'TEXT_DETECTION' }] }] },
+      );
+      const text: string = data?.responses?.[0]?.fullTextAnnotation?.text ?? '';
+      // Look for currency-like amounts: ₱500.00, 500.00, PHP 500, etc. Pick the largest plausible match.
+      const matches = text.match(/(?:₱|PHP|P)?\s?(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/gi) ?? [];
+      const numbers = matches
+        .map((m) => parseFloat(m.replace(/[^\d.]/g, '')))
+        .filter((n) => !isNaN(n) && n > 0 && n < 1000000);
+      if (numbers.length === 0) return null;
+      return Math.max(...numbers);
+    } catch (e) {
+      this.logger.warn('OCR extraction failed', e);
+      return null;
+    }
+  }
+
+  async getMyTopupRequests(userId: string) {
+    const rider = await this.getRiderProfile(userId);
+    return this.prisma.topupRequest.findMany({
+      where: { riderId: rider.id },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
