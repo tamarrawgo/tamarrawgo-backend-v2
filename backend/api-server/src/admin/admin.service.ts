@@ -122,26 +122,35 @@ export class AdminService {
   async deleteUser(userId: string) {
     const rider = await this.prisma.riderProfile.findUnique({ where: { userId } });
 
-    // Delete rider-related records
-    if (rider) {
-      // Delete uploaded files from Supabase Storage
-      try {
-        const supabaseUrl = this.config.get('SUPABASE_URL');
-        const serviceKey = this.config.get('SUPABASE_SERVICE_ROLE_KEY');
-        if (supabaseUrl && serviceKey) {
-          const { data } = await axios.post(`${supabaseUrl}/storage/v1/object/list/rider-documents`, { prefix: `${userId}/` }, {
+    // Delete uploaded files from Supabase Storage (rider docs under userId/, profile photo under profile-photos/)
+    try {
+      const supabaseUrl = this.config.get('SUPABASE_URL');
+      const serviceKey = this.config.get('SUPABASE_SERVICE_ROLE_KEY');
+      if (supabaseUrl && serviceKey) {
+        const prefixesToCheck = [`${userId}/`, 'profile-photos/'];
+        const filePaths: string[] = [];
+        for (const prefix of prefixesToCheck) {
+          const { data } = await axios.post(`${supabaseUrl}/storage/v1/object/list/rider-documents`, { prefix }, {
             headers: { Authorization: `Bearer ${serviceKey}` },
           });
-          if (Array.isArray(data) && data.length > 0) {
-            const filePaths = data.map((f: any) => `${userId}/${f.name}`);
-            await axios.delete(`${supabaseUrl}/storage/v1/object/rider-documents`, {
-              headers: { Authorization: `Bearer ${serviceKey}` },
-              data: { prefixes: filePaths },
-            });
+          if (Array.isArray(data)) {
+            for (const f of data) {
+              if (prefix === 'profile-photos/' && !f.name.startsWith(`${userId}-`)) continue;
+              filePaths.push(`${prefix}${f.name}`);
+            }
           }
         }
-      } catch (e) { this.logger.warn('Failed to delete storage files', e); }
+        if (filePaths.length > 0) {
+          await axios.delete(`${supabaseUrl}/storage/v1/object/rider-documents`, {
+            headers: { Authorization: `Bearer ${serviceKey}` },
+            data: { prefixes: filePaths },
+          });
+        }
+      }
+    } catch (e) { this.logger.warn('Failed to delete storage files', e); }
 
+    // Delete rider-related records
+    if (rider) {
       await this.prisma.walletTransaction.deleteMany({ where: { riderId: rider.id } });
       await this.prisma.riderDocument.deleteMany({ where: { riderId: rider.id } });
       await this.prisma.earning.deleteMany({ where: { riderId: rider.id } });
