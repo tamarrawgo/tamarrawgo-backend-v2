@@ -89,7 +89,7 @@ export class AdminService {
         orderBy: { createdAt: 'desc' },
         select: {
           id: true, phone: true, email: true, firstName: true, lastName: true,
-          role: true, status: true, createdAt: true,
+          role: true, status: true, createdAt: true, profilePhoto: true,
           rider: {
             select: {
               id: true, licenseNumber: true, status: true, rating: true, onlineStatus: true, walletBalance: true,

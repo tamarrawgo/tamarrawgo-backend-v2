@@ -156,17 +156,21 @@ export default function UsersPage() {
             <div className="p-6 space-y-6">
               {/* Avatar + Basic Info */}
               <div className="flex items-center gap-5">
-                {selectedUser.rider?.documents?.find((d: any) => d.type === 'PROFILE_PHOTO') ? (
-                  <img
-                    src={selectedUser.rider.documents.find((d: any) => d.type === 'PROFILE_PHOTO').fileUrl}
-                    className="w-20 h-20 rounded-full object-cover border-2 border-primary cursor-pointer"
-                    onClick={() => setPreviewImg(selectedUser.rider.documents.find((d: any) => d.type === 'PROFILE_PHOTO').fileUrl)}
-                  />
-                ) : (
-                  <div className="w-20 h-20 rounded-full bg-primary-50 border-2 border-primary flex items-center justify-center text-primary font-black text-2xl">
-                    {selectedUser.firstName?.[0]}{selectedUser.lastName?.[0]}
-                  </div>
-                )}
+                {(() => {
+                  const photoUrl = selectedUser.profilePhoto
+                    ?? selectedUser.rider?.documents?.find((d: any) => d.type === 'PROFILE_PHOTO')?.fileUrl;
+                  return photoUrl ? (
+                    <img
+                      src={photoUrl}
+                      className="w-20 h-20 rounded-full object-cover border-2 border-primary cursor-pointer"
+                      onClick={() => setPreviewImg(photoUrl)}
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full bg-primary-50 border-2 border-primary flex items-center justify-center text-primary font-black text-2xl">
+                      {selectedUser.firstName?.[0]}{selectedUser.lastName?.[0]}
+                    </div>
+                  );
+                })()}
                 <div>
                   <h3 className="text-2xl font-black text-gray-900">{selectedUser.firstName} {selectedUser.lastName}</h3>
                   <div className="flex items-center gap-2 mt-1">
