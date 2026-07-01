@@ -18,12 +18,17 @@ export class AdminService {
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-  async handleTripCleanup() {
+  async handleDailyCleanup() {
     try {
-      await this.cleanupOldTrips();
-      this.logger.log('Trip cleanup completed');
+      const [bookings, notifications, auditLogs, otps] = await Promise.all([
+        this.cleanupOldTrips(),
+        this.cleanupOldNotifications(),
+        this.cleanupOldAuditLogs(),
+        this.cleanupExpiredOtps(),
+      ]);
+      this.logger.log(`Daily cleanup — bookings: ${bookings}, notifications: ${notifications}, auditLogs: ${auditLogs}, expiredOtps: ${otps}`);
     } catch (err) {
-      this.logger.error('Trip cleanup failed', err);
+      this.logger.error('Daily cleanup failed', err);
     }
   }
 
@@ -355,10 +360,9 @@ export class AdminService {
     return { data: bookings, total: capped, page, limit, totalPages: Math.ceil(capped / limit) };
   }
 
-  async cleanupOldTrips() {
+  async cleanupOldTrips(): Promise<number> {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    // Find bookings older than 30 days (only terminal statuses)
     const oldBookings = await this.prisma.booking.findMany({
       where: {
         createdAt: { lt: thirtyDaysAgo },
@@ -367,15 +371,39 @@ export class AdminService {
       select: { id: true },
     });
     const deleteIds = oldBookings.map((b) => b.id);
+    if (deleteIds.length === 0) return 0;
 
-    if (deleteIds.length === 0) return;
-
+    await this.prisma.tripLocation.deleteMany({ where: { bookingId: { in: deleteIds } } });
     await this.prisma.chatMessage.deleteMany({ where: { bookingId: { in: deleteIds } } });
     await this.prisma.payment.deleteMany({ where: { bookingId: { in: deleteIds } } });
     await this.prisma.rating.deleteMany({ where: { bookingId: { in: deleteIds } } });
     await this.prisma.booking.deleteMany({ where: { id: { in: deleteIds } } });
 
-    this.logger.log(`Cleaned up ${deleteIds.length} bookings older than 30 days`);
+    return deleteIds.length;
+  }
+
+  async cleanupOldNotifications(): Promise<number> {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const { count } = await this.prisma.notification.deleteMany({
+      where: { createdAt: { lt: thirtyDaysAgo } },
+    });
+    return count;
+  }
+
+  async cleanupOldAuditLogs(): Promise<number> {
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const { count } = await this.prisma.auditLog.deleteMany({
+      where: { createdAt: { lt: ninetyDaysAgo } },
+    });
+    return count;
+  }
+
+  async cleanupExpiredOtps(): Promise<number> {
+    const { count } = await this.prisma.user.updateMany({
+      where: { otpExpiresAt: { lt: new Date() }, otpCode: { not: null } },
+      data: { otpCode: null, otpExpiresAt: null },
+    });
+    return count;
   }
 
   async cancelTrip(bookingId: string) {
