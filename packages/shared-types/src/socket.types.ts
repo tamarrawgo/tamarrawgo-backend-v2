@@ -30,6 +30,9 @@ export enum SocketEvent {
   // Connection
   JOIN_ROOM = 'join:room',
   LEAVE_ROOM = 'leave:room',
+
+  // Admin
+  FORCE_LOGOUT = 'force:logout',
 }
 
 export interface BookingRequestPayload {

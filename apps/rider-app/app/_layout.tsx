@@ -3,6 +3,7 @@ import { Stack, useRouter } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '../src/store/auth.store';
 import { setSessionExpiredCallback } from '../src/services/api';
+import { getSocket } from '../src/services/socket';
 import { ActivityIndicator, View } from 'react-native';
 
 const queryClient = new QueryClient({
@@ -17,6 +18,14 @@ function RootLayoutNav() {
     loadUser();
     setSessionExpiredCallback(() => logout());
   }, []);
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+    const handleForceLogout = () => { logout(); };
+    socket.on('force:logout', handleForceLogout);
+    return () => { socket.off('force:logout', handleForceLogout); };
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (isLoading) return;

@@ -4,18 +4,27 @@ import { Stack, useRouter } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useAuthStore } from '../src/store/auth.store';
+import { getSocket } from '../src/services/socket';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 2, staleTime: 30000 } },
 });
 
 function RootLayoutNav() {
-  const { isAuthenticated, isLoading, loadUser } = useAuthStore();
+  const { isAuthenticated, isLoading, loadUser, logout } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
     loadUser();
   }, []);
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+    const handleForceLogout = () => { logout(); };
+    socket.on('force:logout', handleForceLogout);
+    return () => { socket.off('force:logout', handleForceLogout); };
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (isLoading) return;

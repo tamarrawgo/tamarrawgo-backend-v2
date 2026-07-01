@@ -4,6 +4,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { SocketGateway } from '../socket/socket.gateway';
 import { NotificationType } from '@tamarrawgo/shared-types';
 
 @Injectable()
@@ -13,6 +14,7 @@ export class AdminService {
     private prisma: PrismaService,
     private config: ConfigService,
     private notifications: NotificationsService,
+    private socket: SocketGateway,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
@@ -126,6 +128,8 @@ export class AdminService {
   }
 
   async deleteUser(userId: string) {
+    this.socket.sendToUser(userId, 'force:logout', {});
+
     const rider = await this.prisma.riderProfile.findUnique({ where: { userId } });
 
     // Delete uploaded files from Supabase Storage (rider docs under userId/, profile photo under profile-photos/, receipts under topup-receipts/)
