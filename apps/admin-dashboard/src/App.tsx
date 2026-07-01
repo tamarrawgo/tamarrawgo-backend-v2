@@ -12,6 +12,7 @@ import PromotionsPage from './pages/PromotionsPage';
 import ReportsPage from './pages/ReportsPage';
 import ComplaintsPage from './pages/ComplaintsPage';
 import SettingsPage from './pages/SettingsPage';
+import ActivityLogPage from './pages/ActivityLogPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -35,6 +36,7 @@ export default function App() {
           <Route path="complaints" element={<ComplaintsPage />} />
           <Route path="reports" element={<ReportsPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="activity-log" element={<ActivityLogPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

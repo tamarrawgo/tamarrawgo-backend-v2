@@ -14,6 +14,7 @@ const navItems = [
   { path: '/promotions',label: 'Promotions',  icon: 'local_offer' },
   { path: '/complaints',label: 'Complaints',  icon: 'report_problem' },
   { path: '/reports',   label: 'Reports',     icon: 'assessment' },
+  { path: '/activity-log', label: 'Activity Log', icon: 'history' },
   { path: '/settings',  label: 'Settings',    icon: 'settings' },
 ];
 

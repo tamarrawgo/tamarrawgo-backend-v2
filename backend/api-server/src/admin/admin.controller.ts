@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Param, Query, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Query, Body, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { AdminService } from './admin.service';
@@ -45,24 +45,24 @@ export class AdminController {
 
   @Patch('users/:id/reset-password')
   @ApiOperation({ summary: 'Admin reset user password' })
-  resetUserPassword(@Param('id') id: string, @Body() body: { newPassword: string }) {
-    return this.admin.resetUserPassword(id, body.newPassword);
+  resetUserPassword(@Param('id') id: string, @Body() body: { newPassword: string }, @Request() req: any) {
+    return this.admin.resetUserPassword(id, body.newPassword, req.user?.sub);
   }
 
   @Patch('users/:id/suspend')
-  suspendUser(@Param('id') id: string) {
-    return this.admin.suspendUser(id);
+  suspendUser(@Param('id') id: string, @Request() req: any) {
+    return this.admin.suspendUser(id, req.user?.sub);
   }
 
   @Patch('users/:id/activate')
-  activateUser(@Param('id') id: string) {
-    return this.admin.activateUser(id);
+  activateUser(@Param('id') id: string, @Request() req: any) {
+    return this.admin.activateUser(id, req.user?.sub);
   }
 
   @Delete('users/:id')
   @ApiOperation({ summary: 'Delete user from database' })
-  deleteUser(@Param('id') id: string) {
-    return this.admin.deleteUser(id);
+  deleteUser(@Param('id') id: string, @Request() req: any) {
+    return this.admin.deleteUser(id, req.user?.sub);
   }
 
   @Post('riders/:id/topup')
@@ -79,14 +79,14 @@ export class AdminController {
 
   @Patch('topup-requests/:id/approve')
   @ApiOperation({ summary: 'Approve a topup request and credit rider wallet' })
-  approveTopupRequest(@Param('id') id: string) {
-    return this.admin.approveTopupRequest(id);
+  approveTopupRequest(@Param('id') id: string, @Request() req: any) {
+    return this.admin.approveTopupRequest(id, req.user?.sub);
   }
 
   @Patch('topup-requests/:id/reject')
   @ApiOperation({ summary: 'Reject a topup request' })
-  rejectTopupRequest(@Param('id') id: string, @Body() body: { reason?: string }) {
-    return this.admin.rejectTopupRequest(id, body.reason ?? '');
+  rejectTopupRequest(@Param('id') id: string, @Body() body: { reason?: string }, @Request() req: any) {
+    return this.admin.rejectTopupRequest(id, body.reason ?? '', req.user?.sub);
   }
 
   @Get('riders/pending')
@@ -96,13 +96,13 @@ export class AdminController {
   }
 
   @Post('riders/:id/approve')
-  approveRider(@Param('id') id: string) {
-    return this.admin.approveRider(id);
+  approveRider(@Param('id') id: string, @Request() req: any) {
+    return this.admin.approveRider(id, req.user?.sub);
   }
 
   @Post('riders/:id/reject')
-  rejectRider(@Param('id') id: string, @Body() dto: RejectRiderDto) {
-    return this.admin.rejectRider(id, dto.reason ?? '');
+  rejectRider(@Param('id') id: string, @Body() dto: RejectRiderDto, @Request() req: any) {
+    return this.admin.rejectRider(id, dto.reason ?? '', req.user?.sub);
   }
 
   @Get('trips')
@@ -113,8 +113,14 @@ export class AdminController {
 
   @Patch('trips/:id/cancel')
   @ApiOperation({ summary: 'Admin cancel a trip' })
-  cancelTrip(@Param('id') id: string) {
-    return this.admin.cancelTrip(id);
+  cancelTrip(@Param('id') id: string, @Request() req: any) {
+    return this.admin.cancelTrip(id, req.user?.sub);
+  }
+
+  @Get('audit-logs')
+  @ApiOperation({ summary: 'Get admin activity audit logs' })
+  getAuditLogs(@Query('page') page = 1, @Query('limit') limit = 50, @Query('action') action?: string) {
+    return this.admin.getAuditLogs(+page, +limit, action);
   }
 
   @Get('reports/revenue')

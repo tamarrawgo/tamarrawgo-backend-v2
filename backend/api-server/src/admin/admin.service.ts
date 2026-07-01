@@ -117,22 +117,54 @@ export class AdminService {
     return { data: users, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  async resetUserPassword(userId: string, newPassword: string) {
+  private async logAction(adminId: string | undefined, action: string, entity: string, entityId?: string, details?: any) {
+    try {
+      await this.prisma.auditLog.create({
+        data: { userId: adminId ?? null, action, entity, entityId: entityId ?? null, newValues: details ?? null },
+      });
+    } catch {}
+  }
+
+  async getAuditLogs(page = 1, limit = 20, action?: string) {
+    const skip = (page - 1) * limit;
+    const where = action ? { action } : {};
+    const [logs, total] = await Promise.all([
+      this.prisma.auditLog.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: { user: { select: { firstName: true, lastName: true, role: true } } },
+      }),
+      this.prisma.auditLog.count({ where }),
+    ]);
+    return { data: logs, total, page, limit };
+  }
+
+  async resetUserPassword(userId: string, newPassword: string, adminId?: string) {
     const bcrypt = await import('bcrypt');
     const passwordHash = await bcrypt.hash(newPassword, 10);
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { firstName: true, lastName: true, phone: true } });
     await this.prisma.user.update({ where: { id: userId }, data: { passwordHash } });
+    await this.logAction(adminId, 'RESET_PASSWORD', 'user', userId, { name: `${user?.firstName} ${user?.lastName}`, phone: user?.phone });
     return { message: 'Password reset successfully' };
   }
 
-  async suspendUser(userId: string) {
+  async suspendUser(userId: string, adminId?: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { firstName: true, lastName: true, phone: true, role: true } });
+    await this.logAction(adminId, 'SUSPEND_USER', 'user', userId, { name: `${user?.firstName} ${user?.lastName}`, phone: user?.phone, role: user?.role });
     return this.prisma.user.update({ where: { id: userId }, data: { status: 'SUSPENDED' } });
   }
 
-  async activateUser(userId: string) {
+  async activateUser(userId: string, adminId?: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { firstName: true, lastName: true, phone: true, role: true } });
+    await this.logAction(adminId, 'ACTIVATE_USER', 'user', userId, { name: `${user?.firstName} ${user?.lastName}`, phone: user?.phone, role: user?.role });
     return this.prisma.user.update({ where: { id: userId }, data: { status: 'ACTIVE' } });
   }
 
-  async deleteUser(userId: string) {
+  async deleteUser(userId: string, adminId?: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { firstName: true, lastName: true, phone: true, role: true } });
+    await this.logAction(adminId, 'DELETE_USER', 'user', userId, { name: `${user?.firstName} ${user?.lastName}`, phone: user?.phone, role: user?.role });
     this.socket.sendToUser(userId, 'force:logout', {});
 
     const rider = await this.prisma.riderProfile.findUnique({ where: { userId } });
@@ -258,7 +290,7 @@ export class AdminService {
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  async approveTopupRequest(id: string) {
+  async approveTopupRequest(id: string, adminId?: string) {
     const request = await this.prisma.topupRequest.findUnique({
       where: { id },
       include: { rider: { include: { user: true } } },
@@ -293,11 +325,12 @@ export class AdminService {
     }
 
     await this.deleteReceiptFile(request.receiptUrl);
+    await this.logAction(adminId, 'APPROVE_TOPUP', 'topup_request', id, { rider: `${request.rider.user.firstName} ${request.rider.user.lastName}`, amount: Number(request.amount) });
 
     return { message: 'Topup approved and wallet credited' };
   }
 
-  async rejectTopupRequest(id: string, reason: string) {
+  async rejectTopupRequest(id: string, reason: string, adminId?: string) {
     const request = await this.prisma.topupRequest.findUnique({
       where: { id },
       include: { rider: { include: { user: true } } },
@@ -319,21 +352,24 @@ export class AdminService {
     }
 
     await this.deleteReceiptFile(request.receiptUrl);
+    await this.logAction(adminId, 'REJECT_TOPUP', 'topup_request', id, { rider: `${request.rider.user.firstName} ${request.rider.user.lastName}`, amount: Number(request.amount), reason });
 
     return { message: 'Topup request rejected' };
   }
 
-  async approveRider(riderId: string) {
-    const rider = await this.prisma.riderProfile.findUnique({ where: { id: riderId } });
+  async approveRider(riderId: string, adminId?: string) {
+    const rider = await this.prisma.riderProfile.findUnique({ where: { id: riderId }, include: { user: { select: { firstName: true, lastName: true, phone: true } } } });
     if (!rider) throw new NotFoundException('Rider not found');
     await this.prisma.user.update({ where: { id: rider.userId }, data: { status: 'ACTIVE' } });
     await this.prisma.riderDocument.updateMany({ where: { riderId }, data: { verified: true, verifiedAt: new Date() } });
+    await this.logAction(adminId, 'APPROVE_RIDER', 'rider', riderId, { name: `${rider.user.firstName} ${rider.user.lastName}`, phone: rider.user.phone });
     return this.prisma.riderProfile.update({ where: { id: riderId }, data: { status: 'APPROVED' } });
   }
 
-  async rejectRider(riderId: string, reason: string) {
-    const rider = await this.prisma.riderProfile.findUnique({ where: { id: riderId } });
+  async rejectRider(riderId: string, reason: string, adminId?: string) {
+    const rider = await this.prisma.riderProfile.findUnique({ where: { id: riderId }, include: { user: { select: { firstName: true, lastName: true, phone: true } } } });
     if (!rider) throw new NotFoundException('Rider not found');
+    await this.logAction(adminId, 'REJECT_RIDER', 'rider', riderId, { name: `${rider.user.firstName} ${rider.user.lastName}`, phone: rider.user.phone, reason });
     await this.deleteUser(rider.userId);
     return { message: 'Rider rejected and account deleted' };
   }
@@ -406,11 +442,12 @@ export class AdminService {
     return count;
   }
 
-  async cancelTrip(bookingId: string) {
+  async cancelTrip(bookingId: string, adminId?: string) {
     const booking = await this.prisma.booking.findUnique({ where: { id: bookingId } });
     if (!booking) throw new NotFoundException('Booking not found');
     const terminal = ['COMPLETED', 'CANCELLED', 'EXPIRED'];
     if (terminal.includes(booking.status)) throw new Error(`Booking is already ${booking.status.toLowerCase()}`);
+    await this.logAction(adminId, 'CANCEL_TRIP', 'booking', bookingId, { previousStatus: booking.status });
     return this.prisma.booking.update({
       where: { id: bookingId },
       data: { status: 'CANCELLED', cancellationReason: 'Cancelled by admin', cancelledAt: new Date() },
