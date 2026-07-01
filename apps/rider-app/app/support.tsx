@@ -25,6 +25,13 @@ export default function SupportScreen() {
             <Text style={styles.cardSub}>Message us on Facebook Messenger</Text>
           </View>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.card} onPress={() => Linking.openURL('tel:+639925188587')}>
+          <MaterialIcons name="call" size={24} color={GREEN} />
+          <View style={styles.cardText}>
+            <Text style={styles.cardTitle}>Call Us</Text>
+            <Text style={styles.cardSub}>+63 992 518 8587</Text>
+          </View>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.card} onPress={() => Linking.openURL('mailto:tamarrawgo@gmail.com')}>
           <MaterialIcons name="mail-outline" size={24} color={GREEN} />
           <View style={styles.cardText}>
