@@ -6,6 +6,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { api } from '../src/services/api';
+import { sendPhoneOtp } from '../src/services/firebase';
 
 const GREEN = '#1B6B2F';
 const TRICYCLE = require('../assets/tricycle-login.png');
@@ -49,11 +50,9 @@ export default function RegisterScreen() {
         email: form.email.trim() || undefined,
         password,
       });
-      Alert.alert(
-        'Registration Successful!',
-        'Your OTP will be sent. Please verify your phone to activate your account.',
-        [{ text: 'Enter OTP', onPress: () => router.replace({ pathname: '/verify-otp', params: { phone: normalizedPhone } }) }],
-      );
+      // Send OTP via Firebase (free SMS via Google)
+      await sendPhoneOtp(normalizedPhone);
+      router.replace({ pathname: '/verify-otp', params: { phone: normalizedPhone } });
     } catch (err: any) {
       const msg = Array.isArray(err?.message) ? err.message.join('\n') : (err?.message ?? 'Registration failed');
       Alert.alert('Registration Failed', msg);

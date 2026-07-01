@@ -24,10 +24,10 @@ export class VerifyOtpDto {
   @IsPhoneNumber('PH')
   phone: string;
 
-  @ApiProperty({ example: '123456' })
+  @ApiProperty({ description: 'Firebase ID token from phone auth confirmation' })
   @IsString()
   @IsNotEmpty()
-  otp: string;
+  firebaseIdToken: string;
 }
 
 export class RequestOtpDto {
@@ -41,10 +41,10 @@ export class ResetPasswordDto {
   @IsPhoneNumber('PH')
   phone: string;
 
-  @ApiProperty({ example: '123456' })
+  @ApiProperty({ description: 'Firebase ID token from phone auth confirmation' })
   @IsString()
   @IsNotEmpty()
-  otp: string;
+  firebaseIdToken: string;
 
   @ApiProperty({ example: 'NewSecurePass123!' })
   @IsString()

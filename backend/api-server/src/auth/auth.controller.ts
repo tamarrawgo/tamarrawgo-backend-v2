@@ -50,10 +50,10 @@ export class AuthController {
   }
 
   @Post('reset-password')
-  @ApiOperation({ summary: 'Reset password with OTP verification' })
+  @ApiOperation({ summary: 'Reset password with Firebase phone verification' })
   @HttpCode(HttpStatus.OK)
   resetPassword(@Body() dto: ResetPasswordDto) {
-    return this.auth.resetPassword(dto.phone, dto.otp, dto.newPassword);
+    return this.auth.resetPassword(dto);
   }
 
   @Post('login')
