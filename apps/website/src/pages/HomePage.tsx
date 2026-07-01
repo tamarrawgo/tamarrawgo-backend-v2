@@ -219,11 +219,21 @@ export default function HomePage() {
         <h2 className="text-3xl md:text-4xl font-black text-[#0D1F13] mb-4">Download TamarrawGo</h2>
         <p className="text-gray-500 max-w-lg mx-auto mb-10">Available for Android. Get the app and start booking rides today.</p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <a href="/apk/passenger-app-release.apk" download className="btn-primary">
+          <a
+            href="https://drive.usercontent.google.com/download?id=1ce8l7fMfgj_zi3coFJ-0PNLcdPIp4Z9t&export=download&authuser=0"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-primary"
+          >
             <span className="material-icons mr-2">smartphone</span>
             Passenger App
           </a>
-          <a href="/apk/rider-app-release.apk" download className="btn-outline">
+          <a
+            href="https://drive.usercontent.google.com/download?id=1dPZRjK60aEjeKVqUyPqL62fwIJKzVLSZ&export=download&authuser=0"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-outline"
+          >
             <span className="material-icons mr-2">two_wheeler</span>
             Rider App
           </a>
