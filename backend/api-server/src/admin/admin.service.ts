@@ -375,7 +375,7 @@ export class AdminService {
   }
 
   async getTripMonitoring(page = 1, limit = 20, status?: string) {
-    const maxRecords = 100;
+    const maxRecords = 300;
     const skip = (page - 1) * limit;
     const where = status ? { status: status as any } : {};
     const [bookings, total] = await Promise.all([
@@ -398,15 +398,27 @@ export class AdminService {
 
   async cleanupOldTrips(): Promise<number> {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    const oldBookings = await this.prisma.booking.findMany({
+    // Terminal bookings older than 30 days
+    const oldTerminal = await this.prisma.booking.findMany({
       where: {
         createdAt: { lt: thirtyDaysAgo },
-        status: { in: ['COMPLETED', 'CANCELLED'] },
+        status: { in: ['COMPLETED', 'CANCELLED', 'EXPIRED'] },
       },
       select: { id: true },
     });
-    const deleteIds = oldBookings.map((b) => b.id);
+
+    // Stuck bookings (non-terminal) older than 24 hours — ghost trips that never ended
+    const stuckBookings = await this.prisma.booking.findMany({
+      where: {
+        createdAt: { lt: twentyFourHoursAgo },
+        status: { in: ['SEARCHING', 'ACCEPTED', 'RIDER_ARRIVED', 'IN_PROGRESS'] },
+      },
+      select: { id: true },
+    });
+
+    const deleteIds = [...oldTerminal, ...stuckBookings].map((b) => b.id);
     if (deleteIds.length === 0) return 0;
 
     await this.prisma.tripLocation.deleteMany({ where: { bookingId: { in: deleteIds } } });
