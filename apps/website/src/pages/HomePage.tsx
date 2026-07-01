@@ -7,7 +7,6 @@ const PLACES = [
   { name: 'Sabang Beach', img: '/images/places/Sabang Beach.jpg', desc: "Gateway to Puerto Galera's beaches" },
   { name: 'White Beach', img: '/images/places/White Beach.jpg', desc: 'Pristine white sand shoreline' },
   { name: 'Talipanan Beach', img: '/images/places/Talipanan Beach.jpg', desc: 'Serene beachfront escape' },
-  { name: 'Talipanan Beach', img: '/images/places/Talipanan Beach 2.jpg', desc: 'Crystal-clear turquoise waters' },
 ];
 
 const FEATURES = [
