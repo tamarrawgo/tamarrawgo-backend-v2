@@ -1,4 +1,14 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+
+const PLACES = [
+  { name: 'Apo Reef', img: '/images/places/Apo Reef.jpg', desc: 'World-class coral reef & dive site' },
+  { name: 'Tamaraw Falls', img: '/images/places/Tamaraw Falls.jpg', desc: 'Majestic 180-ft waterfall in the jungle' },
+  { name: 'Sabang Beach', img: '/images/places/Sabang Beach.jpg', desc: "Gateway to Puerto Galera's beaches" },
+  { name: 'White Beach', img: '/images/places/White Beach.jpg', desc: 'Pristine white sand shoreline' },
+  { name: 'Talipanan Beach', img: '/images/places/Talipanan Beach.jpg', desc: 'Serene beachfront escape' },
+  { name: 'Talipanan Beach', img: '/images/places/Talipanan Beach 2.jpg', desc: 'Crystal-clear turquoise waters' },
+];
 
 const FEATURES = [
   { icon: 'speed', title: 'Fast Booking', desc: 'Book a tricycle ride in seconds. Get matched with nearby riders instantly.' },
@@ -14,13 +24,14 @@ const STEPS = [
 ];
 
 export default function HomePage() {
+  const [lightbox, setLightbox] = useState<{ img: string; name: string; desc: string } | null>(null);
+
   return (
     <>
       {/* Hero */}
       <section className="relative overflow-hidden flex items-center min-h-[60vh] md:min-h-[80vh] lg:min-h-[100vh]">
         <div className="absolute inset-0">
           <img src="/images/Hero.png" alt="" className="w-full h-full object-cover" />
-          {/* no overlay — show original image colors */}
         </div>
         <div className="relative z-10 w-full px-8 md:px-16 lg:px-28 py-20 md:py-28 lg:py-36">
           <div className="max-w-2xl">
@@ -88,6 +99,89 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Places Gallery */}
+      <section id="explore" className="max-w-6xl mx-auto px-6 lg:px-12 py-20 lg:py-28 scroll-mt-20">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-black text-[#0D1F13] mb-4">Discover Oriental Mindoro</h2>
+          <p className="text-gray-500 max-w-xl mx-auto">Explore stunning destinations — all reachable by tricycle with TamarrawGo</p>
+        </div>
+
+        {/* Featured + grid layout */}
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+          {/* First image: featured tall card spanning 2 rows on large screens */}
+          <div
+            className="col-span-2 lg:col-span-1 lg:row-span-2 relative group cursor-pointer rounded-2xl overflow-hidden"
+            style={{ minHeight: '260px' }}
+            onClick={() => setLightbox(PLACES[0])}
+          >
+            <img
+              src={PLACES[0].img}
+              alt={PLACES[0].name}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              style={{ minHeight: '260px' }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-80 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="absolute bottom-0 left-0 right-0 p-5">
+              <p className="text-white font-bold text-xl leading-tight drop-shadow">{PLACES[0].name}</p>
+              <p className="text-white/80 text-sm mt-1 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300">{PLACES[0].desc}</p>
+            </div>
+            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <span className="material-icons text-white text-xl drop-shadow">zoom_in</span>
+            </div>
+          </div>
+
+          {/* Remaining 5 images in a 2-col right section */}
+          {PLACES.slice(1).map((place) => (
+            <div
+              key={place.img}
+              className="relative group cursor-pointer rounded-2xl overflow-hidden"
+              style={{ minHeight: '180px' }}
+              onClick={() => setLightbox(place)}
+            >
+              <img
+                src={place.img}
+                alt={place.name}
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                style={{ minHeight: '180px' }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-70 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute bottom-0 left-0 right-0 p-4">
+                <p className="text-white font-bold text-base leading-tight drop-shadow">{place.name}</p>
+                <p className="text-white/80 text-xs mt-0.5 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300">{place.desc}</p>
+              </div>
+              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <span className="material-icons text-white text-lg drop-shadow">zoom_in</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setLightbox(null)}
+        >
+          <div
+            className="relative max-w-4xl w-full rounded-2xl overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img src={lightbox.img} alt={lightbox.name} className="w-full max-h-[80vh] object-contain bg-black" />
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
+              <p className="text-white font-bold text-2xl">{lightbox.name}</p>
+              <p className="text-white/80 text-sm mt-1">{lightbox.desc}</p>
+            </div>
+            <button
+              className="absolute top-3 right-3 w-10 h-10 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/80 transition-colors"
+              onClick={() => setLightbox(null)}
+            >
+              <span className="material-icons text-xl">close</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* For Riders CTA */}
       <section className="bg-[#1B6B2F] text-white">
