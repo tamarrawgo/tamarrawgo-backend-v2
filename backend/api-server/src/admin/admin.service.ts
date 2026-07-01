@@ -427,9 +427,9 @@ export class AdminService {
   }
 
   async cleanupOldAuditLogs(): Promise<number> {
-    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const { count } = await this.prisma.auditLog.deleteMany({
-      where: { createdAt: { lt: ninetyDaysAgo } },
+      where: { createdAt: { lt: thirtyDaysAgo } },
     });
     return count;
   }

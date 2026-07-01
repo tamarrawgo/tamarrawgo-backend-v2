@@ -69,7 +69,7 @@ export default function ActivityLogPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Activity Log</h1>
-          <p className="text-sm text-gray-500 mt-1">All admin actions — last 90 days</p>
+          <p className="text-sm text-gray-500 mt-1">All admin actions — last 30 days</p>
         </div>
         <span className="text-sm text-gray-500">{total} records</span>
       </div>
