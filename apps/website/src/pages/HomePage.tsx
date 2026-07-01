@@ -30,7 +30,7 @@ export default function HomePage() {
       {/* Hero */}
       <section className="relative overflow-hidden flex items-center min-h-[60vh] md:min-h-[80vh] lg:min-h-[100vh]">
         <div className="absolute inset-0">
-          <img src="/images/Hero.png" alt="" className="w-full h-full object-cover" />
+          <img src="/images/hero2background.png" alt="" className="w-full h-full object-cover" />
         </div>
         <div className="relative z-10 w-full px-8 md:px-16 lg:px-28 py-20 md:py-28 lg:py-36">
           <div className="max-w-2xl">
