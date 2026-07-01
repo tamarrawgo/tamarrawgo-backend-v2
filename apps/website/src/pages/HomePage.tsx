@@ -38,7 +38,7 @@ export default function HomePage() {
               Your Ride,<br />
               <span className="text-[#1B6B2F]">One Tap<br className="hidden sm:block" /> Away</span>
             </h1>
-            <p className="text-lg sm:text-xl md:text-2xl text-gray-800 leading-relaxed mb-8 md:mb-12 max-w-xl animate-hero-2">
+            <p className="text-lg sm:text-xl md:text-2xl text-white leading-relaxed mb-8 md:mb-12 max-w-xl animate-hero-2">
               TamarrawGo connects you with reliable tricycle riders in your area.
               Book a ride, track in real-time, and arrive safely at your destination.
             </p>
