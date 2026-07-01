@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityInd
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { api } from '../src/services/api';
-import { sendPhoneOtp, confirmPhoneOtp } from '../src/services/firebase';
 
 const GREEN = '#1B6B2F';
 
@@ -12,7 +11,6 @@ export default function ForgotPasswordScreen() {
   const [step, setStep] = useState<'phone' | 'otp' | 'newpass'>('phone');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
-  const [firebaseIdToken, setFirebaseIdToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,45 +23,25 @@ export default function ForgotPasswordScreen() {
 
   const handleSendOtp = async () => {
     if (!phone || phone.length < 10) { Alert.alert('Error', 'Please enter a valid phone number'); return; }
-    const normalized = normalizePhone(phone);
     setLoading(true);
     try {
-      // Check the phone exists in our system first
-      await api.post('/auth/forgot-password', { phone: normalized });
-      // Then trigger Firebase OTP
-      await sendPhoneOtp(normalized);
+      await api.post('/auth/forgot-password', { phone: normalizePhone(phone) });
+      Alert.alert('OTP Sent', 'Check your phone for the verification code');
       setStep('otp');
     } catch (err: any) {
-      Alert.alert('Error', err?.message ?? 'Failed to send code');
+      Alert.alert('Error', err?.message ?? 'Failed to send OTP');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerifyOtp = async () => {
-    if (!otp || otp.length < 6) { Alert.alert('Error', 'Please enter the 6-digit code'); return; }
-    setLoading(true);
-    try {
-      const idToken = await confirmPhoneOtp(otp);
-      setFirebaseIdToken(idToken);
-      setStep('newpass');
-    } catch (err: any) {
-      Alert.alert('Invalid Code', err?.message ?? 'Please check the code and try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResetPassword = async () => {
+  const handleVerifyAndReset = async () => {
+    if (!otp || otp.length < 4) { Alert.alert('Error', 'Please enter the OTP'); return; }
     if (!newPassword || newPassword.length < 8) { Alert.alert('Error', 'Password must be at least 8 characters'); return; }
     if (newPassword !== confirmPassword) { Alert.alert('Error', 'Passwords do not match'); return; }
     setLoading(true);
     try {
-      await api.post('/auth/reset-password', {
-        phone: normalizePhone(phone),
-        firebaseIdToken,
-        newPassword,
-      });
+      await api.post('/auth/reset-password', { phone: normalizePhone(phone), otp, newPassword });
       Alert.alert('Success', 'Password reset successfully! You can now login.', [
         { text: 'Login', onPress: () => router.replace('/(auth)/login' as any) },
       ]);
@@ -87,7 +65,7 @@ export default function ForgotPasswordScreen() {
       <View style={styles.content}>
         {step === 'phone' && (
           <>
-            <Text style={styles.subtitle}>Enter your registered phone number to receive a verification code</Text>
+            <Text style={styles.subtitle}>Enter your registered phone number to receive an OTP</Text>
             <View style={styles.inputWrap}>
               <MaterialIcons name="phone" size={18} color="#999" />
               <Text style={styles.prefix}>+63</Text>
@@ -102,19 +80,19 @@ export default function ForgotPasswordScreen() {
               />
             </View>
             <TouchableOpacity style={styles.btn} onPress={handleSendOtp} disabled={loading}>
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Send Code</Text>}
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Send OTP</Text>}
             </TouchableOpacity>
           </>
         )}
 
         {step === 'otp' && (
           <>
-            <Text style={styles.subtitle}>Enter the 6-digit code sent to +63{phone}</Text>
+            <Text style={styles.subtitle}>Enter the OTP sent to +63{phone}</Text>
             <View style={styles.inputWrap}>
               <MaterialIcons name="lock-outline" size={18} color="#999" />
               <TextInput
                 style={styles.input}
-                placeholder="000000"
+                placeholder="Enter OTP"
                 placeholderTextColor="#bbb"
                 keyboardType="number-pad"
                 maxLength={6}
@@ -122,8 +100,8 @@ export default function ForgotPasswordScreen() {
                 onChangeText={setOtp}
               />
             </View>
-            <TouchableOpacity style={styles.btn} onPress={handleVerifyOtp} disabled={loading || !otp}>
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Verify Code</Text>}
+            <TouchableOpacity style={styles.btn} onPress={() => setStep('newpass')} disabled={!otp}>
+              <Text style={styles.btnText}>Next</Text>
             </TouchableOpacity>
           </>
         )}
@@ -156,7 +134,7 @@ export default function ForgotPasswordScreen() {
                 onChangeText={setConfirmPassword}
               />
             </View>
-            <TouchableOpacity style={styles.btn} onPress={handleResetPassword} disabled={loading}>
+            <TouchableOpacity style={styles.btn} onPress={handleVerifyAndReset} disabled={loading}>
               {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Reset Password</Text>}
             </TouchableOpacity>
           </>

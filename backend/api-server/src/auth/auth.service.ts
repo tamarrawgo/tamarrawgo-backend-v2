@@ -10,9 +10,10 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterPassengerDto, RegisterRiderDto } from './dto/register.dto';
-import { LoginDto, RefreshTokenDto, VerifyOtpDto, ResetPasswordDto } from './dto/login.dto';
+import { LoginDto, RefreshTokenDto, VerifyOtpDto } from './dto/login.dto';
 import { JwtPayload, UserRole } from '@tamarrawgo/shared-types';
-import { FirebaseAdminService } from './firebase-admin.service';
+import { generateOtp } from '@tamarrawgo/shared-utils';
+import { SmsService } from './sms.service';
 
 @Injectable()
 export class AuthService {
@@ -20,7 +21,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwt: JwtService,
     private config: ConfigService,
-    private firebaseAdmin: FirebaseAdminService,
+    private sms: SmsService,
   ) {}
 
   async registerPassenger(dto: RegisterPassengerDto) {
@@ -28,6 +29,8 @@ export class AuthService {
     if (existing) throw new ConflictException('Phone number already registered');
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
+    const otp = generateOtp(6);
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     const user = await this.prisma.user.create({
       data: {
@@ -38,8 +41,12 @@ export class AuthService {
         passwordHash,
         role: UserRole.PASSENGER,
         status: 'PENDING_VERIFICATION',
+        otpCode: otp,
+        otpExpiresAt,
       },
     });
+
+    await this.sms.sendOtp(user.phone, otp);
 
     return { message: 'Registration successful. Please verify your phone.', userId: user.id };
   }
@@ -51,6 +58,8 @@ export class AuthService {
     if (existing) throw new ConflictException('This phone number or license number is already registered. Please login instead.');
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
+    const otp = generateOtp(6);
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     const user = await this.prisma.user.create({
       data: {
@@ -61,6 +70,8 @@ export class AuthService {
         passwordHash,
         role: UserRole.RIDER,
         status: 'PENDING_VERIFICATION',
+        otpCode: otp,
+        otpExpiresAt,
         rider: {
           create: {
             licenseNumber: dto.licenseNumber,
@@ -80,29 +91,21 @@ export class AuthService {
       include: { rider: { include: { vehicle: true } } },
     });
 
+    await this.sms.sendOtp(user.phone, otp);
     return { message: 'Rider registration submitted. Verify phone and await approval.', userId: user.id };
   }
 
   async verifyOtp(dto: VerifyOtpDto) {
-    // Verify the Firebase ID token — confirms user proved ownership of the phone number
-    let firebasePhone: string;
-    try {
-      const decoded = await this.firebaseAdmin.verifyIdToken(dto.firebaseIdToken);
-      firebasePhone = decoded.phone_number ?? '';
-    } catch {
-      throw new BadRequestException('Invalid or expired verification. Please try again.');
-    }
-
-    if (firebasePhone !== dto.phone) {
-      throw new BadRequestException('Phone number mismatch. Please verify the correct number.');
-    }
-
     const user = await this.prisma.user.findUnique({ where: { phone: dto.phone }, include: { rider: true } });
     if (!user) throw new NotFoundException('User not found');
-
-    if (user.status === 'ACTIVE') {
-      throw new BadRequestException('This account is already verified. Please login instead.');
+    if (!user.otpCode || !user.otpExpiresAt) {
+      if (user.status === 'ACTIVE') {
+        throw new BadRequestException('This account is already verified. Please login instead.');
+      }
+      throw new BadRequestException('No OTP requested. Please tap Resend OTP.');
     }
+    if (new Date() > user.otpExpiresAt) throw new BadRequestException('OTP has expired. Please tap Resend OTP.');
+    if (user.otpCode !== dto.otp) throw new BadRequestException('Invalid OTP');
 
     await this.prisma.user.update({
       where: { id: user.id },
@@ -119,28 +122,25 @@ export class AuthService {
   async forgotPassword(phone: string) {
     const user = await this.prisma.user.findUnique({ where: { phone } });
     if (!user) throw new NotFoundException('Phone number not registered');
-    // OTP is now sent via Firebase from the app — just confirm the user exists
-    return { message: 'Phone number verified. Please check your SMS.' };
+
+    const otp = generateOtp(6);
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await this.prisma.user.update({ where: { id: user.id }, data: { otpCode: otp, otpExpiresAt } });
+    console.log(`[OTP-RESET] ${phone}: ${otp}`);
+    await this.sms.sendOtp(phone, otp).catch(() => {});
+
+    return { message: 'OTP sent to your phone number' };
   }
 
-  async resetPassword(dto: ResetPasswordDto) {
-    // Verify the Firebase ID token
-    let firebasePhone: string;
-    try {
-      const decoded = await this.firebaseAdmin.verifyIdToken(dto.firebaseIdToken);
-      firebasePhone = decoded.phone_number ?? '';
-    } catch {
-      throw new BadRequestException('Invalid or expired verification. Please try again.');
-    }
-
-    if (firebasePhone !== dto.phone) {
-      throw new BadRequestException('Phone number mismatch.');
-    }
-
-    const user = await this.prisma.user.findUnique({ where: { phone: dto.phone } });
+  async resetPassword(phone: string, otp: string, newPassword: string) {
+    const user = await this.prisma.user.findUnique({ where: { phone } });
     if (!user) throw new NotFoundException('User not found');
+    if (!user.otpCode || !user.otpExpiresAt) throw new BadRequestException('No OTP requested');
+    if (new Date() > user.otpExpiresAt) throw new BadRequestException('OTP has expired');
+    if (user.otpCode !== otp) throw new BadRequestException('Invalid OTP');
 
-    const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    const passwordHash = await bcrypt.hash(newPassword, 10);
     await this.prisma.user.update({
       where: { id: user.id },
       data: { passwordHash, otpCode: null, otpExpiresAt: null },
@@ -149,9 +149,17 @@ export class AuthService {
     return { message: 'Password reset successfully. You can now login with your new password.' };
   }
 
-  async requestOtp(_phone: string) {
-    // OTP is now handled by Firebase on the client — this endpoint is a no-op kept for compatibility
-    return { message: 'Please use the app to resend the verification code.' };
+  async requestOtp(phone: string) {
+    const user = await this.prisma.user.findUnique({ where: { phone } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const otp = generateOtp(6);
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await this.prisma.user.update({ where: { id: user.id }, data: { otpCode: otp, otpExpiresAt } });
+    await this.sms.sendOtp(phone, otp);
+
+    return { message: 'OTP sent successfully' };
   }
 
   async login(dto: LoginDto) {

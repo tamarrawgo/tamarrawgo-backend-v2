@@ -8,7 +8,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { setPendingDocs } from '../../src/store/pending-docs';
 import { api } from '../../src/services/api';
-import { sendPhoneOtp } from '../../src/services/firebase';
 
 const GREEN = '#1B6B2F';
 const GREEN_DARK = '#145224';
@@ -92,10 +91,11 @@ export default function RiderRegisterScreen() {
       }
       _savedDocs = {}; // Clear for next registration
 
-      // Send OTP via Firebase (SMS sent by Google, no Semaphore cost)
-      await sendPhoneOtp(normalizedPhone);
-
-      router.replace({ pathname: '/(auth)/verify-otp', params: { phone: normalizedPhone } });
+      Alert.alert(
+        'Registration Submitted!',
+        'Please verify your phone number to complete registration.',
+        [{ text: 'Enter OTP', onPress: () => router.replace({ pathname: '/(auth)/verify-otp', params: { phone: normalizedPhone } }) }],
+      );
     } catch (err: any) {
       const msg = Array.isArray(err?.message) ? err.message.join('\n') : (err?.message ?? 'Registration failed');
       Alert.alert('Registration Failed', msg);

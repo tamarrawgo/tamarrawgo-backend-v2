@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { api } from '../src/services/api';
-import { confirmPhoneOtp, resendPhoneOtp } from '../src/services/firebase';
 
 export default function VerifyOtpScreen() {
   const router = useRouter();
@@ -16,36 +15,31 @@ export default function VerifyOtpScreen() {
 
   const handleVerify = async () => {
     if (otp.length !== 6) {
-      Alert.alert('Invalid Code', 'Please enter the 6-digit code sent to your phone.');
+      Alert.alert('Invalid OTP', 'Please enter the 6-digit OTP code.');
       return;
     }
     setLoading(true);
     try {
-      // Confirm OTP with Firebase — returns signed ID token proving phone ownership
-      const firebaseIdToken = await confirmPhoneOtp(otp);
-
-      // Tell backend to activate the account
-      await api.post('/auth/verify-otp', { phone, firebaseIdToken });
+      await api.post('/auth/verify-otp', { phone, otp });
       Alert.alert(
         'Phone Verified!',
         'Your account is now active. You can now sign in.',
         [{ text: 'Sign In', onPress: () => router.replace('/(auth)/login') }],
       );
     } catch (err: any) {
-      Alert.alert('Verification Failed', err?.message ?? 'Invalid or expired code');
+      Alert.alert('Verification Failed', err?.message ?? 'Invalid or expired OTP');
     } finally {
       setLoading(false);
     }
   };
 
   const handleResend = async () => {
-    if (!phone) return;
     setResending(true);
     try {
-      await resendPhoneOtp(phone);
-      Alert.alert('Code Sent', `A new verification code has been sent to ${phone}.`);
+      await api.post('/auth/request-otp', { phone });
+      Alert.alert('OTP Sent', 'Check the backend terminal logs for the new OTP code.');
     } catch (err: any) {
-      Alert.alert('Error', err?.message ?? 'Failed to resend code. Please try again.');
+      Alert.alert('Error', err?.message ?? 'Failed to resend OTP');
     } finally {
       setResending(false);
     }
@@ -56,7 +50,11 @@ export default function VerifyOtpScreen() {
       <View style={styles.inner}>
         <Text style={styles.logo}>TamarrawGo</Text>
         <Text style={styles.title}>Verify Your Phone</Text>
-        <Text style={styles.subtitle}>Enter the 6-digit code sent via SMS to{'\n'}<Text style={styles.phone}>{phone}</Text></Text>
+        <Text style={styles.subtitle}>Enter the 6-digit OTP sent to{'\n'}<Text style={styles.phone}>{phone}</Text></Text>
+
+        <View style={styles.devNote}>
+          <Text style={styles.devNoteText}>Check the backend terminal logs for your OTP code</Text>
+        </View>
 
         <TextInput
           style={styles.otpInput}
@@ -75,7 +73,7 @@ export default function VerifyOtpScreen() {
 
         <TouchableOpacity onPress={handleResend} disabled={resending}>
           <Text style={styles.link}>
-            {resending ? 'Sending...' : <>Didn't receive it? <Text style={styles.linkBold}>Resend Code</Text></>}
+            {resending ? 'Sending...' : <>Didn't receive it? <Text style={styles.linkBold}>Resend OTP</Text></>}
           </Text>
         </TouchableOpacity>
 
@@ -92,8 +90,13 @@ const styles = StyleSheet.create({
   inner: { padding: 32, alignItems: 'center' },
   logo: { fontSize: 32, fontWeight: '800', color: '#1B6B2F', marginBottom: 24 },
   title: { fontSize: 22, fontWeight: '800', color: '#333', marginBottom: 8, textAlign: 'center' },
-  subtitle: { fontSize: 14, color: '#666', textAlign: 'center', lineHeight: 22, marginBottom: 32 },
+  subtitle: { fontSize: 14, color: '#666', textAlign: 'center', lineHeight: 22, marginBottom: 20 },
   phone: { fontWeight: '700', color: '#333' },
+  devNote: {
+    backgroundColor: '#FFF5EE', borderRadius: 10, padding: 12,
+    marginBottom: 24, width: '100%',
+  },
+  devNoteText: { fontSize: 13, color: '#1B6B2F', textAlign: 'center' },
   otpInput: {
     width: '100%', borderWidth: 2, borderColor: '#1B6B2F', borderRadius: 16,
     paddingVertical: 18, fontSize: 32, fontWeight: '800',
