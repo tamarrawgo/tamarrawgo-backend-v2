@@ -29,8 +29,8 @@ export class SmsService {
 
       this.logger.log(`[SMS] OTP sent to ${phone} — status: ${response.data?.status ?? 'sent'}`);
     } catch (err: any) {
-      this.logger.error(`[SMS] Failed to send OTP to ${phone}: ${err?.message}`);
-      // Don't throw — log and continue (OTP still saved in DB for manual lookup)
+      const detail = err?.response?.data ? JSON.stringify(err.response.data) : err?.message;
+      this.logger.error(`[SMS] Failed to send OTP to ${phone}: ${detail}`);
     }
   }
 }
