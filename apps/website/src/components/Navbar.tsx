@@ -21,6 +21,7 @@ export default function Navbar() {
             <Link to="/" className="text-base font-semibold text-gray-600 hover:text-[#1B6B2F] transition-colors">Home</Link>
             <a href="/#how-it-works" className="text-base font-semibold text-gray-600 hover:text-[#1B6B2F] transition-colors">How It Works</a>
             <a href="/#explore" className="text-base font-semibold text-gray-600 hover:text-[#1B6B2F] transition-colors">Explore</a>
+            <a href="/#legal" className="text-base font-semibold text-gray-600 hover:text-[#1B6B2F] transition-colors">Patakaran</a>
             <Link to="/about" className="text-base font-semibold text-gray-600 hover:text-[#1B6B2F] transition-colors">About</Link>
             <Link to="/login" className="bg-[#1B6B2F] text-white px-7 py-3 rounded-xl font-bold text-base hover:bg-[#145224] transition-colors">
               Login / Upload Docs
@@ -39,6 +40,7 @@ export default function Navbar() {
             <Link to="/" onClick={() => setOpen(false)} className="block px-4 py-3 rounded-xl text-gray-700 font-semibold hover:bg-gray-50">Home</Link>
             <a href="/#how-it-works" onClick={() => setOpen(false)} className="block px-4 py-3 rounded-xl text-gray-700 font-semibold hover:bg-gray-50">How It Works</a>
             <a href="/#explore" onClick={() => setOpen(false)} className="block px-4 py-3 rounded-xl text-gray-700 font-semibold hover:bg-gray-50">Explore</a>
+            <a href="/#legal" onClick={() => setOpen(false)} className="block px-4 py-3 rounded-xl text-gray-700 font-semibold hover:bg-gray-50">Patakaran</a>
             <Link to="/about" onClick={() => setOpen(false)} className="block px-4 py-3 rounded-xl text-gray-700 font-semibold hover:bg-gray-50">About</Link>
             <Link to="/login" onClick={() => setOpen(false)} className="block bg-[#1B6B2F] text-white text-center px-4 py-3 rounded-xl font-bold">Login / Upload Docs</Link>
           </div>

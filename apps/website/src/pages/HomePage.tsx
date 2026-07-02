@@ -214,6 +214,210 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Legal & Community Section */}
+      <section id="legal" className="bg-[#F8FAF8] scroll-mt-20">
+        <div className="max-w-6xl mx-auto px-6 lg:px-12 py-20 lg:py-28">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl md:text-4xl font-black text-[#0D1F13] mb-4">Mga Patakaran at Alituntunin</h2>
+            <p className="text-gray-500 max-w-xl mx-auto">Para sa kaligtasan at kaginhawahan ng bawat isa.</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+
+            {/* Panel 1: Passenger Terms */}
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="bg-[#1B6B2F] px-6 py-5">
+                <p className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-1">Para sa Tamarraw Go Passengers</p>
+                <h3 className="text-white text-xl font-black">Passenger Terms and Conditions</h3>
+                <p className="text-white/60 text-xs mt-1">Mga Tuntunin at Kundisyon para sa mga Pasahero</p>
+              </div>
+              <div className="px-6 py-5 space-y-3">
+                {[
+                  { icon: 'shield', text: 'Ligtas at maayos na biyahe ang aming prayoridad.' },
+                  { icon: 'check_circle', text: 'Sumunod sa booking details at instructions.' },
+                  { icon: 'location_on', text: 'Maging nasa tamang lugar at oras ng pick-up.' },
+                  { icon: 'handshake', text: 'Igalang ang driver at ang kanilang sasakyan.' },
+                  { icon: 'payments', text: 'Bayaran ang pamasahe ayon sa napagkasunduan.' },
+                  { icon: 'warning', text: 'Ang paglabag sa mga patakaran ay maaaring magresulta sa pagkansela ng biyahe o pagbabawal sa paggamit ng serbisyo.' },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className="w-7 h-7 rounded-lg bg-[#E8F5E9] flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="material-icons text-sm text-[#1B6B2F]">{item.icon}</span>
+                    </div>
+                    <p className="text-sm text-gray-600 leading-relaxed">{item.text}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="px-6 py-4 bg-[#F8FAF8] border-t border-gray-100">
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Sa pamamagitan ng paggamit ng Tamarraw GO, ikinukumpirma mo na nabasa at sinasang-ayon mo ang mga tuntunin at kundisyong ito.
+                </p>
+              </div>
+            </div>
+
+            {/* Panel 2: Privacy Policy */}
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="bg-[#1B6B2F] px-6 py-5">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="material-icons text-white text-lg">lock</span>
+                  <h3 className="text-white text-xl font-black">Privacy Policy</h3>
+                </div>
+                <p className="text-white/60 text-xs">Paano kinokolekta at ginagamit ang personal data.</p>
+              </div>
+              <div className="px-6 py-5">
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <p className="text-xs font-black text-[#1B6B2F] uppercase tracking-wide mb-3">Paano Kinokolekta</p>
+                    <ul className="space-y-2">
+                      {[
+                        'Kapag nag-register o gumawa ng account',
+                        'Kapag nag-book ng biyahe',
+                        'Kapag nakipag-ugnayan sa aming customer support',
+                        'Sa pamamagitan ng cookies at teknolohiyang katulad nito',
+                      ].map((item, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="material-icons text-xs text-[#1B6B2F] mt-0.5">fiber_manual_record</span>
+                          <span className="text-xs text-gray-600 leading-relaxed">{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-[#1B6B2F] uppercase tracking-wide mb-3">Paano Ginagamit</p>
+                    <ul className="space-y-2">
+                      {[
+                        'Upang maproseso ang iyong booking at biyahe',
+                        'Upang tiyakin ang kaligtasan at seguridad',
+                        'Upang magbigay ng customer support',
+                        'Para sa pag-aanalisa at pagpapabuti ng aming serbisyo',
+                      ].map((item, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="material-icons text-xs text-[#1B6B2F] mt-0.5">check</span>
+                          <span className="text-xs text-gray-600 leading-relaxed">{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <div className="bg-[#E8F5E9] rounded-2xl p-4 text-xs text-[#1B6B2F] leading-relaxed">
+                  Ang iyong privacy ay mahalaga sa amin. Ginagamit lamang namin ang iyong data para sa pagbibigay ng mas ligtas at mas maayos na serbisyo. <span className="font-bold">Hindi namin ibinibigay sa third parties nang walang pahintulot.</span>
+                </div>
+              </div>
+              <div className="px-6 py-4 bg-[#F8FAF8] border-t border-gray-100">
+                <p className="text-xs text-gray-400">Hindi kami nagbebenta ng iyong personal data. Para sa iba pang detalye, basahin ang buong <a href="/privacy" className="text-[#1B6B2F] font-semibold hover:underline">Privacy Policy</a>.</p>
+              </div>
+            </div>
+
+            {/* Panel 3: Data Privacy Consent */}
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="bg-[#1B6B2F] px-6 py-5">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="material-icons text-white text-lg">assignment_turned_in</span>
+                  <h3 className="text-white text-xl font-black">Data Privacy Consent Form</h3>
+                </div>
+                <p className="text-white/60 text-xs">Pagsunod sa Philippine Data Privacy Act of 2012</p>
+              </div>
+              <div className="px-6 py-5">
+                <p className="text-sm text-gray-600 leading-relaxed mb-5">
+                  Sa pamamagitan ng pagpapatuloy, ako ay nagbibigay ng pahintulot sa pagkolekta, paggamit, pag-imbak, at pagproseso ng aking personal data alinsunod sa <span className="font-semibold text-[#0D1F13]">Data Privacy Act of 2012 (Republic Act No. 10173)</span>.
+                </p>
+                <div className="bg-[#F8FAF8] rounded-2xl p-4 mb-4">
+                  <p className="text-xs font-black text-[#0D1F13] mb-3">Ako ay sumasang-ayon na ang aking personal data ay:</p>
+                  <ul className="space-y-2">
+                    {[
+                      'Kokolektahin at gagamitin para sa pagproseso ng aking booking at biyahe',
+                      'Gagamitin para sa komunikasyon, updates, at customer support',
+                      'Ise-secure at poprotektahan alinsunod sa batas',
+                      'Hindi ibabahagi sa third parties maliban kung kinakailangan para sa serbisyo o ayon sa batas',
+                    ].map((item, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="material-icons text-sm text-[#1B6B2F] mt-0.5">check_circle</span>
+                        <span className="text-xs text-gray-600 leading-relaxed">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="flex items-start gap-3 p-3 border border-gray-200 rounded-xl">
+                  <div className="w-4 h-4 border-2 border-[#1B6B2F] rounded mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Naaunawaan ko ang aking mga karapatan na ilalim ng Data Privacy Act of 2012, at maaari akong humiling ng access, correction, o deletion ng aking data.
+                  </p>
+                </div>
+              </div>
+              <div className="px-6 py-4 bg-[#F8FAF8] border-t border-gray-100">
+                <p className="text-xs text-gray-400">Maaari mong bawiin ang pahintulot na ito anumang oras sa pamamagitan ng pag-contact sa amin.</p>
+              </div>
+            </div>
+
+            {/* Panel 4: Community Guidelines */}
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="bg-[#1B6B2F] px-6 py-5">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="material-icons text-white text-lg">groups</span>
+                  <h3 className="text-white text-xl font-black">Community Guidelines</h3>
+                </div>
+                <p className="text-white/60 text-xs">Mga ipinagbabawal na gawain para sa parehong driver at pasahero.</p>
+              </div>
+              <div className="px-6 py-5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="material-icons text-sm text-[#1B6B2F]">two_wheeler</span>
+                      <p className="text-xs font-black text-[#0D1F13] uppercase tracking-wide">Para sa Driver</p>
+                    </div>
+                    <ul className="space-y-2">
+                      {[
+                        'Huwag kanselahin ang booking nang walang valid na dahilan.',
+                        'Huwag magtanggi ng biyahe matapos tanggapin.',
+                        'Huwag maging bastos, nang-insulto, o diskriminatibo.',
+                        'Huwag maningil ng sobrang pamasahe.',
+                        'Huwag manigarilyo o gumamit ng bawal na substansya sa loob ng sasakyan.',
+                        'Huwag lumabag sa trapiko at mga batas.',
+                      ].map((item, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="material-icons text-xs text-red-500 mt-0.5 flex-shrink-0">cancel</span>
+                          <span className="text-xs text-gray-600 leading-relaxed">{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="material-icons text-sm text-[#1B6B2F]">person</span>
+                      <p className="text-xs font-black text-[#0D1F13] uppercase tracking-wide">Para sa Pasahero</p>
+                    </div>
+                    <ul className="space-y-2">
+                      {[
+                        'Huwag mag-book kung wala pong balak tumuloy.',
+                        'Huwag magpakansela ng biyahe nang paulit-ulit nang walang dahilan.',
+                        'Huwag maging bastos, nang-insulto, o diskriminatibo.',
+                        'Huwag manigarilyo o gumamit ng bawal na substansya sa loob ng sasakyan.',
+                        'Huwag mag-iwan ng kalat o makapinsalang gamit sa sasakyan.',
+                        'Huwag lumabag sa mga patakaran at batas.',
+                      ].map((item, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="material-icons text-xs text-red-500 mt-0.5 flex-shrink-0">cancel</span>
+                          <span className="text-xs text-gray-600 leading-relaxed">{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              <div className="px-6 py-4 bg-amber-50 border-t border-amber-100">
+                <div className="flex items-start gap-2">
+                  <span className="material-icons text-amber-500 text-sm mt-0.5 flex-shrink-0">warning</span>
+                  <p className="text-xs text-amber-700 leading-relaxed">
+                    Ang paglabag sa mga patakaran ay maaaring magresulta sa pagkansela ng biyahe, babala, suspensyon, o permanenteng pagbabawal sa paggamit ng serbisyo.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
       {/* Download */}
       <section id="download" className="max-w-6xl mx-auto px-6 lg:px-12 py-20 lg:py-28 text-center scroll-mt-20">
         <h2 className="text-3xl md:text-4xl font-black text-[#0D1F13] mb-4">Download TamarrawGo</h2>
