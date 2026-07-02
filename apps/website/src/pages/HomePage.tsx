@@ -313,12 +313,6 @@ export default function HomePage() {
                     ))}
                   </ul>
                 </div>
-                <div className="flex items-start gap-3 p-3 border border-gray-200 rounded-xl">
-                  <div className="w-4 h-4 border-2 border-[#1B6B2F] rounded mt-0.5 flex-shrink-0" />
-                  <p className="text-xs text-gray-500 leading-relaxed">
-                    Naaunawaan ko ang aking mga karapatan na ilalim ng Data Privacy Act of 2012, at maaari akong humiling ng access, correction, o deletion ng aking data.
-                  </p>
-                </div>
               </div>
               <div className="px-6 py-4 bg-[#F8FAF8] border-t border-gray-100">
                 <p className="text-xs text-gray-400">Maaari mong bawiin ang pahintulot na ito anumang oras sa pamamagitan ng pag-contact sa amin.</p>
