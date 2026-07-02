@@ -2,11 +2,19 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const PLACES = [
-  { name: 'Apo Reef', img: '/images/places/Apo Reef.jpg', desc: 'World-class coral reef & dive site' },
-  { name: 'Tamaraw Falls', img: '/images/places/Tamaraw Falls.jpg', desc: 'Majestic 180-ft waterfall in the jungle' },
-  { name: 'Sabang Beach', img: '/images/places/Sabang Beach.jpg', desc: "Gateway to Puerto Galera's beaches" },
-  { name: 'White Beach', img: '/images/places/White Beach.jpg', desc: 'Pristine white sand shoreline' },
-  { name: 'Talipanan Beach', img: '/images/places/Talipanan Beach.jpg', desc: 'Serene beachfront escape' },
+  '/images/places/1.jpg',
+  '/images/places/2.jpg',
+  '/images/places/3.jpg',
+  '/images/places/4.jpg',
+  '/images/places/5.jpg',
+  '/images/places/6.jpg',
+  '/images/places/7.jpg',
+  '/images/places/8.jpg',
+  '/images/places/9.jpg',
+  '/images/places/10.jpg',
+  '/images/places/11.jpg',
+  '/images/places/12.jpg',
+  '/images/places/13.jpg',
 ];
 
 const FEATURES = [
@@ -23,7 +31,7 @@ const STEPS = [
 ];
 
 export default function HomePage() {
-  const [lightbox, setLightbox] = useState<{ img: string; name: string; desc: string } | null>(null);
+  const [lightbox, setLightbox] = useState<string | null>(null);
 
   return (
     <>
@@ -106,49 +114,21 @@ export default function HomePage() {
           <p className="text-gray-500 max-w-xl mx-auto">Explore stunning destinations — all reachable by tricycle with TamarrawGo</p>
         </div>
 
-        {/* Featured + grid layout */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-          {/* First image: featured tall card spanning 2 rows on large screens */}
-          <div
-            className="col-span-2 lg:col-span-1 lg:row-span-2 relative group cursor-pointer rounded-2xl overflow-hidden"
-            style={{ minHeight: '260px' }}
-            onClick={() => setLightbox(PLACES[0])}
-          >
-            <img
-              src={PLACES[0].img}
-              alt={PLACES[0].name}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              style={{ minHeight: '260px' }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-80 group-hover:opacity-100 transition-opacity duration-300" />
-            <div className="absolute bottom-0 left-0 right-0 p-5">
-              <p className="text-white font-bold text-xl leading-tight drop-shadow">{PLACES[0].name}</p>
-              <p className="text-white/80 text-sm mt-1 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300">{PLACES[0].desc}</p>
-            </div>
-            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <span className="material-icons text-white text-xl drop-shadow">zoom_in</span>
-            </div>
-          </div>
-
-          {/* Remaining 5 images in a 2-col right section */}
-          {PLACES.slice(1).map((place) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+          {PLACES.map((img, i) => (
             <div
-              key={place.img}
-              className="relative group cursor-pointer rounded-2xl overflow-hidden"
-              style={{ minHeight: '180px' }}
-              onClick={() => setLightbox(place)}
+              key={img}
+              className={`relative group cursor-pointer rounded-2xl overflow-hidden ${i === 0 ? 'col-span-2 row-span-2' : ''}`}
+              style={{ minHeight: i === 0 ? '360px' : '180px' }}
+              onClick={() => setLightbox(img)}
             >
               <img
-                src={place.img}
-                alt={place.name}
+                src={img}
+                alt={`Oriental Mindoro ${i + 1}`}
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                style={{ minHeight: '180px' }}
+                style={{ minHeight: i === 0 ? '360px' : '180px' }}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-70 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="absolute bottom-0 left-0 right-0 p-4">
-                <p className="text-white font-bold text-base leading-tight drop-shadow">{place.name}</p>
-                <p className="text-white/80 text-xs mt-0.5 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300">{place.desc}</p>
-              </div>
+              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                 <span className="material-icons text-white text-lg drop-shadow">zoom_in</span>
               </div>
@@ -167,11 +147,7 @@ export default function HomePage() {
             className="relative max-w-4xl w-full rounded-2xl overflow-hidden shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <img src={lightbox.img} alt={lightbox.name} className="w-full max-h-[80vh] object-contain bg-black" />
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
-              <p className="text-white font-bold text-2xl">{lightbox.name}</p>
-              <p className="text-white/80 text-sm mt-1">{lightbox.desc}</p>
-            </div>
+            <img src={lightbox} alt="Oriental Mindoro" className="w-full max-h-[85vh] object-contain bg-black" />
             <button
               className="absolute top-3 right-3 w-10 h-10 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/80 transition-colors"
               onClick={() => setLightbox(null)}
