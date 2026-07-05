@@ -19,6 +19,51 @@ const TRICYCLE_TYPES = [
 
 const ALL_KEYS = [...DOC_TYPES.map(d => d.key), ...TRICYCLE_TYPES.map(d => d.key)];
 
+const AGREEMENT_TEXT = `TAMARRAW GO DRIVER PARTNER AGREEMENT
+
+1. Nature of Relationship
+Ang Driver Partner ay kusang-loob na sumasali sa TAMARRAW GO bilang isang independent service provider. Nauunawaan ng Driver Partner na ang TAMARRAW GO ay isang digital technology platform na naglalayong ikonekta ang mga pasahero at mga independent driver para sa layunin ng transport booking.
+
+Walang anumang employer-employee relationship, agency, joint venture, o partnership na nalilikha sa pagitan ng TAMARRAW GO at ng Driver Partner sa bisa ng kasunduang ito.
+
+2. Independent Contractor Status
+Ang Driver Partner ay:
+• May sariling pagpapasya kung kailan at gaano katagal gagamitin ang platform;
+• Responsable sa pagpapanatili ng legal na kondisyon ng kanyang sasakyan at mga personal na dokumento;
+• Responsable sa pagsunod sa lahat ng naaangkop na batas, ordinansa ng LGU, at regulasyon sa transportasyon;
+• Responsable sa sariling buwis, kontribusyon, at iba pang obligasyong ipinapataw ng batas.
+
+3. Responsibility for Vehicle and Operation
+Ang Driver Partner ang may buong pananagutan sa:
+• Kaligtasan at roadworthiness ng sasakyan;
+• Pagkakaroon at pagpapanatili ng kinakailangang lisensya at mga permit;
+• Lahat ng aksidente, pinsala, paglabag sa batas, o insidenteng magmumula sa kanyang sariling pagkilos, kapabayaan, o paggamit ng sasakyan.
+
+4. Platform Limitation
+Nauunawaan at sinasang-ayunan ng Driver Partner na ang TAMARRAW GO ay:
+• Hindi operator o may-ari ng sasakyang ginagamit ng Driver Partner;
+• Hindi direktang nagbibigay ng transport service sa pasahero;
+• Hindi kumokontrol sa aktwal na pagmamaneho, ruta, o personal na kilos ng Driver Partner habang isinasagawa ang biyahe.
+
+Ang papel ng TAMARRAW GO ay limitado lamang sa pagbibigay ng digital platform para sa pagtutugma ng booking request at available na Driver Partners.
+
+5. Driver's Warranty and Undertaking
+Pinatutunayan ng Driver Partner na:
+1. Ang lahat ng impormasyong ibinigay niya ay tama at totoo;
+2. Siya ay may legal na karapatang gamitin ang sasakyan para sa serbisyong kanyang iniaalok;
+3. Pananatilihin niyang updated at valid ang lahat ng kinakailangang dokumento;
+4. Siya ang mananagot sa anumang paglabag sa batas o ordinansa na kanyang magagawa.
+
+6. Indemnity Clause
+Sumasang-ayon ang Driver Partner na ipagtatanggol at hindi pananagutin (hold harmless) ang TAMARRAW GO, ang mga may-ari, opisyal, empleyado, at kinatawan nito laban sa anumang claim, demanda, pinsala, obligasyon, o gastusin na magmumula sa:
+• Paglabag ng Driver Partner sa batas o regulasyon;
+• Aksidente o insidenteng dulot ng Driver Partner;
+• Maling paggamit ng platform;
+• Paglabag ng Driver Partner sa mga tuntunin ng kasunduang ito.
+
+7. Compliance with Laws
+Ang Driver Partner ay nangangakong susunod sa lahat ng umiiral na pambansa at lokal na batas, kabilang ang mga regulasyon ng LGU at iba pang ahensyang may hurisdiksyon sa transportasyon.`;
+
 export default function PortalPage() {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
@@ -28,6 +73,8 @@ export default function PortalPage() {
   const [saveProgress, setSaveProgress] = useState('');
   const [message, setMessage] = useState('');
   const [tricycleOpen, setTricycleOpen] = useState(false);
+  const [showAgreement, setShowAgreement] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   useEffect(() => {
@@ -98,6 +145,8 @@ export default function PortalPage() {
   const allFilled = ALL_KEYS.every(k => hasFile(k));
   const stagedCount = Object.keys(stagedFiles).length;
 
+  const isApproved = user?.rider?.status === 'APPROVED';
+
   const renderDocRow = (dt: { key: string; label: string; icon?: string }, compact = false) => {
     const saved = getSaved(dt.key);
     const staged = getStaged(dt.key);
@@ -119,14 +168,23 @@ export default function PortalPage() {
             {staged ? 'Ready to save' : saved ? 'Saved' : 'Required'}
           </p>
         </div>
-        <input type="file" accept="image/*" className="hidden"
-          ref={(el) => { fileRefs.current[dt.key] = el; }}
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) stageFile(dt.key, f); e.target.value = ''; }}
-        />
-        <button onClick={() => fileRefs.current[dt.key]?.click()} disabled={saving}
-          className={`${compact ? 'px-4 py-2 rounded-lg text-xs' : 'px-5 py-2.5 rounded-xl text-sm'} font-bold transition-colors ${hasIt ? 'bg-white border border-[#1B6B2F] text-[#1B6B2F] hover:bg-[#E8F5E9]' : 'bg-[#1B6B2F] text-white hover:bg-[#145224]'} disabled:opacity-50`}>
-          {hasIt ? 'Change' : 'Select'}
-        </button>
+        {isApproved ? (
+          <div className={`${compact ? 'px-3 py-2 rounded-lg text-xs' : 'px-4 py-2.5 rounded-xl text-sm'} flex items-center gap-1 bg-gray-100 text-gray-400 font-semibold`}>
+            <span className="material-icons text-sm">lock</span>
+            Locked
+          </div>
+        ) : (
+          <>
+            <input type="file" accept="image/*" className="hidden"
+              ref={(el) => { fileRefs.current[dt.key] = el; }}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) stageFile(dt.key, f); e.target.value = ''; }}
+            />
+            <button onClick={() => fileRefs.current[dt.key]?.click()} disabled={saving}
+              className={`${compact ? 'px-4 py-2 rounded-lg text-xs' : 'px-5 py-2.5 rounded-xl text-sm'} font-bold transition-colors ${hasIt ? 'bg-white border border-[#1B6B2F] text-[#1B6B2F] hover:bg-[#E8F5E9]' : 'bg-[#1B6B2F] text-white hover:bg-[#145224]'} disabled:opacity-50`}>
+              {hasIt ? 'Change' : 'Select'}
+            </button>
+          </>
+        )}
       </div>
     );
   };
@@ -223,7 +281,7 @@ export default function PortalPage() {
 
             {/* Save button */}
             <button
-              onClick={handleSaveAll}
+              onClick={() => { setAgreed(false); setShowAgreement(true); }}
               disabled={!allFilled || saving || stagedCount === 0}
               className={`w-full mt-4 py-4 rounded-2xl font-bold text-lg transition-all flex items-center justify-center gap-2 ${allFilled && stagedCount > 0 ? 'bg-[#1B6B2F] text-white hover:bg-[#145224] cursor-pointer' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
             >
@@ -257,6 +315,58 @@ export default function PortalPage() {
           </div>
         )}
       </div>
+
+      {/* Agreement Modal */}
+      {showAgreement && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]">
+            {/* Header */}
+            <div className="px-6 pt-6 pb-4 border-b border-gray-100 flex-shrink-0">
+              <div className="flex items-center gap-3 mb-1">
+                <span className="material-icons text-[#1B6B2F]">gavel</span>
+                <h2 className="text-lg font-bold text-[#0D1F13]">Driver Partner Agreement</h2>
+              </div>
+              <p className="text-xs text-gray-500">Basahin ang buong kasunduan bago mag-upload ng mga dokumento.</p>
+            </div>
+
+            {/* Scrollable content */}
+            <div className="overflow-y-auto flex-1 px-6 py-4">
+              <pre className="whitespace-pre-wrap font-sans text-sm text-gray-700 leading-relaxed">{AGREEMENT_TEXT}</pre>
+            </div>
+
+            {/* Checkbox + actions */}
+            <div className="px-6 pb-6 pt-4 border-t border-gray-100 flex-shrink-0">
+              <label className="flex items-start gap-3 cursor-pointer mb-5">
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={e => setAgreed(e.target.checked)}
+                  className="mt-1 w-4 h-4 accent-[#1B6B2F] flex-shrink-0"
+                />
+                <span className="text-sm text-gray-700 leading-snug">
+                  Sumasang-ayon ako sa <strong>TAMARRAW GO Driver Partner Agreement</strong> at naiintindihan ko ang aking mga responsibilidad bilang isang Driver Partner.
+                </span>
+              </label>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowAgreement(false)}
+                  className="flex-1 py-3 rounded-xl border border-gray-300 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors"
+                >
+                  Kanselahin
+                </button>
+                <button
+                  disabled={!agreed}
+                  onClick={() => { setShowAgreement(false); handleSaveAll(); }}
+                  className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${agreed ? 'bg-[#1B6B2F] text-white hover:bg-[#145224] cursor-pointer' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                >
+                  Sumang-ayon at I-upload
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
