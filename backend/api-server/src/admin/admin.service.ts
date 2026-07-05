@@ -199,6 +199,7 @@ export class AdminService {
     // Delete rider-related records
     if (rider) {
       await this.prisma.walletTransaction.deleteMany({ where: { riderId: rider.id } });
+      await this.prisma.topupRequest.deleteMany({ where: { riderId: rider.id } });
       await this.prisma.riderDocument.deleteMany({ where: { riderId: rider.id } });
       await this.prisma.earning.deleteMany({ where: { riderId: rider.id } });
       await this.prisma.rating.deleteMany({ where: { riderId: rider.id } });
@@ -212,6 +213,7 @@ export class AdminService {
     const bookings = await this.prisma.booking.findMany({ where: { passengerId: userId }, select: { id: true } });
     const bookingIds = bookings.map((b) => b.id);
     if (bookingIds.length > 0) {
+      await this.prisma.tripLocation.deleteMany({ where: { bookingId: { in: bookingIds } } });
       await this.prisma.payment.deleteMany({ where: { bookingId: { in: bookingIds } } });
       await this.prisma.rating.deleteMany({ where: { bookingId: { in: bookingIds } } });
       await this.prisma.chatMessage.deleteMany({ where: { bookingId: { in: bookingIds } } });
@@ -223,6 +225,10 @@ export class AdminService {
     await this.prisma.pointTransaction.deleteMany({ where: { userId } });
     await this.prisma.notification.deleteMany({ where: { userId } });
     await this.prisma.chatMessage.deleteMany({ where: { senderId: userId } });
+    const tickets = await this.prisma.supportTicket.findMany({ where: { userId }, select: { id: true } });
+    if (tickets.length > 0) {
+      await this.prisma.supportReply.deleteMany({ where: { ticketId: { in: tickets.map(t => t.id) } } });
+    }
     await this.prisma.supportTicket.deleteMany({ where: { userId } });
     await this.prisma.auditLog.deleteMany({ where: { userId } });
 

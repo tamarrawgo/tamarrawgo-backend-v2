@@ -162,6 +162,9 @@ export class RidersService implements OnModuleInit {
 
   async uploadDocument(userId: string, dto: UploadDocumentDto) {
     const rider = await this.getRiderProfile(userId);
+    if (rider.status === 'APPROVED') {
+      throw new ForbiddenException('Documents cannot be changed after account approval');
+    }
     return this.prisma.riderDocument.create({
       data: { riderId: rider.id, type: dto.type as any, fileUrl: dto.fileUrl },
     });
