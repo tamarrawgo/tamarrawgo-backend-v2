@@ -137,6 +137,9 @@ export class RidersService implements OnModuleInit {
     if (rider.status !== 'APPROVED') {
       throw new ForbiddenException('Rider account not approved');
     }
+    if (dto.status === 'ONLINE' && Number(rider.walletBalance) < 100) {
+      throw new ForbiddenException('Insufficient wallet balance. Minimum ₱100 required to go online.');
+    }
 
     await this.prisma.riderProfile.update({
       where: { id: rider.id },
