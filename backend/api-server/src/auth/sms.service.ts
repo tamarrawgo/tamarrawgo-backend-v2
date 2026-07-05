@@ -16,8 +16,9 @@ export class SmsService {
   async sendOtp(phone: string, otp: string): Promise<void> {
     const message = `Your TamarrawGo verification code is: ${otp}. Valid for 10 minutes. Do not share this code.`;
 
+    this.logger.log(`[OTP] ${phone} → ${otp}`);
+
     if (!this.apiKey || this.apiKey === 'your-sms-api-key') {
-      this.logger.warn(`[SMS DISABLED] OTP for ${phone}: ${otp}`);
       return;
     }
 
