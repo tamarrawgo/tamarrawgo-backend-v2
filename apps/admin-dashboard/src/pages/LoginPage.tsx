@@ -33,7 +33,7 @@ export default function LoginPage() {
         style={{ backgroundImage: 'url(/Images/Login_background.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}
       >
         {/* Dark overlay */}
-        <div className="absolute inset-0 bg-dark/80" />
+        <div className="absolute inset-0 bg-dark/55" />
 
         <div className="relative">
           <div className="flex items-center gap-3 mb-2">
