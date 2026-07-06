@@ -47,29 +47,29 @@ export default function LoginPage() {
 
         <div className="relative space-y-8">
           <div>
-            <h1 className="text-4xl font-black text-white leading-tight mb-4">
+            <h1 className="text-6xl font-black text-white leading-[1.05] mb-6">
               Manage your<br />
               <span className="text-primary">ride-hailing</span><br />
               platform
             </h1>
-            <p className="text-white/50 text-base leading-relaxed">
+            <p className="text-white/50 text-lg leading-relaxed">
               Monitor trips, manage riders, track revenue, and keep your operations running smoothly.
             </p>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-5">
             {[
               { icon: 'bar_chart', label: 'Real-time Analytics', desc: 'Live revenue and trip monitoring' },
               { icon: 'badge', label: 'Rider Management', desc: 'Approvals, documents, and wallets' },
               { icon: 'support_agent', label: 'Support System', desc: 'Complaints and ticket resolution' },
             ].map((f) => (
               <div key={f.icon} className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <span className="material-icons text-primary text-lg">{f.icon}</span>
+                <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <span className="material-icons text-primary text-2xl">{f.icon}</span>
                 </div>
                 <div>
-                  <p className="text-white text-sm font-semibold">{f.label}</p>
-                  <p className="text-white/40 text-xs">{f.desc}</p>
+                  <p className="text-white text-base font-bold">{f.label}</p>
+                  <p className="text-white/40 text-sm">{f.desc}</p>
                 </div>
               </div>
             ))}
