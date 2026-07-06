@@ -75,6 +75,47 @@ export class AdminService {
     };
   }
 
+  async getRevenueStats() {
+    const setting = await this.prisma.adminSetting.findUnique({ where: { key: 'revenueResetAt' } });
+    const resetAt = setting ? new Date(setting.value) : null;
+
+    const [currentRevenue, currentCommission, previousRevenue, previousCommission] = await Promise.all([
+      this.prisma.payment.aggregate({
+        where: { status: 'COMPLETED', ...(resetAt ? { createdAt: { gte: resetAt } } : {}) },
+        _sum: { amount: true, commission: true },
+      }),
+      // placeholder — included above
+      Promise.resolve(null),
+      resetAt ? this.prisma.payment.aggregate({
+        where: { status: 'COMPLETED', createdAt: { lt: resetAt } },
+        _sum: { amount: true, commission: true },
+      }) : Promise.resolve(null),
+      Promise.resolve(null),
+    ]);
+
+    return {
+      current: {
+        revenue: Number(currentRevenue._sum.amount ?? 0),
+        commission: Number(currentRevenue._sum.commission ?? 0),
+      },
+      previous: previousRevenue ? {
+        revenue: Number(previousRevenue._sum.amount ?? 0),
+        commission: Number(previousRevenue._sum.commission ?? 0),
+      } : null,
+      lastResetAt: resetAt,
+    };
+  }
+
+  async resetRevenue() {
+    const now = new Date();
+    await this.prisma.adminSetting.upsert({
+      where: { key: 'revenueResetAt' },
+      update: { value: now.toISOString() },
+      create: { key: 'revenueResetAt', value: now.toISOString() },
+    });
+    return { resetAt: now };
+  }
+
   async getUsers(page = 1, limit = 20, search?: string) {
     const skip = (page - 1) * limit;
     const conditions: any[] = [

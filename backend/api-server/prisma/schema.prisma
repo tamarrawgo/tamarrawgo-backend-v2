@@ -266,6 +266,7 @@ model Payment {
   passengerId     String
   riderId         String
   amount          Decimal       @db.Decimal(10, 2)
+  commission      Decimal?      @db.Decimal(10, 2)
   method          PaymentMethod
   status          PaymentStatus @default(PENDING)
   referenceNumber String?
@@ -274,6 +275,14 @@ model Payment {
   updatedAt       DateTime      @updatedAt
 
   @@map("payments")
+}
+
+model AdminSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("admin_settings")
 }
 
 model WalletTransaction {

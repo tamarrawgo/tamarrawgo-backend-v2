@@ -395,6 +395,7 @@ export class BookingsService {
           passengerId: booking.passengerId,
           riderId: booking.riderId,
           amount: fare,
+          commission,
           method: booking.paymentMethod,
           status: 'COMPLETED',
           processedAt: new Date(),

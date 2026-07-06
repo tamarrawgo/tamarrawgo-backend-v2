@@ -37,6 +37,18 @@ export class AdminController {
     return this.admin.getDashboardStats();
   }
 
+  @Get('revenue-stats')
+  @ApiOperation({ summary: 'Revenue and commission stats (current vs previous)' })
+  getRevenueStats() {
+    return this.admin.getRevenueStats();
+  }
+
+  @Post('revenue-reset')
+  @ApiOperation({ summary: 'Reset revenue and commission tracking' })
+  resetRevenue() {
+    return this.admin.resetRevenue();
+  }
+
   @Get('users')
   @ApiOperation({ summary: 'List all users' })
   getUsers(@Query('page') page = 1, @Query('limit') limit = 20, @Query('search') search?: string) {

@@ -1,41 +1,117 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/api';
 import { formatCurrency } from '@tamarrawgo/shared-utils';
 
+function StatCard({ title, value, sub }: { title: string; value: string; sub?: string }) {
+  return (
+    <div className="card">
+      <p className="text-sm text-gray-500 font-medium mb-1">{title}</p>
+      <p className="text-3xl font-black text-gray-900">{value}</p>
+      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+    </div>
+  );
+}
+
 export default function PaymentsPage() {
-  const { data } = useQuery({
-    queryKey: ['payments'],
-    queryFn: () => api.get('/payments/history?limit=50'),
+  const qc = useQueryClient();
+  const [confirming, setConfirming] = useState(false);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['revenue-stats'],
+    queryFn: () => api.get('/admin/revenue-stats'),
+    refetchInterval: 30000,
   });
+
+  const reset = useMutation({
+    mutationFn: () => api.post('/admin/revenue-reset', {}),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['revenue-stats'] }); setConfirming(false); },
+  });
+
+  if (isLoading) return (
+    <div className="flex items-center justify-center h-full">
+      <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent" />
+    </div>
+  );
+
+  const current = data?.current;
+  const previous = data?.previous;
+  const lastResetAt = data?.lastResetAt ? new Date(data.lastResetAt).toLocaleString() : null;
 
   return (
     <div className="p-4 lg:p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-black text-gray-900">Payments</h1>
-        <p className="text-gray-500 mt-1">Payment transaction history</p>
+      <div className="mb-8 flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-black text-gray-900">Revenue & Commissions</h1>
+          <p className="text-gray-500 mt-1">
+            {lastResetAt ? `Current period started: ${lastResetAt}` : 'All-time totals — no reset yet'}
+          </p>
+        </div>
+        <div>
+          {!confirming ? (
+            <button
+              onClick={() => setConfirming(true)}
+              className="btn btn-outline text-red-600 border-red-300 hover:bg-red-50"
+            >
+              Reset Revenue & Commission
+            </button>
+          ) : (
+            <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+              <span className="text-sm text-red-700 font-medium">Are you sure? This cannot be undone.</span>
+              <button
+                onClick={() => reset.mutate()}
+                disabled={reset.isPending}
+                className="btn bg-red-600 text-white hover:bg-red-700 text-sm px-4 py-1.5"
+              >
+                {reset.isPending ? 'Resetting...' : 'Yes, Reset'}
+              </button>
+              <button onClick={() => setConfirming(false)} className="text-sm text-gray-500 hover:text-gray-700">
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-      <div className="card p-0 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-100">
-            <tr>
-              {['ID', 'Amount', 'Method', 'Status', 'Date'].map((h) => (
-                <th key={h} className="px-6 py-4 text-left font-semibold text-gray-600">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {data?.data?.map((p: any) => (
-              <tr key={p.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 font-mono text-xs text-gray-400">{p.id.slice(0, 8)}...</td>
-                <td className="px-6 py-4 font-bold text-primary">{formatCurrency(Number(p.amount))}</td>
-                <td className="px-6 py-4"><span className="badge badge-blue">{p.method}</span></td>
-                <td className="px-6 py-4"><span className={p.status === 'COMPLETED' ? 'badge-green' : 'badge-yellow'}>{p.status}</span></td>
-                <td className="px-6 py-4 text-gray-400">{new Date(p.createdAt).toLocaleString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+
+      {/* Current Period */}
+      <div className="mb-2">
+        <h2 className="text-lg font-bold text-gray-700 mb-4">Current Period</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
+          <StatCard
+            title="Total Revenue"
+            value={formatCurrency(current?.revenue ?? 0)}
+            sub="Total fares collected"
+          />
+          <StatCard
+            title="Total Commission (20%)"
+            value={formatCurrency(current?.commission ?? 0)}
+            sub="Platform earnings"
+          />
+        </div>
       </div>
+
+      {/* Previous Period */}
+      {previous && (
+        <div className="mt-8">
+          <h2 className="text-lg font-bold text-gray-400 mb-4">Previous Period</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6 opacity-60">
+            <StatCard
+              title="Total Revenue"
+              value={formatCurrency(previous.revenue ?? 0)}
+              sub={`Before reset on ${lastResetAt}`}
+            />
+            <StatCard
+              title="Total Commission (20%)"
+              value={formatCurrency(previous.commission ?? 0)}
+              sub={`Before reset on ${lastResetAt}`}
+            />
+          </div>
+        </div>
+      )}
+
+      {!previous && (
+        <p className="text-sm text-gray-400 mt-6">Previous period data will appear here after the first reset.</p>
+      )}
     </div>
   );
 }

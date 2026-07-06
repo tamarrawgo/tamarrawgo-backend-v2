@@ -9,7 +9,7 @@ const navItems = [
   { path: '/users',     label: 'Users',       icon: 'groups' },
   { path: '/riders',    label: 'Riders',      icon: 'badge' },
   { path: '/trips',     label: 'Trips',       icon: 'route' },
-  { path: '/payments',  label: 'Payments',    icon: 'payments' },
+  { path: '/payments',  label: 'Revenue',     icon: 'payments' },
   { path: '/topup-requests', label: 'Topup Requests', icon: 'account_balance_wallet' },
   { path: '/promotions',label: 'Promotions',  icon: 'local_offer' },
   { path: '/complaints',label: 'Complaints',  icon: 'report_problem' },
