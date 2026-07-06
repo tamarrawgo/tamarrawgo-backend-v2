@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth.store';
+import loginBg from '../../../public/Images/Login_background2.png';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -30,7 +31,7 @@ export default function LoginPage() {
       {/* Left branding panel */}
       <div
         className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden"
-        style={{ backgroundImage: 'url(/Images/Login_background2.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}
+        style={{ backgroundImage: `url(${loginBg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
       >
         {/* Dark overlay */}
         <div className="absolute inset-0 bg-dark/55" />
