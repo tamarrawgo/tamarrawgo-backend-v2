@@ -76,43 +76,52 @@ export class AdminService {
   }
 
   async getRevenueStats() {
-    const setting = await this.prisma.adminSetting.findUnique({ where: { key: 'revenueResetAt' } });
-    const resetAt = setting ? new Date(setting.value) : null;
-
-    const [currentRevenue, currentCommission, previousRevenue, previousCommission] = await Promise.all([
-      this.prisma.payment.aggregate({
-        where: { status: 'COMPLETED', ...(resetAt ? { createdAt: { gte: resetAt } } : {}) },
-        _sum: { amount: true, commission: true },
-      }),
-      // placeholder — included above
-      Promise.resolve(null),
-      resetAt ? this.prisma.payment.aggregate({
-        where: { status: 'COMPLETED', createdAt: { lt: resetAt } },
-        _sum: { amount: true, commission: true },
-      }) : Promise.resolve(null),
-      Promise.resolve(null),
+    const [current, previous] = await Promise.all([
+      this.prisma.revenueTotal.findUnique({ where: { period: 'current' } }),
+      this.prisma.revenueTotal.findUnique({ where: { period: 'previous' } }),
     ]);
 
     return {
       current: {
-        revenue: Number(currentRevenue._sum.amount ?? 0),
-        commission: Number(currentRevenue._sum.commission ?? 0),
+        revenue: Number(current?.revenue ?? 0),
+        commission: Number(current?.commission ?? 0),
+        tripCount: current?.tripCount ?? 0,
       },
-      previous: previousRevenue ? {
-        revenue: Number(previousRevenue._sum.amount ?? 0),
-        commission: Number(previousRevenue._sum.commission ?? 0),
+      previous: previous ? {
+        revenue: Number(previous.revenue ?? 0),
+        commission: Number(previous.commission ?? 0),
+        tripCount: previous.tripCount ?? 0,
       } : null,
-      lastResetAt: resetAt,
+      lastResetAt: current?.periodStartedAt ?? null,
     };
   }
 
   async resetRevenue() {
     const now = new Date();
-    await this.prisma.adminSetting.upsert({
-      where: { key: 'revenueResetAt' },
-      update: { value: now.toISOString() },
-      create: { key: 'revenueResetAt', value: now.toISOString() },
-    });
+    const current = await this.prisma.revenueTotal.findUnique({ where: { period: 'current' } });
+
+    await this.prisma.$transaction([
+      this.prisma.revenueTotal.upsert({
+        where: { period: 'previous' },
+        update: {
+          revenue: current?.revenue ?? 0,
+          commission: current?.commission ?? 0,
+          tripCount: current?.tripCount ?? 0,
+        },
+        create: {
+          period: 'previous',
+          revenue: current?.revenue ?? 0,
+          commission: current?.commission ?? 0,
+          tripCount: current?.tripCount ?? 0,
+        },
+      }),
+      this.prisma.revenueTotal.upsert({
+        where: { period: 'current' },
+        update: { revenue: 0, commission: 0, tripCount: 0, periodStartedAt: now },
+        create: { period: 'current', revenue: 0, commission: 0, tripCount: 0, periodStartedAt: now },
+      }),
+    ]);
+
     return { resetAt: now };
   }
 

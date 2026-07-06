@@ -285,6 +285,17 @@ model AdminSetting {
   @@map("admin_settings")
 }
 
+model RevenueTotal {
+  period          String    @id
+  revenue         Decimal   @default(0) @db.Decimal(10, 2)
+  commission      Decimal   @default(0) @db.Decimal(10, 2)
+  tripCount       Int       @default(0)
+  periodStartedAt DateTime?
+  updatedAt       DateTime  @updatedAt
+
+  @@map("revenue_totals")
+}
+
 model WalletTransaction {
   id          String                @id @default(uuid())
   riderId     String

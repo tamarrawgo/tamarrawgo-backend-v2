@@ -412,6 +412,20 @@ export class BookingsService {
           promoDebt: newPromoDebt,
         },
       }),
+      this.prisma.revenueTotal.upsert({
+        where: { period: 'current' },
+        update: {
+          revenue: { increment: fare },
+          commission: { increment: commission },
+          tripCount: { increment: 1 },
+        },
+        create: {
+          period: 'current',
+          revenue: fare,
+          commission: commission,
+          tripCount: 1,
+        },
+      }),
     ]);
 
     if (booking.rider?.user?.fcmToken) {
