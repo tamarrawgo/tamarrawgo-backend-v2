@@ -30,7 +30,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex">
       {/* Left branding panel */}
       <div
-        className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden"
+        className="hidden lg:flex lg:flex-1 flex-col justify-between p-12 relative overflow-hidden"
         style={{ backgroundImage: `url(${loginBg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
       >
         {/* Dark overlay */}
@@ -81,7 +81,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right form panel */}
-      <div className="flex-1 flex items-center justify-center bg-gray-50 p-6">
+      <div className="lg:w-[420px] flex items-center justify-center bg-gray-50 p-6">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-3 mb-10 justify-center">
