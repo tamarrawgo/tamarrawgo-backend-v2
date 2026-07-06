@@ -5,17 +5,17 @@ import { useAuthStore } from '../store/auth.store';
 import { api } from '../services/api';
 
 const navItems = [
-  { path: '/dashboard', label: 'Dashboard',  icon: 'dashboard' },
-  { path: '/users',     label: 'Users',       icon: 'groups' },
-  { path: '/riders',    label: 'Riders',      icon: 'badge' },
-  { path: '/trips',     label: 'Trips',       icon: 'route' },
-  { path: '/payments',  label: 'Revenue',     icon: 'payments' },
+  { path: '/dashboard',    label: 'Dashboard',       icon: 'dashboard' },
+  { path: '/users',        label: 'Users',            icon: 'groups' },
+  { path: '/riders',       label: 'Riders',           icon: 'badge' },
+  { path: '/trips',        label: 'Trips',            icon: 'route' },
+  { path: '/payments',     label: 'Revenue',          icon: 'payments' },
   { path: '/topup-requests', label: 'Topup Requests', icon: 'account_balance_wallet' },
-  { path: '/promotions',label: 'Promotions',  icon: 'local_offer' },
-  { path: '/complaints',label: 'Complaints',  icon: 'report_problem' },
-  { path: '/reports',   label: 'Reports',     icon: 'assessment' },
-  { path: '/activity-log', label: 'Activity Log', icon: 'history' },
-  { path: '/settings',  label: 'Settings',    icon: 'settings' },
+  { path: '/promotions',   label: 'Promotions',       icon: 'local_offer' },
+  { path: '/complaints',   label: 'Complaints',       icon: 'report_problem' },
+  { path: '/reports',      label: 'Reports',          icon: 'assessment' },
+  { path: '/activity-log', label: 'Activity Log',     icon: 'history' },
+  { path: '/settings',     label: 'Settings',         icon: 'settings' },
 ];
 
 export default function Layout() {
@@ -37,71 +37,103 @@ export default function Layout() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Mobile overlay */}
       {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/40 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-dark text-white flex flex-col transform transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-        <div className="p-6 border-b border-white/10 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-black text-primary">TamarrawGo</h1>
-            <p className="text-xs text-white/50 mt-1">Admin Dashboard</p>
+      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-dark flex flex-col transform transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+
+        {/* Logo */}
+        <div className="p-6 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-base">🛺</span>
+            </div>
+            <div>
+              <h1 className="text-base font-black text-white leading-tight">TamarrawGo</h1>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest">Admin Portal</p>
+            </div>
           </div>
-          <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-white/50 hover:text-white">
-            <span className="material-icons">close</span>
+          <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-white/30 hover:text-white">
+            <span className="material-icons text-xl">close</span>
           </button>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        <div className="h-px bg-white/5 mx-4" />
+
+        {/* Nav */}
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto mt-2">
           {navItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
               onClick={() => setSidebarOpen(false)}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                  isActive ? 'bg-primary text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'
+                `group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
+                  isActive
+                    ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                    : 'text-white/50 hover:bg-white/5 hover:text-white'
                 }`
               }
             >
-              <span className="material-icons text-xl">{item.icon}</span>
-              <span className="flex-1">{item.label}</span>
-              {item.path === '/topup-requests' && pendingTopupCount > 0 && (
-                <span className="bg-red-500 text-white text-xs font-bold rounded-full px-2 py-0.5 min-w-[20px] text-center">
-                  {pendingTopupCount}
-                </span>
+              {({ isActive }) => (
+                <>
+                  <span className={`material-icons text-[18px] flex-shrink-0 ${isActive ? 'text-white' : 'text-white/40 group-hover:text-white/70'}`}>
+                    {item.icon}
+                  </span>
+                  <span className="flex-1 truncate">{item.label}</span>
+                  {item.path === '/topup-requests' && pendingTopupCount > 0 && (
+                    <span className="bg-red-500 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center leading-tight">
+                      {pendingTopupCount}
+                    </span>
+                  )}
+                </>
               )}
             </NavLink>
           ))}
         </nav>
 
-        <div className="p-4 border-t border-white/10">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-sm font-bold">
+        <div className="h-px bg-white/5 mx-4" />
+
+        {/* User */}
+        <div className="p-4 flex-shrink-0">
+          <div className="flex items-center gap-3 mb-3 px-1">
+            <div className="w-8 h-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
               {user?.firstName?.[0] ?? 'A'}
             </div>
-            <div>
-              <p className="text-sm font-semibold">{user?.firstName} {user?.lastName}</p>
-              <p className="text-xs text-white/50">Administrator</p>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-white truncate">{user?.firstName} {user?.lastName}</p>
+              <p className="text-[10px] text-white/30 uppercase tracking-wider">Administrator</p>
             </div>
           </div>
-          <button onClick={handleLogout} className="w-full flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-2 text-xs text-white/30 hover:text-red-400 transition-colors px-1 py-1.5 rounded-lg hover:bg-red-500/10"
+          >
             <span className="material-icons text-base">logout</span>
             Sign out
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Mobile header */}
-        <header className="lg:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-100 sticky top-0 z-30">
-          <button onClick={() => setSidebarOpen(true)} className="text-gray-600">
+      {/* Main */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Topbar */}
+        <header className="flex items-center gap-4 px-4 lg:px-8 py-4 bg-white border-b border-gray-100 flex-shrink-0">
+          <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-gray-400 hover:text-gray-600">
             <span className="material-icons text-2xl">menu</span>
           </button>
-          <h2 className="text-lg font-bold text-gray-900">{currentPage}</h2>
+          <div className="flex-1">
+            <h2 className="text-base font-bold text-gray-900">{currentPage}</h2>
+            <p className="text-xs text-gray-400 hidden sm:block">TamarrawGo Admin Dashboard</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-1.5 bg-green-50 border border-green-100 text-green-700 text-xs font-medium px-3 py-1.5 rounded-full">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+              System Online
+            </div>
+          </div>
         </header>
 
         <main className="flex-1 overflow-auto">

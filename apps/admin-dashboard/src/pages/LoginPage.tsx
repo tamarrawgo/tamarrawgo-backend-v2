@@ -7,6 +7,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPw, setShowPw] = useState(false);
   const login = useAuthStore((s) => s.login);
   const navigate = useNavigate();
 
@@ -25,36 +26,141 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-dark flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-black text-primary">TamarrawGo</h1>
-          <p className="text-white/50 mt-2">Admin Dashboard</p>
+    <div className="min-h-screen flex">
+      {/* Left branding panel */}
+      <div className="hidden lg:flex lg:w-1/2 bg-dark flex-col justify-between p-12 relative overflow-hidden">
+        {/* Background pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-primary rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary rounded-full translate-y-1/2 -translate-x-1/2" />
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-8 shadow-2xl space-y-4">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Sign In</h2>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
-              {error}
+        <div className="relative">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+              <span className="text-white text-xl">🛺</span>
             </div>
-          )}
+            <span className="text-white text-2xl font-black tracking-tight">TamarrawGo</span>
+          </div>
+          <p className="text-white/40 text-sm">Admin Control Center</p>
+        </div>
 
+        <div className="relative space-y-8">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-            <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="input" placeholder="superadmin" required />
+            <h1 className="text-4xl font-black text-white leading-tight mb-4">
+              Manage your<br />
+              <span className="text-primary">ride-hailing</span><br />
+              platform
+            </h1>
+            <p className="text-white/50 text-base leading-relaxed">
+              Monitor trips, manage riders, track revenue, and keep your operations running smoothly.
+            </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="input" placeholder="••••••••" required />
+          <div className="space-y-4">
+            {[
+              { icon: 'bar_chart', label: 'Real-time Analytics', desc: 'Live revenue and trip monitoring' },
+              { icon: 'badge', label: 'Rider Management', desc: 'Approvals, documents, and wallets' },
+              { icon: 'support_agent', label: 'Support System', desc: 'Complaints and ticket resolution' },
+            ].map((f) => (
+              <div key={f.icon} className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <span className="material-icons text-primary text-lg">{f.icon}</span>
+                </div>
+                <div>
+                  <p className="text-white text-sm font-semibold">{f.label}</p>
+                  <p className="text-white/40 text-xs">{f.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <p className="relative text-white/20 text-xs">© 2026 TamarrawGo. All rights reserved.</p>
+      </div>
+
+      {/* Right form panel */}
+      <div className="flex-1 flex items-center justify-center bg-gray-50 p-6">
+        <div className="w-full max-w-md">
+          {/* Mobile logo */}
+          <div className="lg:hidden flex items-center gap-3 mb-10 justify-center">
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+              <span className="text-white text-xl">🛺</span>
+            </div>
+            <span className="text-dark text-2xl font-black">TamarrawGo</span>
           </div>
 
-          <button type="submit" disabled={loading} className="w-full btn-primary py-3 text-base">
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
+          <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/80 p-8 border border-gray-100">
+            <div className="mb-8">
+              <h2 className="text-2xl font-black text-gray-900">Welcome back</h2>
+              <p className="text-gray-400 text-sm mt-1">Sign in to your admin account</p>
+            </div>
+
+            {error && (
+              <div className="flex items-center gap-3 bg-red-50 border border-red-100 text-red-700 px-4 py-3 rounded-xl text-sm mb-6">
+                <span className="material-icons text-base flex-shrink-0">error_outline</span>
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Username</label>
+                <div className="relative">
+                  <span className="material-icons absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 text-lg">person</span>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                    placeholder="superadmin"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Password</label>
+                <div className="relative">
+                  <span className="material-icons absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 text-lg">lock</span>
+                  <input
+                    type={showPw ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl pl-10 pr-12 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                    placeholder="••••••••"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw(!showPw)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition-colors"
+                  >
+                    <span className="material-icons text-lg">{showPw ? 'visibility_off' : 'visibility'}</span>
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-primary hover:bg-primary-600 text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-60"
+              >
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    Sign In
+                    <span className="material-icons text-base">arrow_forward</span>
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   );
