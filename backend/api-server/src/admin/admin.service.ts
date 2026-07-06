@@ -76,40 +76,59 @@ export class AdminService {
   }
 
   async getRevenueStats() {
-    const setting = await this.prisma.adminSetting.findUnique({ where: { key: 'revenueResetAt' } });
-    const resetAt = setting ? new Date(setting.value) : null;
-
-    const [currentStats, previousStats] = await Promise.all([
+    const [currentStats, previousSetting, lastResetSetting] = await Promise.all([
       this.prisma.payment.aggregate({
-        where: { status: 'COMPLETED', ...(resetAt ? { createdAt: { gte: resetAt } } : {}) },
+        where: { status: 'COMPLETED' },
         _sum: { amount: true, commission: true },
       }),
-      resetAt ? this.prisma.payment.aggregate({
-        where: { status: 'COMPLETED', createdAt: { lt: resetAt } },
-        _sum: { amount: true, commission: true },
-      }) : Promise.resolve(null),
+      this.prisma.adminSetting.findUnique({ where: { key: 'previousPeriodSnapshot' } }),
+      this.prisma.adminSetting.findUnique({ where: { key: 'revenueResetAt' } }),
     ]);
+
+    const previous = previousSetting ? JSON.parse(previousSetting.value) : null;
 
     return {
       current: {
         revenue: Number(currentStats._sum.amount ?? 0),
         commission: Number(currentStats._sum.commission ?? 0),
       },
-      previous: previousStats ? {
-        revenue: Number(previousStats._sum.amount ?? 0),
-        commission: Number(previousStats._sum.commission ?? 0),
+      previous: previous ? {
+        revenue: Number(previous.revenue ?? 0),
+        commission: Number(previous.commission ?? 0),
       } : null,
-      lastResetAt: resetAt,
+      lastResetAt: lastResetSetting ? new Date(lastResetSetting.value) : null,
     };
   }
 
   async resetRevenue() {
     const now = new Date();
-    await this.prisma.adminSetting.upsert({
-      where: { key: 'revenueResetAt' },
-      update: { value: now.toISOString() },
-      create: { key: 'revenueResetAt', value: now.toISOString() },
+
+    const currentStats = await this.prisma.payment.aggregate({
+      where: { status: 'COMPLETED' },
+      _sum: { amount: true, commission: true },
     });
+
+    const snapshot = JSON.stringify({
+      revenue: Number(currentStats._sum.amount ?? 0),
+      commission: Number(currentStats._sum.commission ?? 0),
+      resetAt: now.toISOString(),
+    });
+
+    await this.prisma.$transaction([
+      this.prisma.adminSetting.upsert({
+        where: { key: 'previousPeriodSnapshot' },
+        update: { value: snapshot },
+        create: { key: 'previousPeriodSnapshot', value: snapshot },
+      }),
+      this.prisma.adminSetting.upsert({
+        where: { key: 'revenueResetAt' },
+        update: { value: now.toISOString() },
+        create: { key: 'revenueResetAt', value: now.toISOString() },
+      }),
+    ]);
+
+    await this.prisma.payment.deleteMany({ where: { status: 'COMPLETED' } });
+
     return { resetAt: now };
   }
 
