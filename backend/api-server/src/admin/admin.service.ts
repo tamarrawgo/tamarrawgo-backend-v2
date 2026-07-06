@@ -76,26 +76,23 @@ export class AdminService {
   }
 
   async getRevenueStats() {
-    const [currentStats, previousSetting, lastResetSetting] = await Promise.all([
+    const [currentStats, snapshotsSetting, lastResetSetting] = await Promise.all([
       this.prisma.payment.aggregate({
         where: { status: 'COMPLETED' },
         _sum: { amount: true, commission: true },
       }),
-      this.prisma.adminSetting.findUnique({ where: { key: 'previousPeriodSnapshot' } }),
+      this.prisma.adminSetting.findUnique({ where: { key: 'previousPeriodSnapshots' } }),
       this.prisma.adminSetting.findUnique({ where: { key: 'revenueResetAt' } }),
     ]);
 
-    const previous = previousSetting ? JSON.parse(previousSetting.value) : null;
+    const previousPeriods = snapshotsSetting ? JSON.parse(snapshotsSetting.value) : [];
 
     return {
       current: {
         revenue: Number(currentStats._sum.amount ?? 0),
         commission: Number(currentStats._sum.commission ?? 0),
       },
-      previous: previous ? {
-        revenue: Number(previous.revenue ?? 0),
-        commission: Number(previous.commission ?? 0),
-      } : null,
+      previousPeriods,
       lastResetAt: lastResetSetting ? new Date(lastResetSetting.value) : null,
     };
   }
@@ -103,22 +100,28 @@ export class AdminService {
   async resetRevenue() {
     const now = new Date();
 
-    const currentStats = await this.prisma.payment.aggregate({
-      where: { status: 'COMPLETED' },
-      _sum: { amount: true, commission: true },
-    });
+    const [currentStats, existingSnapshots] = await Promise.all([
+      this.prisma.payment.aggregate({
+        where: { status: 'COMPLETED' },
+        _sum: { amount: true, commission: true },
+      }),
+      this.prisma.adminSetting.findUnique({ where: { key: 'previousPeriodSnapshots' } }),
+    ]);
 
-    const snapshot = JSON.stringify({
+    const newSnapshot = {
       revenue: Number(currentStats._sum.amount ?? 0),
       commission: Number(currentStats._sum.commission ?? 0),
       resetAt: now.toISOString(),
-    });
+    };
+
+    const snapshots = existingSnapshots ? JSON.parse(existingSnapshots.value) : [];
+    const updated = [newSnapshot, ...snapshots].slice(0, 6);
 
     await this.prisma.$transaction([
       this.prisma.adminSetting.upsert({
-        where: { key: 'previousPeriodSnapshot' },
-        update: { value: snapshot },
-        create: { key: 'previousPeriodSnapshot', value: snapshot },
+        where: { key: 'previousPeriodSnapshots' },
+        update: { value: JSON.stringify(updated) },
+        create: { key: 'previousPeriodSnapshots', value: JSON.stringify(updated) },
       }),
       this.prisma.adminSetting.upsert({
         where: { key: 'revenueResetAt' },

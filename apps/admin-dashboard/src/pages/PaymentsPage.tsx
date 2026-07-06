@@ -35,7 +35,7 @@ export default function PaymentsPage() {
   );
 
   const current = data?.current;
-  const previous = data?.previous;
+  const previousPeriods: any[] = data?.previousPeriods ?? [];
   const lastResetAt = data?.lastResetAt ? new Date(data.lastResetAt).toLocaleString() : null;
 
   return (
@@ -77,39 +77,28 @@ export default function PaymentsPage() {
       <div className="mb-2">
         <h2 className="text-lg font-bold text-gray-700 mb-4">Current Period</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
-          <StatCard
-            title="Total Revenue"
-            value={formatCurrency(current?.revenue ?? 0)}
-            sub="Total fares collected"
-          />
-          <StatCard
-            title="Total Commission (20%)"
-            value={formatCurrency(current?.commission ?? 0)}
-            sub="Platform earnings"
-          />
+          <StatCard title="Total Revenue" value={formatCurrency(current?.revenue ?? 0)} sub="Total fares collected" />
+          <StatCard title="Total Commission (20%)" value={formatCurrency(current?.commission ?? 0)} sub="Platform earnings" />
         </div>
       </div>
 
-      {/* Previous Period */}
-      {previous && (
-        <div className="mt-8">
-          <h2 className="text-lg font-bold text-gray-400 mb-4">Previous Period</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6 opacity-60">
-            <StatCard
-              title="Total Revenue"
-              value={formatCurrency(previous.revenue ?? 0)}
-              sub={`Before reset on ${lastResetAt}`}
-            />
-            <StatCard
-              title="Total Commission (20%)"
-              value={formatCurrency(previous.commission ?? 0)}
-              sub={`Before reset on ${lastResetAt}`}
-            />
-          </div>
+      {/* Previous Periods */}
+      {previousPeriods.length > 0 ? (
+        <div className="mt-8 space-y-6">
+          <h2 className="text-lg font-bold text-gray-400">Previous Periods</h2>
+          {previousPeriods.map((period: any, index: number) => (
+            <div key={index} className="opacity-60">
+              <p className="text-sm font-medium text-gray-400 mb-3">
+                Period {previousPeriods.length - index} — Reset on {new Date(period.resetAt).toLocaleString()}
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
+                <StatCard title="Total Revenue" value={formatCurrency(period.revenue ?? 0)} sub="Total fares collected" />
+                <StatCard title="Total Commission (20%)" value={formatCurrency(period.commission ?? 0)} sub="Platform earnings" />
+              </div>
+            </div>
+          ))}
         </div>
-      )}
-
-      {!previous && (
+      ) : (
         <p className="text-sm text-gray-400 mt-6">Previous period data will appear here after the first reset.</p>
       )}
     </div>
