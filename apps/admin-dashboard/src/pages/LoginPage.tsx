@@ -28,12 +28,12 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex">
       {/* Left branding panel */}
-      <div className="hidden lg:flex lg:w-1/2 bg-dark flex-col justify-between p-12 relative overflow-hidden">
-        {/* Background pattern */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-primary rounded-full -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary rounded-full translate-y-1/2 -translate-x-1/2" />
-        </div>
+      <div
+        className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden"
+        style={{ backgroundImage: 'url(/Images/Login_background.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}
+      >
+        {/* Dark overlay */}
+        <div className="absolute inset-0 bg-dark/80" />
 
         <div className="relative">
           <div className="flex items-center gap-3 mb-2">
