@@ -182,7 +182,7 @@ export class AdminService {
           });
           if (Array.isArray(data)) {
             for (const f of data) {
-              if ((prefix === 'profile-photos/' || prefix === 'topup-receipts/') && !f.name.startsWith(`${userId}-`)) continue;
+              if ((prefix === 'profile-photos/' || prefix === 'topup-receipts/') && !f.name.startsWith(userId)) continue;
               filePaths.push(`${prefix}${f.name}`);
             }
           }
