@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth.store';
 
 export default function LoginPage() {
-  const [phone, setPhone] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,7 +15,7 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      await login(phone, password);
+      await login(username, password);
       navigate('/dashboard');
     } catch (err: any) {
       setError(err?.message ?? 'Invalid credentials');
@@ -42,8 +42,8 @@ export default function LoginPage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="input" placeholder="+639000000000" required />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+            <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="input" placeholder="superadmin" required />
           </div>
 
           <div>

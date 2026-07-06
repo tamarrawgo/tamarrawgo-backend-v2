@@ -64,6 +64,14 @@ export class AuthController {
     return this.auth.login(dto);
   }
 
+  @Post('admin-login')
+  @ApiOperation({ summary: 'Admin login with username and password' })
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  adminLogin(@Body() body: { username: string; password: string }) {
+    return this.auth.adminLogin(body.username, body.password);
+  }
+
   @Post('refresh')
   @ApiOperation({ summary: 'Refresh access token' })
   @HttpCode(HttpStatus.OK)

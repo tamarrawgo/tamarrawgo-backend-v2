@@ -162,6 +162,16 @@ export class AuthService {
     return { message: 'OTP sent successfully' };
   }
 
+  async adminLogin(username: string, password: string) {
+    if (username !== 'superadmin') throw new UnauthorizedException('Invalid credentials');
+    const user = await this.prisma.user.findFirst({ where: { role: 'ADMIN' } });
+    if (!user) throw new UnauthorizedException('Invalid credentials');
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) throw new UnauthorizedException('Invalid credentials');
+    if (user.status === 'SUSPENDED') throw new UnauthorizedException('Account has been suspended');
+    return this.generateTokens(user.id, user.phone, user.role as UserRole);
+  }
+
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
       where: { phone: dto.phone },
