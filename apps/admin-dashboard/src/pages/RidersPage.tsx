@@ -26,13 +26,13 @@ export default function RidersPage() {
 
   const approve = useMutation({
     mutationFn: (id: string) => api.post(`/admin/riders/${id}/approve`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['riders-pending'] }); setExpandedRider(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['riders-pending'] }); qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); setExpandedRider(null); },
   });
 
   const reject = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       api.post(`/admin/riders/${id}/reject`, { reason }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['riders-pending'] }); setRejectingId(null); setRejectReason(''); setExpandedRider(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['riders-pending'] }); qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); setRejectingId(null); setRejectReason(''); setExpandedRider(null); },
   });
 
   return (
