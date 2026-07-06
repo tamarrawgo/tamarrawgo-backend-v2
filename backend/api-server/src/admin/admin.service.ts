@@ -59,7 +59,7 @@ export class AdminService {
         where: { createdAt: { gte: monthStart }, status: 'COMPLETED' },
         _sum: { amount: true },
       }),
-      this.prisma.riderProfile.count({ where: { status: 'PENDING' } }),
+      this.prisma.riderProfile.count({ where: { status: 'PENDING', user: { status: 'ACTIVE' } } }),
       this.prisma.supportTicket.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS'] } } }),
     ]);
 
