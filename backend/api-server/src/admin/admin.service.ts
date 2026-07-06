@@ -76,52 +76,40 @@ export class AdminService {
   }
 
   async getRevenueStats() {
-    const [current, previous] = await Promise.all([
-      this.prisma.revenueTotal.findUnique({ where: { period: 'current' } }),
-      this.prisma.revenueTotal.findUnique({ where: { period: 'previous' } }),
+    const setting = await this.prisma.adminSetting.findUnique({ where: { key: 'revenueResetAt' } });
+    const resetAt = setting ? new Date(setting.value) : null;
+
+    const [currentStats, previousStats] = await Promise.all([
+      this.prisma.payment.aggregate({
+        where: { status: 'COMPLETED', ...(resetAt ? { createdAt: { gte: resetAt } } : {}) },
+        _sum: { amount: true, commission: true },
+      }),
+      resetAt ? this.prisma.payment.aggregate({
+        where: { status: 'COMPLETED', createdAt: { lt: resetAt } },
+        _sum: { amount: true, commission: true },
+      }) : Promise.resolve(null),
     ]);
 
     return {
       current: {
-        revenue: Number(current?.revenue ?? 0),
-        commission: Number(current?.commission ?? 0),
-        tripCount: current?.tripCount ?? 0,
+        revenue: Number(currentStats._sum.amount ?? 0),
+        commission: Number(currentStats._sum.commission ?? 0),
       },
-      previous: previous ? {
-        revenue: Number(previous.revenue ?? 0),
-        commission: Number(previous.commission ?? 0),
-        tripCount: previous.tripCount ?? 0,
+      previous: previousStats ? {
+        revenue: Number(previousStats._sum.amount ?? 0),
+        commission: Number(previousStats._sum.commission ?? 0),
       } : null,
-      lastResetAt: current?.periodStartedAt ?? null,
+      lastResetAt: resetAt,
     };
   }
 
   async resetRevenue() {
     const now = new Date();
-    const current = await this.prisma.revenueTotal.findUnique({ where: { period: 'current' } });
-
-    await this.prisma.$transaction([
-      this.prisma.revenueTotal.upsert({
-        where: { period: 'previous' },
-        update: {
-          revenue: current?.revenue ?? 0,
-          commission: current?.commission ?? 0,
-          tripCount: current?.tripCount ?? 0,
-        },
-        create: {
-          period: 'previous',
-          revenue: current?.revenue ?? 0,
-          commission: current?.commission ?? 0,
-          tripCount: current?.tripCount ?? 0,
-        },
-      }),
-      this.prisma.revenueTotal.upsert({
-        where: { period: 'current' },
-        update: { revenue: 0, commission: 0, tripCount: 0, periodStartedAt: now },
-        create: { period: 'current', revenue: 0, commission: 0, tripCount: 0, periodStartedAt: now },
-      }),
-    ]);
-
+    await this.prisma.adminSetting.upsert({
+      where: { key: 'revenueResetAt' },
+      update: { value: now.toISOString() },
+      create: { key: 'revenueResetAt', value: now.toISOString() },
+    });
     return { resetAt: now };
   }
 
@@ -253,7 +241,6 @@ export class AdminService {
       await this.prisma.riderDocument.deleteMany({ where: { riderId: rider.id } });
       await this.prisma.earning.deleteMany({ where: { riderId: rider.id } });
       await this.prisma.rating.deleteMany({ where: { riderId: rider.id } });
-      await this.prisma.payment.deleteMany({ where: { riderId: rider.id } });
       await this.prisma.booking.updateMany({ where: { riderId: rider.id }, data: { riderId: null } });
       await this.prisma.vehicle.deleteMany({ where: { riderId: rider.id } });
       await this.prisma.riderProfile.delete({ where: { userId } });
@@ -264,7 +251,6 @@ export class AdminService {
     const bookingIds = bookings.map((b) => b.id);
     if (bookingIds.length > 0) {
       await this.prisma.tripLocation.deleteMany({ where: { bookingId: { in: bookingIds } } });
-      await this.prisma.payment.deleteMany({ where: { bookingId: { in: bookingIds } } });
       await this.prisma.rating.deleteMany({ where: { bookingId: { in: bookingIds } } });
       await this.prisma.chatMessage.deleteMany({ where: { bookingId: { in: bookingIds } } });
     }

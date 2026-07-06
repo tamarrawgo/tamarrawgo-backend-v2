@@ -261,8 +261,8 @@ model TripLocation {
 
 model Payment {
   id              String        @id @default(uuid())
-  bookingId       String        @unique
-  booking         Booking       @relation(fields: [bookingId], references: [id])
+  bookingId       String?       @unique
+  booking         Booking?      @relation(fields: [bookingId], references: [id], onDelete: SetNull)
   passengerId     String
   riderId         String
   amount          Decimal       @db.Decimal(10, 2)
