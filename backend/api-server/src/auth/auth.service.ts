@@ -15,8 +15,18 @@ import { JwtPayload, UserRole } from '@tamarrawgo/shared-types';
 import { generateOtp } from '@tamarrawgo/shared-utils';
 import { SmsService } from './sms.service';
 
+interface PendingRegistration {
+  dto: RegisterPassengerDto | RegisterRiderDto;
+  role: UserRole.PASSENGER | UserRole.RIDER;
+  passwordHash: string;
+  otp: string;
+  otpExpiresAt: Date;
+}
+
 @Injectable()
 export class AuthService {
+  private pendingRegistrations = new Map<string, PendingRegistration>();
+
   constructor(
     private prisma: PrismaService,
     private jwt: JwtService,
@@ -26,100 +36,97 @@ export class AuthService {
 
   async registerPassenger(dto: RegisterPassengerDto) {
     const existing = await this.prisma.user.findUnique({ where: { phone: dto.phone } });
-    if (existing && existing.status === 'PENDING_VERIFICATION') {
-      // Previous registration never completed OTP — delete and allow re-registration
-      await this.prisma.user.delete({ where: { id: existing.id } });
-    } else if (existing) {
-      throw new ConflictException('Phone number already registered');
-    }
+    if (existing) throw new ConflictException('Phone number already registered');
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const otp = generateOtp(6);
     const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    const user = await this.prisma.user.create({
-      data: {
-        phone: dto.phone,
-        email: dto.email,
-        firstName: dto.firstName,
-        lastName: dto.lastName,
-        passwordHash,
-        role: UserRole.PASSENGER,
-        status: 'PENDING_VERIFICATION',
-        otpCode: otp,
-        otpExpiresAt,
-      },
-    });
+    this.pendingRegistrations.set(dto.phone, { dto, role: UserRole.PASSENGER, passwordHash, otp, otpExpiresAt });
 
-    await this.sms.sendOtp(user.phone, otp);
-
-    return { message: 'Registration successful. Please verify your phone.', userId: user.id };
+    await this.sms.sendOtp(dto.phone, otp);
+    return { message: 'OTP sent. Please verify your phone to complete registration.' };
   }
 
   async registerRider(dto: RegisterRiderDto) {
     const existing = await this.prisma.user.findFirst({
       where: { OR: [{ phone: dto.phone }, { rider: { licenseNumber: dto.licenseNumber } }] },
-      include: { rider: true },
     });
-    if (existing && existing.status === 'PENDING_VERIFICATION') {
-      // Previous registration never completed OTP — clean up and allow re-registration
-      await this.prisma.$transaction(async (tx) => {
-        if (existing.rider) {
-          await tx.vehicle.deleteMany({ where: { riderId: existing.rider.id } });
-          await tx.riderDocument.deleteMany({ where: { riderId: existing.rider.id } });
-          await tx.riderProfile.delete({ where: { id: existing.rider.id } });
-        }
-        await tx.user.delete({ where: { id: existing.id } });
-      });
-    } else if (existing) {
-      throw new ConflictException('This phone number or license number is already registered. Please login instead.');
-    }
+    if (existing) throw new ConflictException('This phone number or license number is already registered. Please login instead.');
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const otp = generateOtp(6);
     const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    const user = await this.prisma.user.create({
-      data: {
-        phone: dto.phone,
-        email: dto.email,
-        firstName: dto.firstName,
-        lastName: dto.lastName,
-        passwordHash,
-        role: UserRole.RIDER,
-        status: 'PENDING_VERIFICATION',
-        otpCode: otp,
-        otpExpiresAt,
-        rider: {
-          create: {
-            licenseNumber: dto.licenseNumber,
-            status: 'PENDING',
-            vehicle: {
-              create: {
-                plateNumber: dto.plateNumber,
-                brand: dto.vehicleBrand ?? 'Tricycle',
-                model: dto.vehicleModel ?? 'Standard',
-                year: new Date().getFullYear(),
-                color: dto.vehicleColor ?? 'N/A',
-              },
-            },
-          },
-        },
-      },
-      include: { rider: { include: { vehicle: true } } },
-    });
+    this.pendingRegistrations.set(dto.phone, { dto, role: UserRole.RIDER, passwordHash, otp, otpExpiresAt });
 
-    await this.sms.sendOtp(user.phone, otp);
-    return { message: 'Rider registration submitted. Verify phone and await approval.', userId: user.id };
+    await this.sms.sendOtp(dto.phone, otp);
+    return { message: 'OTP sent. Verify your phone to complete registration.' };
   }
 
   async verifyOtp(dto: VerifyOtpDto) {
+    // Pending registration path — no DB record yet
+    const pending = this.pendingRegistrations.get(dto.phone);
+    if (pending) {
+      if (new Date() > pending.otpExpiresAt) {
+        this.pendingRegistrations.delete(dto.phone);
+        throw new BadRequestException('OTP has expired. Please register again.');
+      }
+      if (pending.otp !== dto.otp) throw new BadRequestException('Invalid OTP');
+
+      this.pendingRegistrations.delete(dto.phone);
+
+      if (pending.role === UserRole.RIDER) {
+        const riderDto = pending.dto as RegisterRiderDto;
+        await this.prisma.user.create({
+          data: {
+            phone: riderDto.phone,
+            email: riderDto.email,
+            firstName: riderDto.firstName,
+            lastName: riderDto.lastName,
+            passwordHash: pending.passwordHash,
+            role: UserRole.RIDER,
+            status: 'ACTIVE',
+            rider: {
+              create: {
+                licenseNumber: riderDto.licenseNumber,
+                status: 'PENDING',
+                vehicle: {
+                  create: {
+                    plateNumber: riderDto.plateNumber,
+                    brand: riderDto.vehicleBrand ?? 'Tricycle',
+                    model: riderDto.vehicleModel ?? 'Standard',
+                    year: new Date().getFullYear(),
+                    color: riderDto.vehicleColor ?? 'N/A',
+                  },
+                },
+              },
+            },
+          },
+        });
+        return { message: 'Phone verified! Your account is pending admin approval. You will be able to login once approved.', pendingApproval: true };
+      }
+
+      const passengerDto = pending.dto as RegisterPassengerDto;
+      const user = await this.prisma.user.create({
+        data: {
+          phone: passengerDto.phone,
+          email: passengerDto.email,
+          firstName: passengerDto.firstName,
+          lastName: passengerDto.lastName,
+          passwordHash: pending.passwordHash,
+          role: UserRole.PASSENGER,
+          status: 'ACTIVE',
+        },
+      });
+      return this.generateTokens(user.id, user.phone, user.role as UserRole);
+    }
+
+    // Existing user path — used by forgotPassword OTP flow
     const user = await this.prisma.user.findUnique({ where: { phone: dto.phone }, include: { rider: true } });
     if (!user) throw new NotFoundException('User not found');
     if (!user.otpCode || !user.otpExpiresAt) {
-      if (user.status === 'ACTIVE') {
-        throw new BadRequestException('This account is already verified. Please login instead.');
-      }
+      if (user.status === 'ACTIVE') throw new BadRequestException('This account is already verified. Please login instead.');
       throw new BadRequestException('No OTP requested. Please tap Resend OTP.');
     }
     if (new Date() > user.otpExpiresAt) throw new BadRequestException('OTP has expired. Please tap Resend OTP.');
@@ -168,6 +175,18 @@ export class AuthService {
   }
 
   async requestOtp(phone: string) {
+    // Resend OTP for a pending (not yet saved) registration
+    const pending = this.pendingRegistrations.get(phone);
+    if (pending) {
+      const otp = generateOtp(6);
+      const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+      pending.otp = otp;
+      pending.otpExpiresAt = otpExpiresAt;
+      await this.sms.sendOtp(phone, otp);
+      return { message: 'OTP sent successfully' };
+    }
+
+    // Resend OTP for an existing user (forgotPassword flow)
     const user = await this.prisma.user.findUnique({ where: { phone } });
     if (!user) throw new NotFoundException('User not found');
 

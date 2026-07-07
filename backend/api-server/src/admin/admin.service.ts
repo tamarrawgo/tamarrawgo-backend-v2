@@ -142,7 +142,7 @@ export class AdminService {
       { role: 'ADMIN' },
       { role: 'RIDER' },
     ];
-    const where: any = { OR: conditions };
+    const where: any = { OR: conditions, status: { not: 'PENDING_VERIFICATION' } };
     if (search) {
       where.AND = [{
         OR: [
