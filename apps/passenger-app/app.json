@@ -14,9 +14,11 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.tamarrawgo.passenger",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "TamarrawGo needs your location to find nearby riders.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "TamarrawGo needs your location for real-time tracking."
+        "NSLocationWhenInUseUsageDescription": "TamarrawGo needs your location to find nearby riders and show your position on the map.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "TamarrawGo needs your location for real-time trip tracking.",
+        "NSLocationAlwaysUsageDescription": "TamarrawGo needs your location for real-time trip tracking."
       }
     },
     "android": {

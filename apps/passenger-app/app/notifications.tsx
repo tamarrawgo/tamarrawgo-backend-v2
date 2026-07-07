@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Platform, StatusBar, Alert, Clipboard } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { api } from '../src/services/api';
@@ -43,7 +44,7 @@ export default function NotificationsScreen() {
   const getIcon = (type: string) => ICON_MAP[type] ?? ICON_MAP.SYSTEM;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={24} color="#333" />
@@ -97,7 +98,7 @@ export default function NotificationsScreen() {
           }}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 

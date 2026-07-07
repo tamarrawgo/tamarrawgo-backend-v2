@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Platform, StatusBar, KeyboardAvoidingView, ScrollView, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { api } from '../src/services/api';
@@ -55,7 +56,7 @@ export default function ComplaintsScreen() {
 
   if (!selectedTrip) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
             <MaterialIcons name="arrow-back" size={24} color="#333" />
@@ -94,14 +95,14 @@ export default function ComplaintsScreen() {
             })}
           </ScrollView>
         )}
-      </View>
+      </SafeAreaView>
     );
   }
 
   const riderName = `${selectedTrip.rider?.user?.firstName ?? ''} ${selectedTrip.rider?.user?.lastName ?? ''}`.trim();
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => setSelectedTrip(null)}>
           <MaterialIcons name="arrow-back" size={24} color="#333" />
@@ -160,7 +161,7 @@ export default function ComplaintsScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   );
 }
 

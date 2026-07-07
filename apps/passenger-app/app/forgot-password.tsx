@@ -1,5 +1,6 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator, Platform, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { api } from '../src/services/api';
@@ -53,7 +54,7 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => step === 'phone' ? router.back() : setStep('phone')}>
           <MaterialIcons name="arrow-back" size={24} color="#333" />
@@ -140,7 +141,7 @@ export default function ForgotPasswordScreen() {
           </>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

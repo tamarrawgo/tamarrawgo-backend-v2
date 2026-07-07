@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Platform, StatusBar, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
@@ -58,15 +59,15 @@ export default function TripDetailScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <ActivityIndicator size="large" color={GREEN} style={{ marginTop: 100 }} />
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (!booking) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
             <MaterialIcons name="arrow-back" size={24} color="#333" />
@@ -78,7 +79,7 @@ export default function TripDetailScreen() {
           <MaterialIcons name="error-outline" size={48} color="#ddd" />
           <Text style={styles.emptyText}>Trip not found</Text>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -93,7 +94,7 @@ export default function TripDetailScreen() {
   const dropoff = { latitude: booking.dropoffLatitude, longitude: booking.dropoffLongitude };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={24} color="#333" />
@@ -248,7 +249,7 @@ export default function TripDetailScreen() {
           </View>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, TouchableOpacity, Linking, Platform, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 
@@ -8,7 +9,7 @@ export default function SupportScreen() {
   const router = useRouter();
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={24} color="#333" />
@@ -18,6 +19,13 @@ export default function SupportScreen() {
       </View>
 
       <View style={styles.content}>
+        <TouchableOpacity style={styles.card} onPress={() => Linking.openURL('https://tamarrawgo.com')}>
+          <MaterialIcons name="language" size={24} color={GREEN} />
+          <View style={styles.cardText}>
+            <Text style={styles.cardTitle}>Visit Our Website</Text>
+            <Text style={styles.cardSub}>tamarrawgo.com</Text>
+          </View>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.card} onPress={() => Linking.openURL('https://m.me/61590194953679')}>
           <MaterialIcons name="chat" size={24} color={GREEN} />
           <View style={styles.cardText}>
@@ -54,7 +62,7 @@ export default function SupportScreen() {
           </View>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

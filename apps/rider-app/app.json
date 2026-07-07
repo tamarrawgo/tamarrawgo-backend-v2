@@ -11,7 +11,15 @@
       "resizeMode": "contain",
       "backgroundColor": "#FF6B00"
     },
-    "ios": { "bundleIdentifier": "com.tamarrawgo.rider", "supportsTablet": false },
+    "ios": {
+      "bundleIdentifier": "com.tamarrawgo.rider",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "TamarrawGo Rider needs your location to show your position on the map and accept nearby trips.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "TamarrawGo Rider needs your location in the background to broadcast your position to passengers during active trips.",
+        "NSLocationAlwaysUsageDescription": "TamarrawGo Rider needs your location in the background to broadcast your position to passengers during active trips."
+      }
+    },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/rider-app-icon.png",
@@ -20,7 +28,15 @@
       "package": "com.tamarrawgo.rider",
       "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "ACCESS_BACKGROUND_LOCATION"]
     },
-    "plugins": ["expo-router", "expo-location"],
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "TamarrawGo Rider needs your location to show your position and broadcast it to passengers during active trips."
+        }
+      ]
+    ],
     "scheme": "tamarrawgo-rider"
   }
 }
