@@ -26,7 +26,12 @@ export class AuthService {
 
   async registerPassenger(dto: RegisterPassengerDto) {
     const existing = await this.prisma.user.findUnique({ where: { phone: dto.phone } });
-    if (existing) throw new ConflictException('Phone number already registered');
+    if (existing && existing.status === 'PENDING_VERIFICATION') {
+      // Previous registration never completed OTP — delete and allow re-registration
+      await this.prisma.user.delete({ where: { id: existing.id } });
+    } else if (existing) {
+      throw new ConflictException('Phone number already registered');
+    }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const otp = generateOtp(6);
@@ -54,8 +59,21 @@ export class AuthService {
   async registerRider(dto: RegisterRiderDto) {
     const existing = await this.prisma.user.findFirst({
       where: { OR: [{ phone: dto.phone }, { rider: { licenseNumber: dto.licenseNumber } }] },
+      include: { rider: true },
     });
-    if (existing) throw new ConflictException('This phone number or license number is already registered. Please login instead.');
+    if (existing && existing.status === 'PENDING_VERIFICATION') {
+      // Previous registration never completed OTP — clean up and allow re-registration
+      await this.prisma.$transaction(async (tx) => {
+        if (existing.rider) {
+          await tx.vehicle.deleteMany({ where: { riderId: existing.rider.id } });
+          await tx.riderDocument.deleteMany({ where: { riderId: existing.rider.id } });
+          await tx.riderProfile.delete({ where: { id: existing.rider.id } });
+        }
+        await tx.user.delete({ where: { id: existing.id } });
+      });
+    } else if (existing) {
+      throw new ConflictException('This phone number or license number is already registered. Please login instead.');
+    }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const otp = generateOtp(6);
