@@ -28,7 +28,7 @@ export class BookingsService {
     private notifications: NotificationsService,
   ) {}
 
-  async estimateFare(pickupLat: number, pickupLng: number, dropoffLat: number, dropoffLng: number, promoCode?: string, passengerCount = 1) {
+  async estimateFare(pickupLat: number, pickupLng: number, dropoffLat: number, dropoffLng: number, promoCode?: string, passengerCount = 1, bookingType = 'RIDE') {
     let distanceKm: number;
     let durationMinutes: number;
     let polyline: string | null = null;
@@ -46,14 +46,23 @@ export class BookingsService {
       durationMinutes = estimateEtaMinutes(distanceKm);
     }
 
-    // Calculate fare without promo first to check minimum
+    if (bookingType === 'DELIVERY') {
+      const estimate = await this.fare.estimateDeliveryFare(distanceKm);
+      return { ...estimate, passengerCount: 1, passengerMultiplier: 1, polyline, promoRejected: false };
+    }
+
+    if (bookingType === 'PABILI') {
+      const estimate = await this.fare.estimatePabiliFare(distanceKm);
+      return { ...estimate, passengerCount: 1, passengerMultiplier: 1, polyline, promoRejected: false };
+    }
+
+    // RIDE — existing logic
     const estimateNoPromo = await this.fare.estimateFare(distanceKm, durationMinutes, 0);
     const count = Math.min(Math.max(passengerCount, 1), 4);
     const multiplier = 1 + (count - 1) * 0.20;
     let baseTotalFare = estimateNoPromo.totalFare;
     if (count > 1) baseTotalFare = Math.round(baseTotalFare * multiplier * 100) / 100;
 
-    // Only allow promo if fare > ₱100
     let promoDiscount = 0;
     let promoRejected = false;
     if (promoCode) {
@@ -78,38 +87,16 @@ export class BookingsService {
     });
     if (activeBooking) throw new BadRequestException('You already have an active booking');
 
-    // For delivery/pabili, the app sends lat/lng 0,0 (text-only address entry).
-    // Geocode to get real coordinates so distance calculation is accurate.
-    let pickupLat = dto.pickup.latitude;
-    let pickupLng = dto.pickup.longitude;
-    let dropoffLat = dto.dropoff.latitude;
-    let dropoffLng = dto.dropoff.longitude;
-    const bookingTypeEarly = dto.bookingType ?? 'RIDE';
-    if (bookingTypeEarly !== 'RIDE' && pickupLat === 0 && pickupLng === 0) {
-      try {
-        const geo = await this.maps.geocode(dto.pickup.address);
-        pickupLat = geo.latitude;
-        pickupLng = geo.longitude;
-      } catch { /* keep 0,0 — fallback to base fare */ }
-    }
-    if (bookingTypeEarly !== 'RIDE' && dropoffLat === 0 && dropoffLng === 0) {
-      try {
-        const geo = await this.maps.geocode(dto.dropoff.address);
-        dropoffLat = geo.latitude;
-        dropoffLng = geo.longitude;
-      } catch { /* keep 0,0 — fallback to base fare */ }
-    }
-
     let distanceKm: number;
     let durationMinutes: number;
     try {
-      const directions = await this.maps.getDirections(pickupLat, pickupLng, dropoffLat, dropoffLng);
+      const directions = await this.maps.getDirections(dto.pickup.latitude, dto.pickup.longitude, dto.dropoff.latitude, dto.dropoff.longitude);
       distanceKm = directions.distanceKm;
       durationMinutes = directions.durationMinutes;
     } catch {
       distanceKm = haversineDistance(
-        { latitude: pickupLat, longitude: pickupLng },
-        { latitude: dropoffLat, longitude: dropoffLng },
+        { latitude: dto.pickup.latitude, longitude: dto.pickup.longitude },
+        { latitude: dto.dropoff.latitude, longitude: dto.dropoff.longitude },
       );
       durationMinutes = estimateEtaMinutes(distanceKm);
     }

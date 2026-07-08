@@ -35,6 +35,7 @@ export class FareEstimateDto {
   @ApiProperty() @IsNumber() @Min(-180) @Max(180) dropoffLng: number;
   @ApiPropertyOptional() @IsNumber() @IsOptional() @Min(1) @Max(4) passengerCount?: number;
   @ApiPropertyOptional() @IsString() @IsOptional() promoCode?: string;
+  @ApiPropertyOptional({ enum: ['RIDE', 'DELIVERY', 'PABILI'] }) @IsString() @IsOptional() bookingType?: string;
 }
 
 export class CancelBookingDto {

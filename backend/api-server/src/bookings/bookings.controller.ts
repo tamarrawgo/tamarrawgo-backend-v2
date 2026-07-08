@@ -18,7 +18,7 @@ export class BookingsController {
   @ApiOperation({ summary: 'Get fare estimate before booking' })
   @HttpCode(HttpStatus.OK)
   estimateFare(@Body() dto: FareEstimateDto) {
-    return this.bookings.estimateFare(dto.pickupLat, dto.pickupLng, dto.dropoffLat, dto.dropoffLng, dto.promoCode, dto.passengerCount);
+    return this.bookings.estimateFare(dto.pickupLat, dto.pickupLng, dto.dropoffLat, dto.dropoffLng, dto.promoCode, dto.passengerCount, dto.bookingType);
   }
 
   @Post()
