@@ -302,9 +302,47 @@ export class AdminService {
         skip,
         take: limit,
         include: {
-          user: { select: { firstName: true, lastName: true, phone: true, email: true } },
+          user: { select: { firstName: true, lastName: true, phone: true, email: true, city: true, barangay: true } },
           vehicle: true,
           documents: true,
+        },
+      }),
+      this.prisma.riderProfile.count({ where }),
+    ]);
+    return { data: riders, total, page, limit };
+  }
+
+  async getAllRiders(page = 1, limit = 20, search?: string, city?: string, barangay?: string) {
+    const skip = (page - 1) * limit;
+    const userWhere: any = { role: 'RIDER' };
+    if (search) {
+      userWhere.OR = [
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+    if (city) userWhere.city = { contains: city, mode: 'insensitive' };
+    if (barangay) userWhere.barangay = { contains: barangay, mode: 'insensitive' };
+
+    const where = { user: userWhere };
+    const [riders, total] = await Promise.all([
+      this.prisma.riderProfile.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: {
+              id: true, firstName: true, lastName: true, phone: true,
+              email: true, status: true, city: true, barangay: true,
+              loyaltyPoints: true, createdAt: true,
+            },
+          },
+          vehicle: true,
+          documents: { select: { id: true, type: true, fileUrl: true, verified: true } },
         },
       }),
       this.prisma.riderProfile.count({ where }),

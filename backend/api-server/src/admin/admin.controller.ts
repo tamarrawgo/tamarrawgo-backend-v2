@@ -101,6 +101,18 @@ export class AdminController {
     return this.admin.rejectTopupRequest(id, body.reason ?? '', req.user?.sub);
   }
 
+  @Get('riders')
+  @ApiOperation({ summary: 'Get all riders with optional search and city/barangay filter' })
+  getAllRiders(
+    @Query('page') page = 1,
+    @Query('limit') limit = 20,
+    @Query('search') search?: string,
+    @Query('city') city?: string,
+    @Query('barangay') barangay?: string,
+  ) {
+    return this.admin.getAllRiders(+page, +limit, search, city, barangay);
+  }
+
   @Get('riders/pending')
   @ApiOperation({ summary: 'Get pending rider approvals' })
   getPendingRiders(@Query('page') page = 1, @Query('limit') limit = 20) {
