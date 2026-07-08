@@ -19,7 +19,7 @@ const GREEN = '#1B6B2F';
 const GREEN_LIGHT = '#E8F5E9';
 
 const STATUS_LABELS: Record<string, string> = {
-  [BookingStatus.SEARCHING]:     'Finding your tricycle...',
+  [BookingStatus.SEARCHING]:     'Finding your rider...',
   [BookingStatus.ACCEPTED]:      'Driver is on the way!',
   [BookingStatus.RIDER_ARRIVED]: 'Driver has arrived!',
   [BookingStatus.IN_PROGRESS]:   'Trip in progress...',
@@ -35,7 +35,7 @@ const ETA_MAP: Record<string, string> = {
 };
 
 const HEADER_LABELS: Record<string, string> = {
-  [BookingStatus.SEARCHING]:     'Finding Tricycle...',
+  [BookingStatus.SEARCHING]:     'Finding a Rider...',
   [BookingStatus.ACCEPTED]:      'Driver on the Way',
   [BookingStatus.RIDER_ARRIVED]: 'Driver Arrived',
   [BookingStatus.IN_PROGRESS]:   'Trip in Progress',
@@ -462,7 +462,15 @@ export default function TrackingScreen() {
             </View>
           )}
           <View style={{ flex: 1 }}>
-            <Text style={styles.driverName} numberOfLines={1}>{riderName}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={[styles.driverName, { flex: 1 }]} numberOfLines={1}>{riderName}</Text>
+              {(activeBooking as any)?.rider?.status === 'APPROVED' && (
+                <View style={styles.verifiedBadge}>
+                  <MaterialIcons name="verified" size={13} color="#1565C0" />
+                  <Text style={styles.verifiedBadgeText}>Verified</Text>
+                </View>
+              )}
+            </View>
             <View style={styles.statusRowCompact}>
               <View style={[styles.statusDot, { backgroundColor: isCompleted ? '#34C759' : GREEN }]} />
               <Text style={styles.statusTextCompact}>{STATUS_LABELS[status] ?? 'Processing...'}</Text>
@@ -624,6 +632,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   driverName: { fontSize: 15, fontWeight: '800', color: '#1A1A1A' },
+  verifiedBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 2,
+    backgroundColor: '#E3F2FD', paddingVertical: 2, paddingHorizontal: 6, borderRadius: 10,
+  },
+  verifiedBadgeText: { fontSize: 10, fontWeight: '700', color: '#1565C0' },
   statusRowCompact: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
   statusTextCompact: { fontSize: 11, color: '#888', fontWeight: '600' },
   fareAmountCompact: { fontSize: 17, fontWeight: '900', color: GREEN },

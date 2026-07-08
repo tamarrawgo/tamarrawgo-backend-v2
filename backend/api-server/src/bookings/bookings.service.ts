@@ -78,16 +78,38 @@ export class BookingsService {
     });
     if (activeBooking) throw new BadRequestException('You already have an active booking');
 
+    // For delivery/pabili, the app sends lat/lng 0,0 (text-only address entry).
+    // Geocode to get real coordinates so distance calculation is accurate.
+    let pickupLat = dto.pickup.latitude;
+    let pickupLng = dto.pickup.longitude;
+    let dropoffLat = dto.dropoff.latitude;
+    let dropoffLng = dto.dropoff.longitude;
+    const bookingTypeEarly = dto.bookingType ?? 'RIDE';
+    if (bookingTypeEarly !== 'RIDE' && pickupLat === 0 && pickupLng === 0) {
+      try {
+        const geo = await this.maps.geocode(dto.pickup.address);
+        pickupLat = geo.latitude;
+        pickupLng = geo.longitude;
+      } catch { /* keep 0,0 — fallback to base fare */ }
+    }
+    if (bookingTypeEarly !== 'RIDE' && dropoffLat === 0 && dropoffLng === 0) {
+      try {
+        const geo = await this.maps.geocode(dto.dropoff.address);
+        dropoffLat = geo.latitude;
+        dropoffLng = geo.longitude;
+      } catch { /* keep 0,0 — fallback to base fare */ }
+    }
+
     let distanceKm: number;
     let durationMinutes: number;
     try {
-      const directions = await this.maps.getDirections(dto.pickup.latitude, dto.pickup.longitude, dto.dropoff.latitude, dto.dropoff.longitude);
+      const directions = await this.maps.getDirections(pickupLat, pickupLng, dropoffLat, dropoffLng);
       distanceKm = directions.distanceKm;
       durationMinutes = directions.durationMinutes;
     } catch {
       distanceKm = haversineDistance(
-        { latitude: dto.pickup.latitude, longitude: dto.pickup.longitude },
-        { latitude: dto.dropoff.latitude, longitude: dto.dropoff.longitude },
+        { latitude: pickupLat, longitude: pickupLng },
+        { latitude: dropoffLat, longitude: dropoffLng },
       );
       durationMinutes = estimateEtaMinutes(distanceKm);
     }
