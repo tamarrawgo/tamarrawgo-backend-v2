@@ -406,17 +406,24 @@ model ChatMessage {
 }
 
 model FareConfiguration {
-  id               String   @id @default(uuid())
-  name             String
-  baseFare         Decimal  @db.Decimal(10, 2)
-  ratePerKm        Decimal  @db.Decimal(10, 2)
-  ratePerMinute    Decimal  @db.Decimal(10, 2)
-  minimumFare      Decimal  @db.Decimal(10, 2)
-  peakSurge        Float    @default(1.5)
-  nightSurge       Float    @default(1.2)
-  isActive         Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id                   String   @id @default(uuid())
+  name                 String
+  baseFare             Decimal  @db.Decimal(10, 2)
+  ratePerKm            Decimal  @db.Decimal(10, 2)
+  ratePerMinute        Decimal  @db.Decimal(10, 2)
+  minimumFare          Decimal  @db.Decimal(10, 2)
+  peakSurge            Float    @default(1.5)
+  nightSurge           Float    @default(1.2)
+  // Delivery (Lalamove-style motorcycle)
+  deliveryBaseFare     Decimal  @default(80) @db.Decimal(10, 2)
+  deliveryRatePerKm    Decimal  @default(12) @db.Decimal(10, 2)
+  // Pabili (Grab Pabili-style)
+  pabiliBaseFare       Decimal  @default(60) @db.Decimal(10, 2)
+  pabiliRatePerKm      Decimal  @default(10) @db.Decimal(10, 2)
+  pabiliServiceFee     Decimal  @default(20) @db.Decimal(10, 2)
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   @@map("fare_configurations")
 }

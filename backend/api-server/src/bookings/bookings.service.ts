@@ -102,16 +102,32 @@ export class BookingsService {
       promoDiscount = Number(promo.value);
     }
 
-    const fareEstimate = await this.fare.estimateFare(distanceKm, durationMinutes, promoDiscount);
+    const bookingType = dto.bookingType ?? 'RIDE';
 
-    // +20% fare per additional passenger (max 4)
-    const pCount = Math.min(Math.max(dto.passengerCount ?? 1, 1), 4);
+    // Use type-specific fare calculation
+    let fareEstimate: any;
+    if (bookingType === 'DELIVERY') {
+      fareEstimate = await this.fare.estimateDeliveryFare(distanceKm);
+      fareEstimate.timeFare = 0;
+      fareEstimate.estimatedDurationMinutes = durationMinutes;
+      fareEstimate.surgeMultiplier = 1;
+      fareEstimate.discount = 0;
+    } else if (bookingType === 'PABILI') {
+      fareEstimate = await this.fare.estimatePabiliFare(distanceKm);
+      fareEstimate.timeFare = 0;
+      fareEstimate.estimatedDurationMinutes = durationMinutes;
+      fareEstimate.surgeMultiplier = 1;
+      fareEstimate.discount = 0;
+    } else {
+      fareEstimate = await this.fare.estimateFare(distanceKm, durationMinutes, promoDiscount);
+    }
+
+    // +20% fare per additional passenger (RIDE only)
+    const pCount = bookingType === 'RIDE' ? Math.min(Math.max(dto.passengerCount ?? 1, 1), 4) : 1;
     const pMultiplier = 1 + (pCount - 1) * 0.20;
     const adjustedFare = pCount > 1
       ? Math.round(fareEstimate.totalFare * pMultiplier * 100) / 100
       : fareEstimate.totalFare;
-
-    const bookingType = dto.bookingType ?? 'RIDE';
 
     const booking = await this.prisma.booking.create({
       data: {
@@ -126,13 +142,13 @@ export class BookingsService {
         dropoffLatitude: dto.dropoff.latitude,
         dropoffLongitude: dto.dropoff.longitude,
         dropoffPlaceId: dto.dropoff.placeId,
-        distanceKm: fareEstimate.distanceKm,
-        estimatedMinutes: fareEstimate.estimatedDurationMinutes,
+        distanceKm: fareEstimate.distanceKm ?? distanceKm,
+        estimatedMinutes: fareEstimate.estimatedDurationMinutes ?? durationMinutes,
         baseFare: fareEstimate.baseFare,
         distanceFare: fareEstimate.distanceFare,
-        timeFare: fareEstimate.timeFare,
-        surgeMultiplier: fareEstimate.surgeMultiplier,
-        discount: fareEstimate.discount,
+        timeFare: fareEstimate.timeFare ?? 0,
+        surgeMultiplier: fareEstimate.surgeMultiplier ?? 1,
+        discount: fareEstimate.discount ?? 0,
         estimatedFare: adjustedFare,
         passengerCount: pCount,
         paymentMethod: dto.paymentMethod,

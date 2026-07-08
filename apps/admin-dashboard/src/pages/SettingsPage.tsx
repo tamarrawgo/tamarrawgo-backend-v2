@@ -9,6 +9,11 @@ interface FareConfig {
   minimumFare: number;
   peakSurge: number;
   nightSurge: number;
+  deliveryBaseFare: number;
+  deliveryRatePerKm: number;
+  pabiliBaseFare: number;
+  pabiliRatePerKm: number;
+  pabiliServiceFee: number;
 }
 
 export default function SettingsPage() {
@@ -29,6 +34,11 @@ export default function SettingsPage() {
           minimumFare: Number(res.minimumFare),
           peakSurge: Number(res.peakSurge),
           nightSurge: Number(res.nightSurge),
+          deliveryBaseFare: Number(res.deliveryBaseFare ?? 80),
+          deliveryRatePerKm: Number(res.deliveryRatePerKm ?? 12),
+          pabiliBaseFare: Number(res.pabiliBaseFare ?? 60),
+          pabiliRatePerKm: Number(res.pabiliRatePerKm ?? 10),
+          pabiliServiceFee: Number(res.pabiliServiceFee ?? 20),
         });
       })
       .catch(() => setError('Failed to load fare configuration'))
@@ -48,6 +58,11 @@ export default function SettingsPage() {
         minimumFare: config.minimumFare,
         peakSurge: config.peakSurge,
         nightSurge: config.nightSurge,
+        deliveryBaseFare: config.deliveryBaseFare,
+        deliveryRatePerKm: config.deliveryRatePerKm,
+        pabiliBaseFare: config.pabiliBaseFare,
+        pabiliRatePerKm: config.pabiliRatePerKm,
+        pabiliServiceFee: config.pabiliServiceFee,
       });
       setSuccess('Fare rates updated successfully!');
       setTimeout(() => setSuccess(''), 3000);
@@ -64,14 +79,26 @@ export default function SettingsPage() {
     if (!isNaN(num)) setConfig({ ...config, [field]: num });
   };
 
-  const fields: { key: keyof FareConfig; label: string; desc: string; prefix: string }[] = [
-    { key: 'baseFare', label: 'Base Fare', desc: 'Minimum starting fare', prefix: '₱' },
-    { key: 'ratePerKm', label: 'Rate per km', desc: 'Distance charge', prefix: '₱' },
-    { key: 'ratePerMinute', label: 'Rate per minute', desc: 'Time-based charge', prefix: '₱' },
-    { key: 'minimumFare', label: 'Minimum Fare', desc: 'Minimum chargeable amount', prefix: '₱' },
-    { key: 'peakSurge', label: 'Peak Surge', desc: '7-9am, 5-8pm weekdays', prefix: '' },
-    { key: 'nightSurge', label: 'Night Differential', desc: '10pm - 5am', prefix: '' },
-  ];
+  const Field = ({ field, label, desc, isSurge = false }: { field: keyof FareConfig; label: string; desc: string; isSurge?: boolean }) => (
+    <div className="flex items-center justify-between py-3 border-b border-gray-50">
+      <div>
+        <p className="font-medium text-gray-800">{label}</p>
+        <p className="text-xs text-gray-400">{desc}</p>
+      </div>
+      <div className="flex items-center gap-1">
+        {!isSurge && <span className="text-primary font-bold text-lg">₱</span>}
+        <input
+          type="number"
+          step={isSurge ? '0.1' : '1'}
+          min="0"
+          value={config?.[field] ?? ''}
+          onChange={(e) => updateField(field, e.target.value)}
+          className="w-24 text-right text-lg font-bold text-primary border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500"
+        />
+        {isSurge && <span className="text-primary font-bold text-lg">x</span>}
+      </div>
+    </div>
+  );
 
   return (
     <div className="p-4 lg:p-8">
@@ -80,54 +107,75 @@ export default function SettingsPage() {
         <p className="text-gray-500 mt-1">System configuration and fare management</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
-        <div className="card">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Fare Configuration</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-6">
+          {/* Ride Fare */}
+          <div className="card">
+            <h2 className="text-lg font-bold text-gray-900 mb-1">🛺 Ride Fare</h2>
+            <p className="text-xs text-gray-400 mb-4">Standard tricycle rides — passenger bookings</p>
+            {loading ? (
+              <div className="text-center py-8 text-gray-400">Loading...</div>
+            ) : error && !config ? (
+              <div className="text-center py-8 text-red-500">{error}</div>
+            ) : config ? (
+              <>
+                <Field field="baseFare" label="Base Fare" desc="Minimum starting fare" />
+                <Field field="ratePerKm" label="Rate per km" desc="Distance charge" />
+                <Field field="ratePerMinute" label="Rate per minute" desc="Time-based charge" />
+                <Field field="minimumFare" label="Minimum Fare" desc="Minimum chargeable amount" />
+                <Field field="peakSurge" label="Peak Surge" desc="7–9am, 5–8pm weekdays" isSurge />
+                <Field field="nightSurge" label="Night Differential" desc="10pm – 5am" isSurge />
+              </>
+            ) : null}
+          </div>
 
-          {loading ? (
-            <div className="text-center py-8 text-gray-400">Loading fare configuration...</div>
-          ) : error && !config ? (
-            <div className="text-center py-8 text-red-500">{error}</div>
-          ) : config ? (
-            <>
-              <div className="space-y-4">
-                {fields.map((f) => (
-                  <div key={f.key} className="flex items-center justify-between py-3 border-b border-gray-50">
-                    <div>
-                      <p className="font-medium text-gray-800">{f.label}</p>
-                      <p className="text-xs text-gray-400">{f.desc}</p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {f.prefix && <span className="text-primary font-bold text-lg">{f.prefix}</span>}
-                      <input
-                        type="number"
-                        step={f.key.includes('Surge') ? '0.1' : '1'}
-                        min="0"
-                        value={config[f.key]}
-                        onChange={(e) => updateField(f.key, e.target.value)}
-                        className="w-24 text-right text-lg font-bold text-primary border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500"
-                      />
-                      {f.key.includes('Surge') && <span className="text-primary font-bold text-lg">x</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
+          {/* Delivery Fare */}
+          <div className="card">
+            <h2 className="text-lg font-bold text-gray-900 mb-1">📦 Delivery Fare</h2>
+            <p className="text-xs text-gray-400 mb-4">Lalamove-style motorcycle delivery — small packages</p>
+            {config ? (
+              <>
+                <Field field="deliveryBaseFare" label="Base Fare" desc="Minimum charge per delivery" />
+                <Field field="deliveryRatePerKm" label="Rate per km" desc="Distance charge for delivery" />
+                <div className="mt-3 bg-blue-50 rounded-lg px-4 py-2 text-xs text-blue-700">
+                  Formula: <strong>Base Fare + (Distance × Rate/km)</strong>
+                </div>
+              </>
+            ) : null}
+          </div>
 
-              {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
-              {success && <p className="text-green-600 text-sm mt-3 font-medium">{success}</p>}
+          {/* Pabili Fare */}
+          <div className="card">
+            <h2 className="text-lg font-bold text-gray-900 mb-1">🛒 Pabili Fare</h2>
+            <p className="text-xs text-gray-400 mb-4">Grab Pabili-style errand — rider buys items for passenger</p>
+            {config ? (
+              <>
+                <Field field="pabiliBaseFare" label="Base Fare" desc="Minimum delivery fee" />
+                <Field field="pabiliRatePerKm" label="Rate per km" desc="Distance charge" />
+                <Field field="pabiliServiceFee" label="Service / Errand Fee" desc="Flat fee for doing the shopping" />
+                <div className="mt-3 bg-purple-50 rounded-lg px-4 py-2 text-xs text-purple-700">
+                  Formula: <strong>Base Fare + (Distance × Rate/km) + Service Fee</strong> — item budget paid directly to rider
+                </div>
+              </>
+            ) : null}
+          </div>
 
+          {config && (
+            <div>
+              {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
+              {success && <p className="text-green-600 text-sm mb-2 font-medium">{success}</p>}
               <button
-                className="mt-4 btn-primary w-full disabled:opacity-50"
+                className="btn-primary w-full disabled:opacity-50"
                 onClick={handleSave}
                 disabled={saving}
               >
-                {saving ? 'Saving...' : 'Update Fare Rates'}
+                {saving ? 'Saving...' : 'Update All Fare Rates'}
               </button>
-            </>
-          ) : null}
+            </div>
+          )}
         </div>
 
-        <div className="card">
+        <div className="card h-fit">
           <h2 className="text-lg font-bold text-gray-900 mb-4">System Info</h2>
           <div className="space-y-3 text-sm">
             {[

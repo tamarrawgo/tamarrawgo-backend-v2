@@ -1,7 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { calculateFare, isPeakHour, isNightDifferential } from '@tamarrawgo/shared-utils';
-import { FareEstimate } from '@tamarrawgo/shared-types';
 
 @Injectable()
 export class FareService {
@@ -40,6 +39,37 @@ export class FareService {
     return { ...estimate, surgeType };
   }
 
+  async estimateDeliveryFare(distanceKm: number) {
+    const config = await this.getActiveFareConfig();
+    const base = Number((config as any).deliveryBaseFare ?? 80);
+    const perKm = Number((config as any).deliveryRatePerKm ?? 12);
+    const totalFare = Math.max(base, base + distanceKm * perKm);
+    return {
+      distanceKm,
+      baseFare: base,
+      distanceFare: distanceKm * perKm,
+      totalFare: Math.round(totalFare * 100) / 100,
+      surgeType: null,
+    };
+  }
+
+  async estimatePabiliFare(distanceKm: number) {
+    const config = await this.getActiveFareConfig();
+    const base = Number((config as any).pabiliBaseFare ?? 60);
+    const perKm = Number((config as any).pabiliRatePerKm ?? 10);
+    const serviceFee = Number((config as any).pabiliServiceFee ?? 20);
+    const deliveryFee = base + distanceKm * perKm;
+    const totalFare = deliveryFee + serviceFee;
+    return {
+      distanceKm,
+      baseFare: base,
+      distanceFare: distanceKm * perKm,
+      serviceFee,
+      totalFare: Math.round(totalFare * 100) / 100,
+      surgeType: null,
+    };
+  }
+
   async updateFareConfig(data: {
     baseFare?: number;
     ratePerKm?: number;
@@ -47,6 +77,11 @@ export class FareService {
     minimumFare?: number;
     peakSurge?: number;
     nightSurge?: number;
+    deliveryBaseFare?: number;
+    deliveryRatePerKm?: number;
+    pabiliBaseFare?: number;
+    pabiliRatePerKm?: number;
+    pabiliServiceFee?: number;
   }) {
     const config = await this.getActiveFareConfig();
     return this.prisma.fareConfiguration.update({ where: { id: config.id }, data });

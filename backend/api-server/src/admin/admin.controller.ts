@@ -21,6 +21,11 @@ class UpdateFareDto {
   @ApiPropertyOptional() @IsNumber() @IsOptional() minimumFare?: number;
   @ApiPropertyOptional() @IsNumber() @IsOptional() peakSurge?: number;
   @ApiPropertyOptional() @IsNumber() @IsOptional() nightSurge?: number;
+  @ApiPropertyOptional() @IsNumber() @IsOptional() deliveryBaseFare?: number;
+  @ApiPropertyOptional() @IsNumber() @IsOptional() deliveryRatePerKm?: number;
+  @ApiPropertyOptional() @IsNumber() @IsOptional() pabiliBaseFare?: number;
+  @ApiPropertyOptional() @IsNumber() @IsOptional() pabiliRatePerKm?: number;
+  @ApiPropertyOptional() @IsNumber() @IsOptional() pabiliServiceFee?: number;
 }
 
 @ApiTags('admin')
