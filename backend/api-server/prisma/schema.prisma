@@ -122,6 +122,8 @@ model User {
   otpCode          String?
   otpExpiresAt     DateTime?
   loyaltyPoints    Int        @default(0)
+  city             String?
+  barangay         String?
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 

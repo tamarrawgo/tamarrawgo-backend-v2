@@ -2,12 +2,14 @@ import { useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image,
+  Modal, FlatList,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { setPendingDocs } from '../../src/store/pending-docs';
 import { api } from '../../src/services/api';
+import { CITIES, MINDORO_BARANGAYS } from '../../src/data/oriental-mindoro';
 
 const GREEN = '#1B6B2F';
 const GREEN_DARK = '#145224';
@@ -29,7 +31,12 @@ export default function RiderRegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
-  const [form, setForm] = useState({ firstName: '', lastName: '', phone: '', email: '', password: '', licenseNumber: '', plateNumber: '', vehicleBrand: '', vehicleModel: '', vehicleColor: '' });
+  const [dropdownOpen, setDropdownOpen] = useState<'city' | 'barangay' | null>(null);
+  const [form, setForm] = useState({
+    firstName: '', lastName: '', phone: '', email: '', password: '',
+    licenseNumber: '', plateNumber: '', vehicleBrand: '', vehicleModel: '', vehicleColor: '',
+    city: '', barangay: '',
+  });
   const [docs, setDocs] = useState<Record<string, { uri: string; fileName: string }>>(_savedDocs);
 
   const saveDoc = (docKey: string, data: { uri: string; fileName: string }) => {
@@ -38,6 +45,8 @@ export default function RiderRegisterScreen() {
   };
 
   const setField = (key: keyof typeof form) => (val: string) => setForm((f) => ({ ...f, [key]: val }));
+
+  const barangayList = form.city ? (MINDORO_BARANGAYS[form.city] ?? []) : [];
 
   const launchCamera = async (docKey: string) => {
     try {
@@ -67,14 +76,11 @@ export default function RiderRegisterScreen() {
     }
     if (password.length < 8) { Alert.alert('Weak Password', 'Password must be at least 8 characters.'); return; }
 
-    // Documents are uploaded after login from the profile/documents screen
-
     const stripped = phone.trim().replace(/^(\+63|0)/, '');
     const normalizedPhone = '+63' + stripped;
 
     setLoading(true);
     try {
-      // Register account — documents will be uploaded after OTP verification
       await api.post('/auth/register/rider', {
         firstName: firstName.trim(), lastName: lastName.trim(),
         phone: normalizedPhone, email: form.email.trim() || undefined,
@@ -83,13 +89,14 @@ export default function RiderRegisterScreen() {
         vehicleBrand: form.vehicleBrand.trim() || undefined,
         vehicleModel: form.vehicleModel.trim() || undefined,
         vehicleColor: form.vehicleColor.trim() || undefined,
+        city: form.city || undefined,
+        barangay: form.barangay || undefined,
       });
 
-      // Save docs in memory so verify-otp screen can upload them after OTP
       if (Object.keys(_savedDocs).length > 0) {
         setPendingDocs(_savedDocs);
       }
-      _savedDocs = {}; // Clear for next registration
+      _savedDocs = {};
 
       Alert.alert(
         'Registration Submitted!',
@@ -168,6 +175,36 @@ export default function RiderRegisterScreen() {
           </View>
         </View>
 
+        {/* Address */}
+        <Text style={styles.sectionTitle}>Address (Oriental Mindoro)</Text>
+
+        {/* City dropdown */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>City / Municipality</Text>
+          <TouchableOpacity style={styles.inputWrap} onPress={() => setDropdownOpen('city')}>
+            <MaterialIcons name="location-city" size={18} color="#999" style={styles.inputIcon} />
+            <Text style={[styles.input, !form.city && { color: '#bbb' }]} numberOfLines={1}>
+              {form.city || 'Select City / Municipality'}
+            </Text>
+            <MaterialIcons name="arrow-drop-down" size={22} color="#999" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Barangay dropdown */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Barangay</Text>
+          <TouchableOpacity
+            style={[styles.inputWrap, !form.city && { opacity: 0.5 }]}
+            onPress={() => form.city && setDropdownOpen('barangay')}
+          >
+            <MaterialIcons name="place" size={18} color="#999" style={styles.inputIcon} />
+            <Text style={[styles.input, !form.barangay && { color: '#bbb' }]} numberOfLines={1}>
+              {form.barangay || (form.city ? 'Select Barangay' : 'Select a city first')}
+            </Text>
+            <MaterialIcons name="arrow-drop-down" size={22} color="#999" />
+          </TouchableOpacity>
+        </View>
+
         {/* License Number */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Driver's License Number *</Text>
@@ -224,6 +261,82 @@ export default function RiderRegisterScreen() {
         </TouchableOpacity>
 
       </ScrollView>
+
+      {/* City Picker Modal */}
+      <Modal visible={dropdownOpen === 'city'} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>City / Municipality</Text>
+              <TouchableOpacity onPress={() => setDropdownOpen(null)}>
+                <MaterialIcons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={CITIES}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.modalItem}
+                  onPress={() => {
+                    setForm((f) => ({ ...f, city: item, barangay: '' }));
+                    setDropdownOpen(null);
+                  }}
+                >
+                  <MaterialIcons
+                    name="location-city"
+                    size={18}
+                    color={form.city === item ? GREEN : '#ccc'}
+                    style={{ marginRight: 12 }}
+                  />
+                  <Text style={[styles.modalItemText, form.city === item && { color: GREEN, fontWeight: '700' }]}>{item}</Text>
+                  {form.city === item && <MaterialIcons name="check" size={20} color={GREEN} />}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Barangay Picker Modal */}
+      <Modal visible={dropdownOpen === 'barangay'} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Barangay</Text>
+                {form.city ? <Text style={styles.modalSub}>{form.city}</Text> : null}
+              </View>
+              <TouchableOpacity onPress={() => setDropdownOpen(null)}>
+                <MaterialIcons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={barangayList}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.modalItem}
+                  onPress={() => {
+                    setField('barangay')(item);
+                    setDropdownOpen(null);
+                  }}
+                >
+                  <MaterialIcons
+                    name="place"
+                    size={18}
+                    color={form.barangay === item ? GREEN : '#ccc'}
+                    style={{ marginRight: 12 }}
+                  />
+                  <Text style={[styles.modalItemText, form.barangay === item && { color: GREEN, fontWeight: '700' }]}>{item}</Text>
+                  {form.barangay === item && <MaterialIcons name="check" size={20} color={GREEN} />}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+
     </KeyboardAvoidingView>
   );
 }
@@ -264,4 +377,27 @@ const styles = StyleSheet.create({
   loginLink: { alignItems: 'center', marginTop: 20, paddingBottom: 10 },
   loginLinkText: { fontSize: 14, color: '#999' },
   loginLinkBold: { color: GREEN, fontWeight: '700' },
+
+  // Dropdown modals
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    maxHeight: '75%', paddingBottom: 32,
+  },
+  modalHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingVertical: 16,
+    borderBottomWidth: 1, borderBottomColor: '#f0f0f0',
+  },
+  modalTitle: { fontSize: 17, fontWeight: '800', color: '#1A1A1A' },
+  modalSub: { fontSize: 13, color: '#888', marginTop: 2 },
+  modalItem: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 20, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: '#f5f5f5',
+  },
+  modalItemText: { flex: 1, fontSize: 15, color: '#333' },
 });

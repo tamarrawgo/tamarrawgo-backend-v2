@@ -52,4 +52,14 @@ export class RegisterRiderDto extends RegisterPassengerDto {
   @IsString()
   @IsOptional()
   vehicleColor?: string;
+
+  @ApiPropertyOptional({ example: 'Calapan City' })
+  @IsString()
+  @IsOptional()
+  city?: string;
+
+  @ApiPropertyOptional({ example: 'Canubing I' })
+  @IsString()
+  @IsOptional()
+  barangay?: string;
 }

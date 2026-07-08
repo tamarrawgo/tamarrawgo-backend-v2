@@ -87,6 +87,8 @@ export class AuthService {
             passwordHash: pending.passwordHash,
             role: UserRole.RIDER,
             status: 'ACTIVE',
+            city: riderDto.city,
+            barangay: riderDto.barangay,
             rider: {
               create: {
                 licenseNumber: riderDto.licenseNumber,
