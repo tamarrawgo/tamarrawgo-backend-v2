@@ -6,7 +6,6 @@ const DOC_TYPES = [
   { key: 'LICENSE', label: "Driver's License", icon: 'badge' },
   { key: 'REGISTRATION', label: 'OR/CR Document', icon: 'description' },
   { key: 'NBI_CLEARANCE', label: 'NBI or Police Clearance', icon: 'verified_user' },
-  { key: 'MEDICAL_CERT', label: 'Medical Certificate', icon: 'medical_services' },
   { key: 'PROFILE_PHOTO', label: 'Your Photo (Selfie)', icon: 'person' },
 ];
 
