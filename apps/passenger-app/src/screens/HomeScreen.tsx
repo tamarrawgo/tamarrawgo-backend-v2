@@ -18,12 +18,10 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 const DRAWER_WIDTH = SCREEN_WIDTH * 0.75;
 
 const GREEN = '#1B6B2F';
-const GREEN_DARK = '#145224';
 const GREEN_LIGHT = '#E8F5E9';
 
 const TRICYCLE_IMG = require('../../assets/tricycle.png');
 const DRIVER_IMG   = require('../../assets/tricycle-driver.png');
-const SMALL_IMG    = require('../../assets/tricycle-small.png');
 
 const QUICK_DESTINATIONS = [
   { name: 'Calapan City',  latitude: 13.4115, longitude: 121.1803 },
@@ -284,18 +282,26 @@ export default function HomeScreen() {
         <View style={{ height: 120 }} />
       </ScrollView>
 
-      {/* BOOK NOW Button */}
+      {/* Service Selector */}
       <View style={styles.bookNowWrapper}>
-        <TouchableOpacity style={styles.bookNowBtn} onPress={() => router.push('/search')}>
-          <Image source={SMALL_IMG} style={styles.bookNowImg} resizeMode="contain" />
-          <View style={styles.bookNowText}>
-            <Text style={styles.bookNowTitle}>BOOK NOW</Text>
-            <Text style={styles.bookNowSub}>Find a tricycle near you</Text>
-          </View>
-          <View style={styles.bookNowArrow}>
-            <MaterialIcons name="arrow-forward" size={22} color={GREEN_DARK} />
-          </View>
-        </TouchableOpacity>
+        <Text style={styles.serviceLabel}>What do you need?</Text>
+        <View style={styles.serviceRow}>
+          <TouchableOpacity style={styles.serviceCard} onPress={() => router.push('/search')}>
+            <Text style={styles.serviceEmoji}>🛺</Text>
+            <Text style={styles.serviceCardTitle}>Ride</Text>
+            <Text style={styles.serviceCardSub}>Book a tricycle</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.serviceCard} onPress={() => router.push('/delivery-booking' as any)}>
+            <Text style={styles.serviceEmoji}>📦</Text>
+            <Text style={styles.serviceCardTitle}>Delivery</Text>
+            <Text style={styles.serviceCardSub}>Send a package</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.serviceCard} onPress={() => router.push('/pabili-booking' as any)}>
+            <Text style={styles.serviceEmoji}>🛒</Text>
+            <Text style={styles.serviceCardTitle}>Pabili</Text>
+            <Text style={styles.serviceCardSub}>Rider buys for you</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       {/* Side Drawer */}
       {drawerOpen && (
@@ -502,16 +508,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingBottom: 24, paddingTop: 10,
     backgroundColor: '#F5F5F5',
   },
-  bookNowBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: GREEN_DARK, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 12,
+  serviceLabel: { fontSize: 13, fontWeight: '700', color: '#555', marginBottom: 8, textAlign: 'center' },
+  serviceRow: { flexDirection: 'row', gap: 8 },
+  serviceCard: {
+    flex: 1, backgroundColor: '#fff', borderRadius: 14, paddingVertical: 12,
+    alignItems: 'center', borderWidth: 1.5, borderColor: '#E0E0E0',
   },
-  bookNowImg: { width: 52, height: 42 },
-  bookNowText: { flex: 1 },
-  bookNowTitle: { fontSize: 20, fontWeight: '900', color: '#fff', letterSpacing: 1 },
-  bookNowSub: { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 1 },
-  bookNowArrow: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center',
-  },
+  serviceEmoji: { fontSize: 26, marginBottom: 4 },
+  serviceCardTitle: { fontSize: 13, fontWeight: '800', color: '#1B6B2F' },
+  serviceCardSub: { fontSize: 10, color: '#999', marginTop: 2, textAlign: 'center' },
 });

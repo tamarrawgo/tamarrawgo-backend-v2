@@ -107,6 +107,17 @@ enum WalletTransactionType {
   DEBIT
 }
 
+enum VehicleType {
+  TRICYCLE
+  DELIVERY
+}
+
+enum BookingType {
+  RIDE
+  DELIVERY
+  PABILI
+}
+
 model User {
   id               String     @id @default(uuid())
   phone            String     @unique
@@ -153,6 +164,7 @@ model RiderProfile {
   promoDebt           Decimal      @default(0) @db.Decimal(10, 2)
   currentLatitude     Float?
   currentLongitude    Float?
+  vehicleType         VehicleType  @default(TRICYCLE)
   currentHeading      Float?
   currentSpeed        Float?
   lastLocationUpdate  DateTime?
@@ -205,6 +217,13 @@ model Booking {
   riderId             String?
   rider               RiderProfile? @relation("RiderBookings", fields: [riderId], references: [id])
   status              BookingStatus @default(SEARCHING)
+  bookingType         BookingType   @default(RIDE)
+  packageDescription  String?
+  recipientName       String?
+  recipientPhone      String?
+  storeAddress        String?
+  shoppingList        String?
+  itemBudget          Decimal?      @db.Decimal(10, 2)
   pickupAddress       String
   pickupLatitude      Float
   pickupLongitude     Float

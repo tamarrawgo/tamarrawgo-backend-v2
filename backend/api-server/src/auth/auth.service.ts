@@ -92,6 +92,7 @@ export class AuthService {
             rider: {
               create: {
                 licenseNumber: riderDto.licenseNumber,
+                vehicleType: (riderDto.vehicleType ?? 'TRICYCLE') as any,
                 status: 'PENDING',
                 vehicle: {
                   create: {

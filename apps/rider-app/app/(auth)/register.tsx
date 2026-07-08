@@ -32,6 +32,7 @@ export default function RiderRegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState<'city' | 'barangay' | null>(null);
+  const [vehicleType, setVehicleType] = useState<'TRICYCLE' | 'DELIVERY'>('TRICYCLE');
   const [form, setForm] = useState({
     firstName: '', lastName: '', phone: '', email: '', password: '',
     licenseNumber: '', plateNumber: '', vehicleBrand: '', vehicleModel: '', vehicleColor: '',
@@ -89,6 +90,7 @@ export default function RiderRegisterScreen() {
         vehicleBrand: form.vehicleBrand.trim() || undefined,
         vehicleModel: form.vehicleModel.trim() || undefined,
         vehicleColor: form.vehicleColor.trim() || undefined,
+        vehicleType,
         city: form.city || undefined,
         barangay: form.barangay || undefined,
       });
@@ -127,6 +129,27 @@ export default function RiderRegisterScreen() {
 
         <Text style={styles.title}>Create Rider Account</Text>
         <Text style={styles.subtitle}>Fill in your details to get started</Text>
+
+        {/* Driver Type */}
+        <Text style={styles.sectionTitle}>Driver Type *</Text>
+        <View style={styles.row}>
+          <TouchableOpacity
+            style={[styles.typeCard, vehicleType === 'TRICYCLE' && styles.typeCardActive, { flex: 1, marginRight: 8 }]}
+            onPress={() => setVehicleType('TRICYCLE')}
+          >
+            <Text style={styles.typeCardEmoji}>🛺</Text>
+            <Text style={[styles.typeCardLabel, vehicleType === 'TRICYCLE' && styles.typeCardLabelActive]}>Tricycle Driver</Text>
+            <Text style={styles.typeCardSub}>Standard rides</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.typeCard, vehicleType === 'DELIVERY' && styles.typeCardActive, { flex: 1 }]}
+            onPress={() => setVehicleType('DELIVERY')}
+          >
+            <Text style={styles.typeCardEmoji}>🏍️</Text>
+            <Text style={[styles.typeCardLabel, vehicleType === 'DELIVERY' && styles.typeCardLabelActive]}>Motorcycle Driver</Text>
+            <Text style={styles.typeCardSub}>Delivery & Pabili</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Name */}
         <View style={styles.row}>
@@ -358,6 +381,15 @@ const styles = StyleSheet.create({
   inputIcon: { marginRight: 8 },
   prefix: { fontSize: 15, color: '#333', fontWeight: '600', marginRight: 4 },
   input: { flex: 1, fontSize: 15, color: '#333' },
+  typeCard: {
+    borderWidth: 1.5, borderColor: '#E0E0E0', borderRadius: 14,
+    padding: 14, alignItems: 'center', marginBottom: 14, backgroundColor: '#FAFAFA',
+  },
+  typeCardActive: { borderColor: GREEN, backgroundColor: GREEN_LIGHT },
+  typeCardEmoji: { fontSize: 28, marginBottom: 4 },
+  typeCardLabel: { fontSize: 13, fontWeight: '700', color: '#555', textAlign: 'center' },
+  typeCardLabelActive: { color: GREEN },
+  typeCardSub: { fontSize: 11, color: '#aaa', marginTop: 2, textAlign: 'center' },
   sectionTitle: { fontSize: 16, fontWeight: '800', color: '#1A1A1A', marginTop: 8, marginBottom: 4 },
   sectionSub: { fontSize: 13, color: '#999', marginBottom: 16 },
   docRow: {

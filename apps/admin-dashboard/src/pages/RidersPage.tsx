@@ -38,6 +38,15 @@ function AddressChip({ city, barangay }: { city?: string; barangay?: string }) {
   );
 }
 
+function VehicleTypeBadge({ vehicleType }: { vehicleType?: string }) {
+  const isDelivery = vehicleType === 'DELIVERY';
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs rounded-full px-2 py-0.5 mt-1 font-semibold ${isDelivery ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+      {isDelivery ? '🏍️ Motorcycle Driver' : '🛺 Tricycle Driver'}
+    </span>
+  );
+}
+
 export default function RidersPage() {
   const [tab, setTab] = useState<'pending' | 'all'>('pending');
 
@@ -163,6 +172,7 @@ export default function RidersPage() {
                       <p className="text-xs text-gray-400">{rider.vehicle.brand} {rider.vehicle.model} · Plate: {rider.vehicle.plateNumber}</p>
                     )}
                     <AddressChip city={rider.user?.city} barangay={rider.user?.barangay} />
+                    <VehicleTypeBadge vehicleType={rider.vehicleType} />
                   </div>
                 </div>
                 <div className="flex items-center gap-3 flex-wrap justify-end">
@@ -399,6 +409,7 @@ export default function RidersPage() {
                         </p>
                         {/* Address */}
                         <AddressChip city={rider.user?.city} barangay={rider.user?.barangay} />
+                        <VehicleTypeBadge vehicleType={rider.vehicleType} />
                       </div>
 
                       {/* Meta */}

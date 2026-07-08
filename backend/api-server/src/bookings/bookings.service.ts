@@ -111,10 +111,13 @@ export class BookingsService {
       ? Math.round(fareEstimate.totalFare * pMultiplier * 100) / 100
       : fareEstimate.totalFare;
 
+    const bookingType = dto.bookingType ?? 'RIDE';
+
     const booking = await this.prisma.booking.create({
       data: {
         passengerId,
         status: 'SEARCHING',
+        bookingType: bookingType as any,
         pickupAddress: dto.pickup.address,
         pickupLatitude: dto.pickup.latitude,
         pickupLongitude: dto.pickup.longitude,
@@ -135,6 +138,12 @@ export class BookingsService {
         paymentMethod: dto.paymentMethod,
         promoCode: dto.promoCode,
         notes: dto.notes,
+        packageDescription: dto.packageDescription,
+        recipientName: dto.recipientName,
+        recipientPhone: dto.recipientPhone,
+        storeAddress: dto.storeAddress,
+        shoppingList: dto.shoppingList,
+        itemBudget: dto.itemBudget,
         expiresAt: new Date(Date.now() + 5 * 60 * 1000),
       },
       include: { passenger: { select: { firstName: true, lastName: true, phone: true } } },
@@ -158,8 +167,13 @@ export class BookingsService {
     });
     if (activeBooking) return [];
 
+    // TRICYCLE riders see RIDE bookings; DELIVERY riders see DELIVERY + PABILI bookings
+    const allowedTypes = (rider as any).vehicleType === 'DELIVERY'
+      ? ['DELIVERY', 'PABILI']
+      : ['RIDE'];
+
     const searching = await this.prisma.booking.findMany({
-      where: { status: 'SEARCHING' },
+      where: { status: 'SEARCHING', bookingType: { in: allowedTypes as any } },
       include: { passenger: { select: { firstName: true, lastName: true, phone: true } } },
       orderBy: { createdAt: 'asc' },
     });
@@ -174,6 +188,7 @@ export class BookingsService {
       })
       .map((b) => ({
         bookingId: b.id,
+        bookingType: (b as any).bookingType ?? 'RIDE',
         passenger: { id: b.passengerId, firstName: b.passenger.firstName, lastName: b.passenger.lastName, rating: 5.0 },
         pickup: { address: b.pickupAddress, latitude: b.pickupLatitude, longitude: b.pickupLongitude },
         dropoff: { address: b.dropoffAddress, latitude: b.dropoffLatitude, longitude: b.dropoffLongitude },
@@ -181,15 +196,26 @@ export class BookingsService {
         discount: Number(b.discount ?? 0),
         distanceKm: b.distanceKm,
         passengerCount: b.passengerCount,
+        packageDescription: (b as any).packageDescription,
+        recipientName: (b as any).recipientName,
+        recipientPhone: (b as any).recipientPhone,
+        storeAddress: (b as any).storeAddress,
+        shoppingList: (b as any).shoppingList,
+        itemBudget: (b as any).itemBudget ? Number((b as any).itemBudget) : undefined,
         expiresAt: b.expiresAt?.getTime() ?? Date.now() + 5 * 60 * 1000,
       }));
   }
 
   private async dispatchToNearbyRiders(booking: any) {
+    // Only dispatch to riders whose vehicleType matches the booking type
+    const bookingType = booking.bookingType ?? 'RIDE';
+    const requiredVehicleType = bookingType === 'RIDE' ? 'TRICYCLE' : 'DELIVERY';
+
     const riders = await this.prisma.riderProfile.findMany({
       where: {
         onlineStatus: 'ONLINE',
         status: 'APPROVED',
+        vehicleType: requiredVehicleType as any,
         currentLatitude: { not: null },
         currentLongitude: { not: null },
         walletBalance: { gte: 100 },
@@ -209,6 +235,7 @@ export class BookingsService {
 
     const payload = {
       bookingId: booking.id,
+      bookingType,
       passenger: {
         id: booking.passengerId,
         firstName: booking.passenger.firstName,
@@ -221,15 +248,27 @@ export class BookingsService {
       discount: Number(booking.discount ?? 0),
       distanceKm: booking.distanceKm,
       passengerCount: booking.passengerCount ?? 1,
+      packageDescription: booking.packageDescription,
+      recipientName: booking.recipientName,
+      recipientPhone: booking.recipientPhone,
+      storeAddress: booking.storeAddress,
+      shoppingList: booking.shoppingList,
+      itemBudget: booking.itemBudget ? Number(booking.itemBudget) : undefined,
       expiresAt: booking.expiresAt?.getTime() ?? Date.now() + 5 * 60 * 1000,
     };
 
     for (const rider of nearby) {
       this.socket.sendBookingRequest(rider.user.id, payload);
       if (rider.user.fcmToken) {
+        const pushTitle = bookingType === 'DELIVERY' ? '📦 Delivery Request!' : bookingType === 'PABILI' ? '🛒 Pabili Request!' : 'New Booking Request!';
+        const pushBody = bookingType === 'DELIVERY'
+          ? `Package: ${booking.packageDescription ?? 'Item'} → ₱${Number(booking.estimatedFare).toFixed(0)}`
+          : bookingType === 'PABILI'
+          ? `Pabili at: ${booking.storeAddress ?? booking.pickupAddress} → ₱${Number(booking.estimatedFare).toFixed(0)}`
+          : `Pickup: ${booking.pickupAddress} → ₱${Number(booking.estimatedFare).toFixed(0)}`;
         await this.notifications.sendPush(rider.user.fcmToken, {
-          title: 'New Booking Request!',
-          body: `Pickup: ${booking.pickupAddress} → ₱${Number(booking.estimatedFare).toFixed(0)}`,
+          title: pushTitle,
+          body: pushBody,
           data: { type: NotificationType.BOOKING_REQUEST, bookingId: booking.id },
         });
       }

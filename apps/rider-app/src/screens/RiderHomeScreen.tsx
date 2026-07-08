@@ -21,13 +21,13 @@ const LOCATION_INTERVAL = 3000;
 export default function RiderHomeScreen() {
   const mapRef = useRef<MapView>(null);
   const locationInterval = useRef<ReturnType<typeof setInterval> | null>(null);
-  const lastKnownLocation = useRef<{ latitude: number; longitude: number } | null>(null);
+  const lastKnownLocation = useRef<{ latitude: number; longitude: number; heading: number } | null>(null);
   const {
     isOnline, bookingRequests, activeBooking,
     setOnline, addBookingRequest, removeBookingRequest, clearBookingRequests, setActiveBooking,
   } = useRiderStore();
   const hasActiveBooking = activeBooking && !['COMPLETED', 'CANCELLED'].includes((activeBooking as any)?.status);
-  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number; heading: number } | null>(null);
   const [summary, setSummary] = useState<{ today: number; totalTrips: number; todayTrips: number; averageRating: number } | null>(null);
   const router = useRouter();
   const { user, logout } = useAuthStore();
@@ -73,10 +73,17 @@ export default function RiderHomeScreen() {
           setActiveBooking({
             bookingId: activeBooking.id,
             status: activeBooking.status,
+            bookingType: activeBooking.bookingType ?? 'RIDE',
             pickup: { address: activeBooking.pickupAddress, latitude: activeBooking.pickupLatitude, longitude: activeBooking.pickupLongitude },
             dropoff: { address: activeBooking.dropoffAddress, latitude: activeBooking.dropoffLatitude, longitude: activeBooking.dropoffLongitude },
             passenger: { firstName: activeBooking.passenger?.firstName, lastName: activeBooking.passenger?.lastName, phone: activeBooking.passenger?.phone },
             estimatedFare: activeBooking.estimatedFare,
+            packageDescription: activeBooking.packageDescription,
+            recipientName: activeBooking.recipientName,
+            recipientPhone: activeBooking.recipientPhone,
+            storeAddress: activeBooking.storeAddress,
+            shoppingList: activeBooking.shoppingList,
+            itemBudget: activeBooking.itemBudget ? Number(activeBooking.itemBudget) : undefined,
           });
           router.replace('/active-trip');
           return;
@@ -90,7 +97,7 @@ export default function RiderHomeScreen() {
       }
       try {
         const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+        const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude, heading: loc.coords.heading ?? 0 };
         lastKnownLocation.current = coords;
         setUserLocation(coords);
         mapRef.current?.animateToRegion({ ...coords, latitudeDelta: 0.01, longitudeDelta: 0.01 }, 1000);
@@ -196,10 +203,10 @@ export default function RiderHomeScreen() {
   const sendLocation = async () => {
     try {
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+      const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude, heading: loc.coords.heading ?? 0 };
       lastKnownLocation.current = coords;
       setUserLocation(coords);
-      await api.post('/riders/location', { ...coords, heading: loc.coords.heading ?? 0, speed: loc.coords.speed ?? 0 });
+      await api.post('/riders/location', { ...coords, speed: loc.coords.speed ?? 0 });
     } catch (err: any) {
       if (err?.statusCode === 401 || err?.status === 401) {
         if (locationInterval.current) { clearInterval(locationInterval.current); locationInterval.current = null; }
@@ -227,39 +234,67 @@ export default function RiderHomeScreen() {
 
   const rejectBooking = (bookingId: string) => removeBookingRequest(bookingId);
 
-  const renderBookingItem = ({ item }: { item: any }) => (
-    <View style={styles.bookingCard}>
-      <View style={styles.bookingInfo}>
-        <MaterialIcons name="location-on" size={16} color="#1B6B2F" />
-        <Text style={styles.bookingAddr} numberOfLines={1}>{item.pickup?.address}</Text>
-      </View>
-      <View style={styles.bookingInfo}>
-        <MaterialIcons name="place" size={16} color="#333" />
-        <Text style={styles.bookingAddr} numberOfLines={1}>{item.dropoff?.address}</Text>
-      </View>
-      {Number(item.discount ?? 0) > 0 && (
-        <View style={styles.promoBadge}>
-          <MaterialIcons name="local-offer" size={14} color="#E65100" />
-          <Text style={styles.promoBadgeText}>🏷 ₱{Number(item.discount).toFixed(0)} Promo Applied · No commission on this trip</Text>
+  const renderBookingItem = ({ item }: { item: any }) => {
+    const bType: string = item.bookingType ?? 'RIDE';
+    const isDelivery = bType === 'DELIVERY';
+    const isPabili = bType === 'PABILI';
+    return (
+      <View style={styles.bookingCard}>
+        {/* Booking type badge */}
+        {(isDelivery || isPabili) && (
+          <View style={[styles.typeBadge, isPabili && styles.typeBadgePabili]}>
+            <Text style={styles.typeBadgeText}>{isDelivery ? '📦 Delivery Request' : '🛒 Pabili Request'}</Text>
+          </View>
+        )}
+        <View style={styles.bookingInfo}>
+          <MaterialIcons name="location-on" size={16} color="#1B6B2F" />
+          <Text style={styles.bookingAddr} numberOfLines={1}>{item.pickup?.address}</Text>
         </View>
-      )}
-      <View style={styles.bookingMeta}>
-        <Text style={styles.bookingFare}>{formatCurrency(item.estimatedFare)}</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text style={styles.bookingDist}>👤 {item.passengerCount ?? 1}</Text>
-          <Text style={styles.bookingDist}>{formatDistance(item.distanceKm)}</Text>
+        <View style={styles.bookingInfo}>
+          <MaterialIcons name="place" size={16} color="#333" />
+          <Text style={styles.bookingAddr} numberOfLines={1}>{item.dropoff?.address}</Text>
+        </View>
+        {/* Delivery-specific details */}
+        {isDelivery && item.packageDescription && (
+          <Text style={styles.bookingDetailText}>📦 {item.packageDescription}</Text>
+        )}
+        {isDelivery && item.recipientName && (
+          <Text style={styles.bookingDetailText}>👤 Recipient: {item.recipientName} · {item.recipientPhone}</Text>
+        )}
+        {/* Pabili-specific details */}
+        {isPabili && item.storeAddress && (
+          <Text style={styles.bookingDetailText}>🏪 Store: {item.storeAddress}</Text>
+        )}
+        {isPabili && item.shoppingList && (
+          <Text style={styles.bookingDetailText} numberOfLines={2}>🛒 {item.shoppingList}</Text>
+        )}
+        {isPabili && item.itemBudget && (
+          <Text style={styles.bookingDetailText}>💰 Budget: ₱{Number(item.itemBudget).toFixed(2)}</Text>
+        )}
+        {Number(item.discount ?? 0) > 0 && (
+          <View style={styles.promoBadge}>
+            <MaterialIcons name="local-offer" size={14} color="#E65100" />
+            <Text style={styles.promoBadgeText}>🏷 ₱{Number(item.discount).toFixed(0)} Promo Applied · No commission on this trip</Text>
+          </View>
+        )}
+        <View style={styles.bookingMeta}>
+          <Text style={styles.bookingFare}>{formatCurrency(item.estimatedFare)}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {!isDelivery && !isPabili && <Text style={styles.bookingDist}>👤 {item.passengerCount ?? 1}</Text>}
+            <Text style={styles.bookingDist}>{formatDistance(item.distanceKm)}</Text>
+          </View>
+        </View>
+        <View style={styles.bookingActions}>
+          <TouchableOpacity style={styles.rejectBtn} onPress={() => rejectBooking(item.bookingId)}>
+            <Text style={styles.rejectText}>Decline</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.acceptBtn} onPress={() => acceptBooking(item.bookingId)}>
+            <Text style={styles.acceptText}>Accept</Text>
+          </TouchableOpacity>
         </View>
       </View>
-      <View style={styles.bookingActions}>
-        <TouchableOpacity style={styles.rejectBtn} onPress={() => rejectBooking(item.bookingId)}>
-          <Text style={styles.rejectText}>Decline</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.acceptBtn} onPress={() => acceptBooking(item.bookingId)}>
-          <Text style={styles.acceptText}>Accept</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -479,6 +514,13 @@ const styles = StyleSheet.create({
   rejectText: { color: '#FF4444', fontWeight: '700' },
   acceptBtn: { flex: 2, backgroundColor: '#1B6B2F', borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
   acceptText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  typeBadge: {
+    alignSelf: 'flex-start', backgroundColor: '#E8F5E9', borderRadius: 8,
+    paddingHorizontal: 10, paddingVertical: 4, marginBottom: 8,
+  },
+  typeBadgePabili: { backgroundColor: '#E3F2FD' },
+  typeBadgeText: { fontSize: 12, fontWeight: '700', color: '#1B6B2F' },
+  bookingDetailText: { fontSize: 12, color: '#555', marginBottom: 3, marginTop: 1 },
   promoBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: '#FFF3E0', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, marginTop: 4,

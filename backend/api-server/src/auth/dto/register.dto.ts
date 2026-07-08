@@ -28,6 +28,11 @@ export class RegisterPassengerDto {
 }
 
 export class RegisterRiderDto extends RegisterPassengerDto {
+  @ApiPropertyOptional({ example: 'TRICYCLE', enum: ['TRICYCLE', 'DELIVERY'] })
+  @IsString()
+  @IsOptional()
+  vehicleType?: 'TRICYCLE' | 'DELIVERY';
+
   @ApiProperty({ example: 'N01-12-345678' })
   @IsString()
   @IsNotEmpty()

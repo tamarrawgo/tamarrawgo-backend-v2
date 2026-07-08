@@ -13,7 +13,7 @@ import * as Location from 'expo-location';
 import * as Speech from 'expo-speech';
 
 const GREEN = '#1B6B2F';
-const TRICYCLE_ICON = require('../../assets/tricycle-icon.png');
+const TRICYCLE_ICON = require('../../assets/tricycleicon.png');
 
 // Decode Google encoded polyline
 function decodePolyline(encoded: string): { latitude: number; longitude: number }[] {
@@ -437,6 +437,24 @@ export default function ActiveTripScreen() {
           <Text style={styles.locationText} numberOfLines={1}>{activeBooking?.dropoff?.address}</Text>
         </View>
 
+        {/* Delivery / Pabili details */}
+        {(activeBooking as any)?.bookingType === 'DELIVERY' && (
+          <View style={styles.deliveryBox}>
+            <Text style={styles.deliveryBoxTitle}>📦 Delivery Details</Text>
+            {(activeBooking as any).packageDescription && <Text style={styles.deliveryBoxRow}>Package: {(activeBooking as any).packageDescription}</Text>}
+            {(activeBooking as any).recipientName && <Text style={styles.deliveryBoxRow}>Recipient: {(activeBooking as any).recipientName}</Text>}
+            {(activeBooking as any).recipientPhone && <Text style={styles.deliveryBoxRow}>Phone: {(activeBooking as any).recipientPhone}</Text>}
+          </View>
+        )}
+        {(activeBooking as any)?.bookingType === 'PABILI' && (
+          <View style={styles.deliveryBox}>
+            <Text style={styles.deliveryBoxTitle}>🛒 Pabili Details</Text>
+            {(activeBooking as any).storeAddress && <Text style={styles.deliveryBoxRow}>Store: {(activeBooking as any).storeAddress}</Text>}
+            {(activeBooking as any).shoppingList && <Text style={styles.deliveryBoxRow}>List: {(activeBooking as any).shoppingList}</Text>}
+            {(activeBooking as any).itemBudget && <Text style={styles.deliveryBoxRow}>Budget: ₱{Number((activeBooking as any).itemBudget).toFixed(2)}</Text>}
+          </View>
+        )}
+
         {/* Navigate */}
         {(status === BookingStatus.ACCEPTED || status === BookingStatus.RIDER_ARRIVED || status === BookingStatus.IN_PROGRESS) && (
           <TouchableOpacity
@@ -578,6 +596,12 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: '#F0F0F0', marginBottom: 12 },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   locationText: { flex: 1, color: '#555', fontSize: 14 },
+  deliveryBox: {
+    backgroundColor: '#F1F8E9', borderRadius: 10, padding: 10, marginBottom: 8,
+    borderLeftWidth: 3, borderLeftColor: '#1B6B2F',
+  },
+  deliveryBoxTitle: { fontSize: 13, fontWeight: '700', color: '#1B6B2F', marginBottom: 4 },
+  deliveryBoxRow: { fontSize: 12, color: '#444', marginBottom: 2 },
   fareRow: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 8 },
   fareLabel: { color: '#666', fontSize: 13 },
   fareAmount: { fontSize: 20, fontWeight: '900', color: GREEN },

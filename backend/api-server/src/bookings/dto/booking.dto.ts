@@ -14,9 +14,18 @@ export class CreateBookingDto {
   @ApiProperty({ type: LocationDto }) @ValidateNested() @Type(() => LocationDto) pickup: LocationDto;
   @ApiProperty({ type: LocationDto }) @ValidateNested() @Type(() => LocationDto) dropoff: LocationDto;
   @ApiProperty({ enum: PaymentMethod }) @IsEnum(PaymentMethod) paymentMethod: PaymentMethod;
+  @ApiPropertyOptional({ enum: ['RIDE', 'DELIVERY', 'PABILI'] }) @IsString() @IsOptional() bookingType?: 'RIDE' | 'DELIVERY' | 'PABILI';
   @ApiPropertyOptional() @IsNumber() @IsOptional() @Min(1) @Max(4) passengerCount?: number;
   @ApiPropertyOptional() @IsString() @IsOptional() promoCode?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() notes?: string;
+  // Delivery fields
+  @ApiPropertyOptional() @IsString() @IsOptional() packageDescription?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() recipientName?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() recipientPhone?: string;
+  // Pabili fields
+  @ApiPropertyOptional() @IsString() @IsOptional() storeAddress?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() shoppingList?: string;
+  @ApiPropertyOptional() @IsNumber() @IsOptional() @Min(0) itemBudget?: number;
 }
 
 export class FareEstimateDto {

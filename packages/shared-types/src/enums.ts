@@ -49,7 +49,14 @@ export enum PaymentStatus {
 }
 
 export enum VehicleType {
-  MOTORCYCLE = 'MOTORCYCLE',
+  TRICYCLE = 'TRICYCLE',
+  DELIVERY = 'DELIVERY',
+}
+
+export enum BookingType {
+  RIDE = 'RIDE',
+  DELIVERY = 'DELIVERY',
+  PABILI = 'PABILI',
 }
 
 export enum DocumentType {
