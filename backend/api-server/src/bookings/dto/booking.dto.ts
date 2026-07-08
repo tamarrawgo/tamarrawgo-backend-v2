@@ -20,6 +20,8 @@ export class CreateBookingDto {
   @ApiPropertyOptional() @IsString() @IsOptional() notes?: string;
   // Delivery fields
   @ApiPropertyOptional() @IsString() @IsOptional() packageDescription?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() pickupContactName?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() pickupContactPhone?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() recipientName?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() recipientPhone?: string;
   // Pabili fields

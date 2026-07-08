@@ -219,6 +219,8 @@ model Booking {
   status              BookingStatus @default(SEARCHING)
   bookingType         BookingType   @default(RIDE)
   packageDescription  String?
+  pickupContactName   String?
+  pickupContactPhone  String?
   recipientName       String?
   recipientPhone      String?
   storeAddress        String?
