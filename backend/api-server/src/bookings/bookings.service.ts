@@ -216,7 +216,7 @@ export class BookingsService {
       .map((b) => ({
         bookingId: b.id,
         bookingType: (b as any).bookingType ?? 'RIDE',
-        passenger: { id: b.passengerId, firstName: b.passenger.firstName, lastName: b.passenger.lastName, rating: 5.0 },
+        passenger: { id: b.passengerId, firstName: b.passenger.firstName, lastName: b.passenger.lastName, phone: b.passenger.phone, rating: 5.0 },
         pickup: { address: b.pickupAddress, latitude: b.pickupLatitude, longitude: b.pickupLongitude },
         dropoff: { address: b.dropoffAddress, latitude: b.dropoffLatitude, longitude: b.dropoffLongitude },
         estimatedFare: Number(b.estimatedFare),
@@ -267,6 +267,7 @@ export class BookingsService {
         id: booking.passengerId,
         firstName: booking.passenger.firstName,
         lastName: booking.passenger.lastName,
+        phone: booking.passenger.phone,
         rating: 5.0,
       },
       pickup: { address: booking.pickupAddress, latitude: booking.pickupLatitude, longitude: booking.pickupLongitude },
