@@ -403,7 +403,7 @@ export default function HomePage() {
             Passenger App
           </a>
           <a
-            href="https://drive.usercontent.google.com/download?id=1dPZRjK60aEjeKVqUyPqL62fwIJKzVLSZ&export=download&authuser=0"
+            href="https://drive.google.com/drive/folders/13rhMUGd4Jf279hgT2NAs_P9VOafl_lo2?usp=drive_link"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-outline"
