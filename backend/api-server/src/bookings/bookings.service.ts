@@ -224,6 +224,8 @@ export class BookingsService {
         distanceKm: b.distanceKm,
         passengerCount: b.passengerCount,
         packageDescription: (b as any).packageDescription,
+        pickupContactName: (b as any).pickupContactName,
+        pickupContactPhone: (b as any).pickupContactPhone,
         recipientName: (b as any).recipientName,
         recipientPhone: (b as any).recipientPhone,
         storeAddress: (b as any).storeAddress,
