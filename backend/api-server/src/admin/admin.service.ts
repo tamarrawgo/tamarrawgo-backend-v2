@@ -135,7 +135,7 @@ export class AdminService {
     return { resetAt: now };
   }
 
-  async getUsers(page = 1, limit = 20, search?: string) {
+  async getUsers(page = 1, limit = 20, search?: string, city?: string) {
     const skip = (page - 1) * limit;
     const conditions: any[] = [
       { role: 'PASSENGER' },
@@ -152,6 +152,9 @@ export class AdminService {
           { email: { contains: search, mode: 'insensitive' } },
         ],
       }];
+    }
+    if (city) {
+      where.city = { contains: city, mode: 'insensitive' };
     }
 
     const [users, total] = await Promise.all([

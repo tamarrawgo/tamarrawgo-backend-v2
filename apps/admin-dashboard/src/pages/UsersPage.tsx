@@ -15,6 +15,7 @@ type RoleFilter = 'ALL' | 'RIDER' | 'PASSENGER';
 
 export default function UsersPage() {
   const [search, setSearch] = useState('');
+  const [cityFilter, setCityFilter] = useState('');
   const [page, setPage] = useState(1);
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
   const [selectedUser, setSelectedUser] = useState<any>(null);
@@ -22,8 +23,13 @@ export default function UsersPage() {
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: ['users', page, search],
-    queryFn: () => api.get(`/admin/users?page=${page}&limit=20&search=${search}`),
+    queryKey: ['users', page, search, cityFilter],
+    queryFn: () => {
+      const params = new URLSearchParams({ page: String(page), limit: '20' });
+      if (search) params.set('search', search);
+      if (cityFilter) params.set('city', cityFilter);
+      return api.get(`/admin/users?${params}`);
+    },
     placeholderData: (prev) => prev,
   });
 
@@ -83,12 +89,20 @@ export default function UsersPage() {
           <h1 className="text-3xl font-black text-gray-900">Users</h1>
           <p className="text-gray-500 mt-1">{filteredUsers.length} of {data?.total ?? 0} total users</p>
         </div>
-        <input
-          className="input w-72"
-          placeholder="Search by name, phone, email..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-        />
+        <div className="flex gap-2">
+          <input
+            className="input w-64"
+            placeholder="Search by name, phone, email..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          />
+          <input
+            className="input w-44"
+            placeholder="Filter by city..."
+            value={cityFilter}
+            onChange={(e) => { setCityFilter(e.target.value); setPage(1); }}
+          />
+        </div>
       </div>
 
       <div className="flex gap-2 mb-6">
