@@ -394,7 +394,7 @@ export default function HomePage() {
         <p className="text-gray-500 max-w-lg mx-auto mb-10">Available for Android. Get the app and start booking rides today.</p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <a
-            href="https://drive.google.com/drive/folders/1lWPexJ-1XAL7KuGRI-4-Hlqs7mOpSvGa?usp=drive_link"
+            href="https://drive.google.com/file/d/12Ey1iFGuQ4cHMWjjJ3noSkRpmUhRx6hS/view?usp=drive_link"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-primary"
@@ -403,7 +403,7 @@ export default function HomePage() {
             Passenger App
           </a>
           <a
-            href="https://drive.google.com/drive/folders/13rhMUGd4Jf279hgT2NAs_P9VOafl_lo2?usp=drive_link"
+            href="https://drive.google.com/file/d/1x-O7v7BWfTKndvJDzmmfMItxOHDWYw_B/view?usp=drive_link"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-outline"
