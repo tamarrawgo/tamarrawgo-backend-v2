@@ -227,6 +227,18 @@ export default function UsersPage() {
                     <p className="text-gray-400">User ID</p>
                     <p className="font-semibold text-xs text-gray-500">{selectedUser.id?.slice(0, 8)}...</p>
                   </div>
+                  {selectedUser.city && (
+                    <div>
+                      <p className="text-gray-400">City</p>
+                      <p className="font-semibold">{selectedUser.city}</p>
+                    </div>
+                  )}
+                  {selectedUser.barangay && (
+                    <div>
+                      <p className="text-gray-400">Barangay</p>
+                      <p className="font-semibold">{selectedUser.barangay}</p>
+                    </div>
+                  )}
                 </div>
               </div>
 

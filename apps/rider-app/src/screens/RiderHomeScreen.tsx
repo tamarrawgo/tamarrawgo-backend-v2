@@ -79,6 +79,8 @@ export default function RiderHomeScreen() {
             passenger: { firstName: activeBooking.passenger?.firstName, lastName: activeBooking.passenger?.lastName, phone: activeBooking.passenger?.phone },
             estimatedFare: activeBooking.estimatedFare,
             packageDescription: activeBooking.packageDescription,
+            pickupContactName: activeBooking.pickupContactName,
+            pickupContactPhone: activeBooking.pickupContactPhone,
             recipientName: activeBooking.recipientName,
             recipientPhone: activeBooking.recipientPhone,
             storeAddress: activeBooking.storeAddress,
@@ -261,15 +263,27 @@ export default function RiderHomeScreen() {
         {isDelivery && item.recipientName && (
           <Text style={styles.bookingDetailText}>👤 Recipient: {item.recipientName} · {item.recipientPhone}</Text>
         )}
+        {isDelivery && item.notes && (
+          <Text style={styles.bookingDetailText}>📝 Note: {item.notes}</Text>
+        )}
         {/* Pabili-specific details */}
         {isPabili && item.storeAddress && (
           <Text style={styles.bookingDetailText}>🏪 Store: {item.storeAddress}</Text>
+        )}
+        {isPabili && item.pickupContactName && (
+          <Text style={styles.bookingDetailText}>👤 Store Contact: {item.pickupContactName} · {item.pickupContactPhone}</Text>
         )}
         {isPabili && item.shoppingList && (
           <Text style={styles.bookingDetailText} numberOfLines={2}>🛒 {item.shoppingList}</Text>
         )}
         {isPabili && item.itemBudget && (
           <Text style={styles.bookingDetailText}>💰 Budget: ₱{Number(item.itemBudget).toFixed(2)}</Text>
+        )}
+        {isPabili && item.recipientName && (
+          <Text style={styles.bookingDetailText}>🏠 Deliver to: {item.recipientName} · {item.recipientPhone}</Text>
+        )}
+        {isPabili && item.notes && (
+          <Text style={styles.bookingDetailText}>📝 Note: {item.notes}</Text>
         )}
         {Number(item.discount ?? 0) > 0 && (
           <View style={styles.promoBadge}>
