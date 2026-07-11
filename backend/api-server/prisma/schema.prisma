@@ -207,6 +207,7 @@ model RiderDocument {
   verifiedAt DateTime?
   createdAt DateTime     @default(now())
 
+  @@unique([riderId, type])
   @@map("rider_documents")
 }
 

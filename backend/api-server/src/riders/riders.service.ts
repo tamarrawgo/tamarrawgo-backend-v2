@@ -168,8 +168,10 @@ export class RidersService implements OnModuleInit {
     if (rider.status === 'APPROVED') {
       throw new ForbiddenException('Documents cannot be changed after account approval');
     }
-    return this.prisma.riderDocument.create({
-      data: { riderId: rider.id, type: dto.type as any, fileUrl: dto.fileUrl },
+    return this.prisma.riderDocument.upsert({
+      where: { riderId_type: { riderId: rider.id, type: dto.type as any } },
+      update: { fileUrl: dto.fileUrl, verified: false },
+      create: { riderId: rider.id, type: dto.type as any, fileUrl: dto.fileUrl },
     });
   }
 
