@@ -9,6 +9,8 @@ import {
   MessageBody,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { createAdapter } from '@socket.io/redis-adapter';
+import { createClient } from 'redis';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
@@ -32,8 +34,21 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     private config: ConfigService,
   ) {}
 
-  afterInit(server: Server) {
-    this.logger.log('Socket.IO Gateway initialized');
+  async afterInit(server: Server) {
+    const redisUrl = this.config.get<string>('REDIS_URL');
+    if (redisUrl) {
+      try {
+        const pubClient = createClient({ url: redisUrl });
+        const subClient = pubClient.duplicate();
+        await Promise.all([pubClient.connect(), subClient.connect()]);
+        server.adapter(createAdapter(pubClient, subClient));
+        this.logger.log('Socket.IO Redis adapter connected');
+      } catch (err) {
+        this.logger.warn(`Redis adapter failed, running single-instance: ${err}`);
+      }
+    } else {
+      this.logger.log('No REDIS_URL — running without Redis adapter');
+    }
   }
 
   async handleConnection(client: Socket) {
