@@ -18,6 +18,11 @@ const GREEN = '#1B6B2F';
 
 const LOCATION_INTERVAL = 3000;
 
+// Mindoro island bounding box
+const MINDORO = { minLat: 11.9, maxLat: 13.6, minLng: 120.5, maxLng: 121.8 };
+const isInMindoro = (lat: number, lng: number) =>
+  lat >= MINDORO.minLat && lat <= MINDORO.maxLat && lng >= MINDORO.minLng && lng <= MINDORO.maxLng;
+
 export default function RiderHomeScreen() {
   const mapRef = useRef<MapView>(null);
   const locationInterval = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -185,6 +190,23 @@ export default function RiderHomeScreen() {
   };
 
   const toggleOnline = useCallback(async (value: boolean) => {
+    if (value) {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Location Required', 'Enable location permission to go online.');
+          return;
+        }
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        if (!isInMindoro(loc.coords.latitude, loc.coords.longitude)) {
+          Alert.alert('Outside Service Area', 'TamarrawGo is only available in Mindoro. You cannot go online outside the island.');
+          return;
+        }
+      } catch {
+        Alert.alert('Location Error', 'Unable to verify your location. Please enable GPS and try again.');
+        return;
+      }
+    }
     try {
       await api.post('/riders/status', { status: value ? 'ONLINE' : 'OFFLINE' });
       setOnline(value);

@@ -18,6 +18,21 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 const DRAWER_WIDTH = SCREEN_WIDTH * 0.75;
 
 const GREEN = '#1B6B2F';
+
+const MINDORO = { minLat: 11.9, maxLat: 13.6, minLng: 120.5, maxLng: 121.8 };
+const isInMindoro = (lat: number, lng: number) =>
+  lat >= MINDORO.minLat && lat <= MINDORO.maxLat && lng >= MINDORO.minLng && lng <= MINDORO.maxLng;
+
+async function checkMindoroLocation(): Promise<boolean> {
+  try {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') return true; // don't block if permission denied
+    const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    return isInMindoro(loc.coords.latitude, loc.coords.longitude);
+  } catch {
+    return true; // don't block on GPS failure
+  }
+}
 const GREEN_LIGHT = '#E8F5E9';
 
 const TRICYCLE_IMG = require('../../assets/tricycle.png');
@@ -221,7 +236,10 @@ export default function HomeScreen() {
         </View>
 
         {/* Search Bar */}
-        <TouchableOpacity style={styles.searchBar} onPress={() => router.push('/search')}>
+        <TouchableOpacity style={styles.searchBar} onPress={async () => {
+          if (!await checkMindoroLocation()) { Alert.alert('Outside Service Area', 'TamarrawGo is only available in Mindoro.'); return; }
+          router.push('/search');
+        }}>
           <MaterialIcons name="search" size={22} color="#888" />
           <Text style={styles.searchText}>Enter destination</Text>
           <View style={styles.searchCircle}>
@@ -286,17 +304,26 @@ export default function HomeScreen() {
       <View style={styles.bookNowWrapper}>
         <Text style={styles.serviceLabel}>What do you need?</Text>
         <View style={styles.serviceRow}>
-          <TouchableOpacity style={styles.serviceCard} onPress={() => router.push('/search')}>
+          <TouchableOpacity style={styles.serviceCard} onPress={async () => {
+            if (!await checkMindoroLocation()) { Alert.alert('Outside Service Area', 'TamarrawGo is only available in Mindoro.'); return; }
+            router.push('/search');
+          }}>
             <Text style={styles.serviceEmoji}>🛺</Text>
             <Text style={styles.serviceCardTitle}>Ride</Text>
             <Text style={styles.serviceCardSub}>Book a tricycle</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.serviceCard} onPress={() => router.push('/delivery-booking' as any)}>
+          <TouchableOpacity style={styles.serviceCard} onPress={async () => {
+            if (!await checkMindoroLocation()) { Alert.alert('Outside Service Area', 'TamarrawGo is only available in Mindoro.'); return; }
+            router.push('/delivery-booking' as any);
+          }}>
             <Text style={styles.serviceEmoji}>📦</Text>
             <Text style={styles.serviceCardTitle}>Delivery</Text>
             <Text style={styles.serviceCardSub}>Send a package</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.serviceCard} onPress={() => router.push('/pabili-booking' as any)}>
+          <TouchableOpacity style={styles.serviceCard} onPress={async () => {
+            if (!await checkMindoroLocation()) { Alert.alert('Outside Service Area', 'TamarrawGo is only available in Mindoro.'); return; }
+            router.push('/pabili-booking' as any);
+          }}>
             <Text style={styles.serviceEmoji}>🛒</Text>
             <Text style={styles.serviceCardTitle}>Pabili</Text>
             <Text style={styles.serviceCardSub}>Rider buys for you</Text>
