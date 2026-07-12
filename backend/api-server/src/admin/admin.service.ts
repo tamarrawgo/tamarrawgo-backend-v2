@@ -180,6 +180,35 @@ export class AdminService {
     return { data: users, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
+  async updateUserProfile(id: string, dto: { firstName?: string; lastName?: string; phone?: string; email?: string; city?: string; barangay?: string }, adminId?: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const updateData: any = {};
+    if (dto.firstName?.trim()) updateData.firstName = dto.firstName.trim();
+    if (dto.lastName?.trim()) updateData.lastName = dto.lastName.trim();
+    if (dto.phone?.trim()) updateData.phone = dto.phone.trim();
+    if (dto.email !== undefined) updateData.email = dto.email?.trim() || null;
+    if (dto.city !== undefined) updateData.city = dto.city?.trim() || null;
+    if (dto.barangay !== undefined) updateData.barangay = dto.barangay?.trim() || null;
+
+    try {
+      const updated = await this.prisma.user.update({
+        where: { id },
+        data: updateData,
+        select: { id: true, firstName: true, lastName: true, phone: true, email: true, city: true, barangay: true, role: true, status: true },
+      });
+      await this.logAction(adminId, 'UPDATE_USER_PROFILE', 'user', id, { name: `${user.firstName} ${user.lastName}`, changes: updateData });
+      return { message: 'Profile updated', user: updated };
+    } catch (err: any) {
+      if (err.code === 'P2002') {
+        const field = err.meta?.target?.[0] ?? 'field';
+        throw new BadRequestException(`${field} is already in use by another account`);
+      }
+      throw err;
+    }
+  }
+
   private async logAction(adminId: string | undefined, action: string, entity: string, entityId?: string, details?: any) {
     try {
       await this.prisma.auditLog.create({

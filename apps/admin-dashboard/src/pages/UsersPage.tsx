@@ -20,6 +20,8 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [previewImg, setPreviewImg] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [editForm, setEditForm] = useState({ firstName: '', lastName: '', phone: '', email: '', city: '', barangay: '' });
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -60,6 +62,29 @@ export default function UsersPage() {
       api.post(`/admin/riders/${riderId}/topup`, { amount }),
     onSuccess: () => { qc.refetchQueries({ queryKey: ['users'] }); },
   });
+
+  const updateUser = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => api.patch(`/admin/users/${id}`, data),
+    onSuccess: (res: any) => {
+      const updated = res.user ?? res;
+      setSelectedUser((prev: any) => ({ ...prev, ...updated }));
+      setEditMode(false);
+      qc.refetchQueries({ queryKey: ['users'] });
+    },
+    onError: (err: any) => { alert(err?.message ?? 'Failed to update profile'); },
+  });
+
+  const startEdit = () => {
+    setEditForm({
+      firstName: selectedUser?.firstName ?? '',
+      lastName: selectedUser?.lastName ?? '',
+      phone: selectedUser?.phone ?? '',
+      email: selectedUser?.email ?? '',
+      city: selectedUser?.city ?? '',
+      barangay: selectedUser?.barangay ?? '',
+    });
+    setEditMode(true);
+  };
 
   const handleTopup = (rider: any) => {
     const input = window.prompt(`Add topup balance for ${selectedUser?.firstName} ${selectedUser?.lastName}\nCurrent balance: ₱${Number(rider?.walletBalance ?? 0).toFixed(2)}\n\nEnter amount (₱):`);
@@ -141,7 +166,7 @@ export default function UsersPage() {
               <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4">
                   <button
-                    onClick={() => setSelectedUser(user)}
+                    onClick={() => { setSelectedUser(user); setEditMode(false); }}
                     className="font-medium text-primary hover:underline text-left"
                   >
                     {user.firstName} {user.lastName}
@@ -184,14 +209,19 @@ export default function UsersPage() {
       {selectedUser && (
         <div className="fixed inset-0 z-50 flex">
           {/* Overlay */}
-          <div className="flex-1 bg-black bg-opacity-40" onClick={() => setSelectedUser(null)} />
+          <div className="flex-1 bg-black bg-opacity-40" onClick={() => { setSelectedUser(null); setEditMode(false); }} />
 
           {/* Drawer */}
           <div className="w-full max-w-lg bg-white h-full overflow-y-auto shadow-2xl">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white z-10">
-              <h2 className="text-xl font-black text-gray-900">User Profile</h2>
-              <button onClick={() => setSelectedUser(null)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 font-bold">✕</button>
+              <h2 className="text-xl font-black text-gray-900">{editMode ? 'Edit Profile' : 'User Profile'}</h2>
+              <div className="flex items-center gap-2">
+                {!editMode && selectedUser.role !== 'ADMIN' && (
+                  <button onClick={startEdit} className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium">✏️ Edit</button>
+                )}
+                <button onClick={() => { setSelectedUser(null); setEditMode(false); }} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 font-bold">✕</button>
+              </div>
             </div>
 
             <div className="p-6 space-y-6">
@@ -212,8 +242,15 @@ export default function UsersPage() {
                     </div>
                   );
                 })()}
-                <div>
-                  <h3 className="text-2xl font-black text-gray-900">{selectedUser.firstName} {selectedUser.lastName}</h3>
+                <div className="flex-1">
+                  {editMode ? (
+                    <div className="flex gap-2 mb-1">
+                      <input className="input flex-1 text-sm font-bold" value={editForm.firstName} onChange={e => setEditForm(f => ({ ...f, firstName: e.target.value }))} placeholder="First Name" />
+                      <input className="input flex-1 text-sm font-bold" value={editForm.lastName} onChange={e => setEditForm(f => ({ ...f, lastName: e.target.value }))} placeholder="Last Name" />
+                    </div>
+                  ) : (
+                    <h3 className="text-2xl font-black text-gray-900">{selectedUser.firstName} {selectedUser.lastName}</h3>
+                  )}
                   <div className="flex items-center gap-2 mt-1">
                     <span className="badge badge-blue">{selectedUser.role}</span>
                     {statusBadge(selectedUser.status)}
@@ -224,36 +261,57 @@ export default function UsersPage() {
               {/* Contact Info */}
               <div className="card bg-gray-50 space-y-3">
                 <h4 className="font-bold text-gray-700">Contact Information</h4>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <p className="text-gray-400">Phone</p>
-                    <p className="font-semibold">{selectedUser.phone}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400">Email</p>
-                    <p className="font-semibold">{selectedUser.email ?? '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400">Joined</p>
-                    <p className="font-semibold">{new Date(selectedUser.createdAt).toLocaleDateString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400">User ID</p>
-                    <p className="font-semibold text-xs text-gray-500">{selectedUser.id?.slice(0, 8)}...</p>
-                  </div>
-                  {selectedUser.city && (
+                {editMode ? (
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-gray-400">City</p>
-                      <p className="font-semibold">{selectedUser.city}</p>
+                      <p className="text-xs text-gray-400 mb-1">Phone</p>
+                      <input className="input w-full text-sm" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} placeholder="Phone number" />
                     </div>
-                  )}
-                  {selectedUser.barangay && (
                     <div>
-                      <p className="text-gray-400">Barangay</p>
-                      <p className="font-semibold">{selectedUser.barangay}</p>
+                      <p className="text-xs text-gray-400 mb-1">Email</p>
+                      <input className="input w-full text-sm" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} placeholder="Email (optional)" />
                     </div>
-                  )}
-                </div>
+                    <div>
+                      <p className="text-xs text-gray-400 mb-1">City</p>
+                      <input className="input w-full text-sm" value={editForm.city} onChange={e => setEditForm(f => ({ ...f, city: e.target.value }))} placeholder="City" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400 mb-1">Barangay</p>
+                      <input className="input w-full text-sm" value={editForm.barangay} onChange={e => setEditForm(f => ({ ...f, barangay: e.target.value }))} placeholder="Barangay" />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-gray-400">Phone</p>
+                      <p className="font-semibold">{selectedUser.phone}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400">Email</p>
+                      <p className="font-semibold">{selectedUser.email ?? '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400">Joined</p>
+                      <p className="font-semibold">{new Date(selectedUser.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400">User ID</p>
+                      <p className="font-semibold text-xs text-gray-500">{selectedUser.id?.slice(0, 8)}...</p>
+                    </div>
+                    {selectedUser.city && (
+                      <div>
+                        <p className="text-gray-400">City</p>
+                        <p className="font-semibold">{selectedUser.city}</p>
+                      </div>
+                    )}
+                    {selectedUser.barangay && (
+                      <div>
+                        <p className="text-gray-400">Barangay</p>
+                        <p className="font-semibold">{selectedUser.barangay}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Rider-specific info */}
@@ -339,6 +397,19 @@ export default function UsersPage() {
               {/* Action Buttons — hidden for Super Admin */}
               {selectedUser.role === 'ADMIN' ? (
                 <div className="mt-2 text-center text-sm text-gray-400 py-2">Super Admin account is protected</div>
+              ) : editMode ? (
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => updateUser.mutate({ id: selectedUser.id, data: editForm })}
+                    disabled={updateUser.isPending}
+                    className="flex-1 bg-primary text-white py-2.5 rounded-xl font-semibold hover:bg-primary-600 text-sm disabled:opacity-50"
+                  >
+                    {updateUser.isPending ? 'Saving...' : '💾 Save Changes'}
+                  </button>
+                  <button onClick={() => setEditMode(false)} className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl font-semibold hover:bg-gray-50 text-sm">
+                    Cancel
+                  </button>
+                </div>
               ) : (
               <>
               <div className="flex gap-3 pt-2">

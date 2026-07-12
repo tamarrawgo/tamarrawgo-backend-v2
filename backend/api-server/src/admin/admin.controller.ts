@@ -14,6 +14,15 @@ class RejectRiderDto {
   @ApiPropertyOptional() @IsString() @IsOptional() reason?: string;
 }
 
+class UpdateUserDto {
+  @ApiPropertyOptional() @IsString() @IsOptional() firstName?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() lastName?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() phone?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() email?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() city?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() barangay?: string;
+}
+
 class UpdateFareDto {
   @ApiPropertyOptional() @IsNumber() @IsOptional() baseFare?: number;
   @ApiPropertyOptional() @IsNumber() @IsOptional() ratePerKm?: number;
@@ -58,6 +67,12 @@ export class AdminController {
   @ApiOperation({ summary: 'List all users' })
   getUsers(@Query('page') page = 1, @Query('limit') limit = 20, @Query('search') search?: string, @Query('city') city?: string) {
     return this.admin.getUsers(+page, +limit, search, city);
+  }
+
+  @Patch('users/:id')
+  @ApiOperation({ summary: 'Admin edit user profile details' })
+  updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto, @Request() req: any) {
+    return this.admin.updateUserProfile(id, dto, req.user?.sub);
   }
 
   @Patch('users/:id/reset-password')
