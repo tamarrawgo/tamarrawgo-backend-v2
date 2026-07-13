@@ -5,20 +5,23 @@ import {
   Platform, FlatList, Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { api } from '../src/services/api';
 import { useBookingStore } from '../src/store/booking.store';
 import { formatCurrency } from '@tamarrawgo/shared-utils';
+import { getLocationPickerResult, clearLocationPickerResult } from '../src/store/locationPicker';
 
 const GREEN = '#1B6B2F';
+const GREEN_LIGHT = '#E8F5E9';
 const BLUE_LIGHT = '#E3F2FD';
 
 type Coords = { address: string; latitude: number; longitude: number };
 
 export default function PabiliBookingScreen() {
   const router = useRouter();
-  const { setActiveBooking } = useBookingStore();
+  const { setActiveBooking, setPickup: setStorePickup, setDropoff: setStoreDropoff } = useBookingStore();
 
   const [storeLocation, setStoreLocation] = useState<Coords | null>(null);
   const [deliveryLocation, setDeliveryLocation] = useState<Coords | null>(null);
@@ -29,8 +32,14 @@ export default function PabiliBookingScreen() {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [detectingLocation, setDetectingLocation] = useState(false);
 
+  const [storeContactName, setStoreContactName] = useState('');
+  const [storeContactPhone, setStoreContactPhone] = useState('');
+  const [recipientName, setRecipientName] = useState('');
+  const [recipientPhone, setRecipientPhone] = useState('');
+
   const [shoppingList, setShoppingList] = useState('');
   const [itemBudget, setItemBudget] = useState('');
+  const [driverNotes, setDriverNotes] = useState('');
 
   const [fareEstimate, setFareEstimate] = useState<any>(null);
   const [loadingEstimate, setLoadingEstimate] = useState(false);
@@ -42,6 +51,26 @@ export default function PabiliBookingScreen() {
   useEffect(() => {
     detectCurrentLocation();
   }, []);
+
+  // Read result back from location picker on focus return
+  useFocusEffect(useCallback(() => {
+    const result = getLocationPickerResult();
+    if (result) {
+      const coords = { address: result.address, latitude: result.latitude, longitude: result.longitude };
+      if (result.field === 'store') {
+        setStoreLocation(coords);
+        setStoreText(result.address);
+        if (result.contactName) setStoreContactName(result.contactName);
+        if (result.contactPhone) setStoreContactPhone(result.contactPhone.replace(/^(\+63|0)/, '0'));
+      } else {
+        setDeliveryLocation(coords);
+        setDeliveryText(result.address);
+        if (result.contactName) setRecipientName(result.contactName);
+        if (result.contactPhone) setRecipientPhone(result.contactPhone.replace(/^(\+63|0)/, '0'));
+      }
+      clearLocationPickerResult();
+    }
+  }, []));
 
   const detectCurrentLocation = async () => {
     setDetectingLocation(true);
@@ -55,7 +84,7 @@ export default function PabiliBookingScreen() {
         setDeliveryLocation(coords);
         setDeliveryText(coords.address);
       }
-    } catch { /* ignore */ }
+    } catch { }
     finally { setDetectingLocation(false); }
   };
 
@@ -82,23 +111,37 @@ export default function PabiliBookingScreen() {
     setSuggestions([]);
     try {
       const geo = await api.get(`/maps/geocode?address=${encodeURIComponent(address)}`) as any;
-      const coords = { latitude: geo?.lat ?? geo?.latitude ?? 0, longitude: geo?.lng ?? geo?.longitude ?? 0, address };
-      if (activeField === 'store') { setStoreLocation(coords); setStoreText(address); }
-      else { setDeliveryLocation(coords); setDeliveryText(address); }
+      const lat = geo?.lat ?? geo?.latitude ?? 0;
+      const lng = geo?.lng ?? geo?.longitude ?? 0;
+      const field = activeField ?? 'delivery';
+      setActiveField(null);
+      router.push(`/location-picker?lat=${lat}&lng=${lng}&address=${encodeURIComponent(address)}&field=${field}` as any);
     } catch {
-      if (activeField === 'store') setStoreText(address);
-      else { setDeliveryText(address); setDeliveryLocation({ latitude: 0, longitude: 0, address }); }
+      setActiveField(null);
     }
+  };
+
+  const openStorePicker = () => {
+    setSuggestions([]);
     setActiveField(null);
+    const lat = storeLocation?.latitude ?? 12.8797;
+    const lng = storeLocation?.longitude ?? 121.7740;
+    const addr = storeText || '';
+    router.push(`/location-picker?lat=${lat}&lng=${lng}&address=${encodeURIComponent(addr)}&field=store` as any);
+  };
+
+  const openDeliveryPicker = () => {
+    setSuggestions([]);
+    setActiveField(null);
+    const lat = deliveryLocation?.latitude ?? storeLocation?.latitude ?? 12.8797;
+    const lng = deliveryLocation?.longitude ?? storeLocation?.longitude ?? 121.7740;
+    const addr = deliveryText || '';
+    router.push(`/location-picker?lat=${lat}&lng=${lng}&address=${encodeURIComponent(addr)}&field=delivery` as any);
   };
 
   const handleEstimate = async () => {
     if (!storeLocation) { Alert.alert('Required', 'Please select the store location.'); return; }
     if (!deliveryLocation) { Alert.alert('Required', 'Please set your delivery address.'); return; }
-    if (!shoppingList.trim()) { Alert.alert('Required', 'Please enter your shopping list.'); return; }
-    const budget = parseFloat(itemBudget);
-    if (!itemBudget || isNaN(budget) || budget <= 0) { Alert.alert('Required', 'Please enter a valid item budget.'); return; }
-
     setLoadingEstimate(true);
     try {
       const result = await api.post('/bookings/estimate', {
@@ -115,6 +158,15 @@ export default function PabiliBookingScreen() {
 
   const handleBook = async () => {
     if (!storeLocation || !deliveryLocation) return;
+    if (!shoppingList.trim()) {
+      Alert.alert('Required', 'Please enter your shopping list before booking.');
+      return;
+    }
+    const budget = parseFloat(itemBudget);
+    if (!itemBudget || isNaN(budget) || budget <= 0) {
+      Alert.alert('Required', 'Please enter a valid item budget before booking.');
+      return;
+    }
     setBooking(true);
     try {
       const result = await api.post('/bookings', {
@@ -123,10 +175,17 @@ export default function PabiliBookingScreen() {
         paymentMethod: 'CASH',
         bookingType: 'PABILI',
         storeAddress: storeLocation.address,
+        pickupContactName: storeContactName.trim() || undefined,
+        pickupContactPhone: storeContactPhone.trim() || undefined,
+        recipientName: recipientName.trim() || undefined,
+        recipientPhone: recipientPhone.trim() || undefined,
         shoppingList: shoppingList.trim(),
-        itemBudget: parseFloat(itemBudget),
+        itemBudget: budget,
+        notes: driverNotes.trim() || undefined,
       }) as any;
       setActiveBooking(result);
+      if (storeLocation) setStorePickup(storeLocation);
+      if (deliveryLocation) setStoreDropoff(deliveryLocation);
       setShowFareModal(false);
       router.replace('/searching');
     } catch (err: any) {
@@ -139,7 +198,6 @@ export default function PabiliBookingScreen() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#F8F8F8' }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <MaterialIcons name="arrow-back" size={24} color="#333" />
@@ -148,6 +206,7 @@ export default function PabiliBookingScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+
         {/* Store location */}
         <Text style={styles.sectionTitle}>Store / Market Location</Text>
         <View style={styles.inputRow}>
@@ -157,12 +216,26 @@ export default function PabiliBookingScreen() {
             placeholder="Where should the rider go to buy?"
             value={storeText}
             onChangeText={(t) => handleTextChange(t, 'store')}
-            onFocus={() => setActiveField('store')}
+            onFocus={() => { setSuggestions([]); setActiveField('store'); }}
             placeholderTextColor="#aaa"
           />
+          <TouchableOpacity onPress={openStorePicker}>
+            <MaterialIcons name="map" size={20} color={GREEN} />
+          </TouchableOpacity>
         </View>
+        {(storeContactName || storeContactPhone) ? (
+          <View style={styles.contactRow}>
+            <MaterialIcons name="person" size={15} color="#1565C0" />
+            <Text style={styles.contactText}>
+              {storeContactName}{storeContactName && storeContactPhone ? '  ·  ' : ''}{storeContactPhone}
+            </Text>
+            <TouchableOpacity onPress={openStorePicker}>
+              <Text style={styles.contactEdit}>Edit</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
-        {/* Delivery location */}
+        {/* Delivery address */}
         <Text style={styles.sectionTitle}>Your Delivery Address</Text>
         <View style={styles.inputRow}>
           <MaterialIcons name="home" size={20} color={GREEN} style={styles.inputIcon} />
@@ -171,17 +244,33 @@ export default function PabiliBookingScreen() {
             placeholder="Where should items be delivered?"
             value={deliveryText}
             onChangeText={(t) => handleTextChange(t, 'delivery')}
-            onFocus={() => setActiveField('delivery')}
+            onFocus={() => { setSuggestions([]); setActiveField('delivery'); }}
             placeholderTextColor="#aaa"
           />
           {detectingLocation
             ? <ActivityIndicator size="small" color={GREEN} />
-            : <TouchableOpacity onPress={detectCurrentLocation}>
-                <MaterialIcons name="my-location" size={20} color={GREEN} />
-              </TouchableOpacity>}
+            : <>
+                <TouchableOpacity onPress={detectCurrentLocation} style={{ marginRight: 8 }}>
+                  <MaterialIcons name="my-location" size={20} color={GREEN} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={openDeliveryPicker}>
+                  <MaterialIcons name="map" size={20} color={GREEN} />
+                </TouchableOpacity>
+              </>}
         </View>
+        {(recipientName || recipientPhone) ? (
+          <View style={styles.contactRow}>
+            <MaterialIcons name="person" size={15} color={GREEN} />
+            <Text style={styles.contactText}>
+              {recipientName}{recipientName && recipientPhone ? '  ·  ' : ''}{recipientPhone}
+            </Text>
+            <TouchableOpacity onPress={openDeliveryPicker}>
+              <Text style={styles.contactEdit}>Edit</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
-        {/* Suggestions */}
+        {/* Autocomplete suggestions */}
         {showingSuggestions && (
           <View style={styles.suggestionsBox}>
             {loadingSuggestions
@@ -203,10 +292,10 @@ export default function PabiliBookingScreen() {
         )}
 
         {/* Shopping list */}
-        <Text style={styles.sectionTitle}>Shopping List</Text>
+        <Text style={styles.sectionTitle}>Shopping List <Text style={styles.required}>*</Text></Text>
         <TextInput
           style={[styles.inputRow, styles.multiline]}
-          placeholder={'e.g.\n- 1 kilo rice\n- 2 cans sardines\n- 1 bottle cooking oil'}
+          placeholder={'What should the rider buy?\ne.g.\n- 1 kilo rice\n- 2 cans sardines'}
           value={shoppingList}
           onChangeText={setShoppingList}
           placeholderTextColor="#aaa"
@@ -216,7 +305,7 @@ export default function PabiliBookingScreen() {
         />
 
         {/* Budget */}
-        <Text style={styles.sectionTitle}>Item Budget (₱)</Text>
+        <Text style={styles.sectionTitle}>Item Budget (₱) <Text style={styles.required}>*</Text></Text>
         <View style={styles.inputRow}>
           <Text style={styles.pesoSign}>₱</Text>
           <TextInput
@@ -229,6 +318,19 @@ export default function PabiliBookingScreen() {
             onFocus={() => { setSuggestions([]); setActiveField(null); }}
           />
         </View>
+
+        {/* Notes to driver */}
+        <Text style={styles.sectionTitle}>Notes to Driver <Text style={styles.optional}>(optional)</Text></Text>
+        <TextInput
+          style={[styles.inputRow, styles.multiline]}
+          placeholder={'Any special instructions?\ne.g. Please call before buying, no substitutes...'}
+          value={driverNotes}
+          onChangeText={setDriverNotes}
+          placeholderTextColor="#aaa"
+          multiline
+          numberOfLines={3}
+          onFocus={() => { setSuggestions([]); setActiveField(null); }}
+        />
 
         <View style={styles.noteBox}>
           <MaterialIcons name="info-outline" size={15} color="#1565C0" />
@@ -267,7 +369,10 @@ export default function PabiliBookingScreen() {
             </View>
             <View style={styles.modalRow}>
               <Text style={styles.modalLabel}>Item Budget</Text>
-              <Text style={styles.modalValue}>{formatCurrency(parseFloat(itemBudget) || 0)} <Text style={{ color: '#aaa', fontSize: 11 }}>(you pay rider)</Text></Text>
+              <Text style={styles.modalValue}>
+                {formatCurrency(parseFloat(itemBudget) || 0)}{' '}
+                <Text style={{ color: '#aaa', fontSize: 11 }}>(you pay rider)</Text>
+              </Text>
             </View>
             <View style={[styles.modalRow, styles.fareRow]}>
               <Text style={styles.fareLabelBig}>Delivery Fee</Text>
@@ -300,15 +405,23 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: '800', color: '#1A1A1A' },
   content: { padding: 16, paddingBottom: 40 },
   sectionTitle: { fontSize: 13, fontWeight: '700', color: '#555', marginTop: 16, marginBottom: 6 },
+  required: { fontWeight: '700', color: '#E53935' },
+  optional: { fontWeight: '400', color: '#aaa' },
   inputRow: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#E0E0E0',
-    paddingHorizontal: 12, paddingVertical: 10,
+    paddingHorizontal: 12, paddingVertical: 12, marginBottom: 4,
   },
   inputIcon: { marginRight: 8 },
   pesoSign: { fontSize: 16, fontWeight: '700', color: GREEN, marginRight: 6 },
   input: { flex: 1, fontSize: 15, color: '#333' },
   multiline: { alignItems: 'flex-start', minHeight: 100, paddingVertical: 12 },
+  contactRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 4, paddingVertical: 6,
+  },
+  contactText: { flex: 1, fontSize: 13, color: '#444', fontWeight: '500' },
+  contactEdit: { fontSize: 13, color: GREEN, fontWeight: '700' },
   suggestionsBox: {
     backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#E0E0E0',
     marginTop: 4, maxHeight: 200, overflow: 'hidden',

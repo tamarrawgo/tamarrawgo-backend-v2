@@ -5,11 +5,13 @@ import {
   Platform, FlatList, Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { api } from '../src/services/api';
 import { useBookingStore } from '../src/store/booking.store';
 import { formatCurrency } from '@tamarrawgo/shared-utils';
+import { getLocationPickerResult, clearLocationPickerResult } from '../src/store/locationPicker';
 
 const GREEN = '#1B6B2F';
 const GREEN_LIGHT = '#E8F5E9';
@@ -18,7 +20,7 @@ type Coords = { address: string; latitude: number; longitude: number };
 
 export default function DeliveryBookingScreen() {
   const router = useRouter();
-  const { setActiveBooking } = useBookingStore();
+  const { setActiveBooking, setPickup: setStorePickup, setDropoff: setStoreDropoff } = useBookingStore();
 
   const [pickup, setPickup] = useState<Coords | null>(null);
   const [dropoff, setDropoff] = useState<Coords | null>(null);
@@ -30,6 +32,9 @@ export default function DeliveryBookingScreen() {
   const [detectingLocation, setDetectingLocation] = useState(false);
 
   const [packageDescription, setPackageDescription] = useState('');
+  const [driverNotes, setDriverNotes] = useState('');
+  const [pickupContactName, setPickupContactName] = useState('');
+  const [pickupContactPhone, setPickupContactPhone] = useState('');
   const [recipientName, setRecipientName] = useState('');
   const [recipientPhone, setRecipientPhone] = useState('');
 
@@ -44,6 +49,26 @@ export default function DeliveryBookingScreen() {
     detectCurrentLocation();
   }, []);
 
+  // Read result back from the location picker screen when we regain focus
+  useFocusEffect(useCallback(() => {
+    const result = getLocationPickerResult();
+    if (result) {
+      const coords = { address: result.address, latitude: result.latitude, longitude: result.longitude };
+      if (result.field === 'pickup') {
+        setPickup(coords);
+        setPickupText(result.address);
+        if (result.contactName) setPickupContactName(result.contactName);
+        if (result.contactPhone) setPickupContactPhone(result.contactPhone.replace(/^(\+63|0)/, '0'));
+      } else {
+        setDropoff(coords);
+        setDropoffText(result.address);
+        if (result.contactName) setRecipientName(result.contactName);
+        if (result.contactPhone) setRecipientPhone(result.contactPhone.replace(/^(\+63|0)/, '0'));
+      }
+      clearLocationPickerResult();
+    }
+  }, []));
+
   const detectCurrentLocation = async () => {
     setDetectingLocation(true);
     try {
@@ -56,7 +81,7 @@ export default function DeliveryBookingScreen() {
         setPickup(coords);
         setPickupText(coords.address);
       }
-    } catch { /* ignore */ }
+    } catch { }
     finally { setDetectingLocation(false); }
   };
 
@@ -81,23 +106,42 @@ export default function DeliveryBookingScreen() {
   const selectSuggestion = async (suggestion: any) => {
     const address = suggestion.description ?? suggestion.formatted_address ?? suggestion.address ?? '';
     setSuggestions([]);
+
     try {
       const geo = await api.get(`/maps/geocode?address=${encodeURIComponent(address)}`) as any;
-      const coords = { latitude: geo?.lat ?? geo?.latitude ?? 0, longitude: geo?.lng ?? geo?.longitude ?? 0, address };
-      if (activeField === 'pickup') { setPickup(coords); setPickupText(address); }
-      else { setDropoff(coords); setDropoffText(address); }
+      const lat = geo?.lat ?? geo?.latitude ?? 0;
+      const lng = geo?.lng ?? geo?.longitude ?? 0;
+
+      // Both pickup and dropoff open the map pin picker
+      const field = activeField ?? 'dropoff';
+      setActiveField(null);
+      router.push(`/location-picker?lat=${lat}&lng=${lng}&address=${encodeURIComponent(address)}&field=${field}` as any);
     } catch {
-      if (activeField === 'pickup') setPickupText(address);
-      else { setDropoffText(address); setDropoff({ latitude: 0, longitude: 0, address }); }
+      setActiveField(null);
     }
+  };
+
+  const openPickupPicker = () => {
+    setSuggestions([]);
     setActiveField(null);
+    const lat = pickup?.latitude ?? 12.8797;
+    const lng = pickup?.longitude ?? 121.7740;
+    const addr = pickupText || '';
+    router.push(`/location-picker?lat=${lat}&lng=${lng}&address=${encodeURIComponent(addr)}&field=pickup` as any);
+  };
+
+  const openDropoffPicker = () => {
+    setSuggestions([]);
+    setActiveField(null);
+    const lat = dropoff?.latitude ?? pickup?.latitude ?? 12.8797;
+    const lng = dropoff?.longitude ?? pickup?.longitude ?? 121.7740;
+    const addr = dropoffText || '';
+    router.push(`/location-picker?lat=${lat}&lng=${lng}&address=${encodeURIComponent(addr)}&field=dropoff` as any);
   };
 
   const handleEstimate = async () => {
     if (!pickup) { Alert.alert('Required', 'Please set your pickup location.'); return; }
     if (!dropoff) { Alert.alert('Required', 'Please select a dropoff location.'); return; }
-    if (!recipientName.trim()) { Alert.alert('Required', 'Please enter the recipient name.'); return; }
-    if (!recipientPhone.trim()) { Alert.alert('Required', 'Please enter the recipient phone number.'); return; }
     setLoadingEstimate(true);
     try {
       const result = await api.post('/bookings/estimate', {
@@ -114,6 +158,10 @@ export default function DeliveryBookingScreen() {
 
   const handleBook = async () => {
     if (!pickup || !dropoff) return;
+    if (!packageDescription.trim()) {
+      Alert.alert('Required', 'Please describe what you are sending before booking.');
+      return;
+    }
     setBooking(true);
     try {
       const result = await api.post('/bookings', {
@@ -121,10 +169,15 @@ export default function DeliveryBookingScreen() {
         paymentMethod: 'CASH',
         bookingType: 'DELIVERY',
         packageDescription: packageDescription.trim() || undefined,
-        recipientName: recipientName.trim(),
-        recipientPhone: recipientPhone.trim(),
+        notes: driverNotes.trim() || undefined,
+        pickupContactName: pickupContactName.trim() || undefined,
+        pickupContactPhone: pickupContactPhone.trim() || undefined,
+        recipientName: recipientName.trim() || undefined,
+        recipientPhone: recipientPhone.trim() || undefined,
       }) as any;
       setActiveBooking(result);
+      if (pickup) setStorePickup(pickup);
+      if (dropoff) setStoreDropoff(dropoff);
       setShowFareModal(false);
       router.replace('/searching');
     } catch (err: any) {
@@ -137,7 +190,6 @@ export default function DeliveryBookingScreen() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#F8F8F8' }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <MaterialIcons name="arrow-back" size={24} color="#333" />
@@ -155,14 +207,19 @@ export default function DeliveryBookingScreen() {
             placeholder="Where to pick up the package?"
             value={pickupText}
             onChangeText={(t) => handleTextChange(t, 'pickup')}
-            onFocus={() => setActiveField('pickup')}
+            onFocus={() => { setSuggestions([]); setActiveField('pickup'); }}
             placeholderTextColor="#aaa"
           />
           {detectingLocation
             ? <ActivityIndicator size="small" color={GREEN} />
-            : <TouchableOpacity onPress={detectCurrentLocation}>
-                <MaterialIcons name="my-location" size={20} color={GREEN} />
-              </TouchableOpacity>}
+            : <>
+                <TouchableOpacity onPress={detectCurrentLocation} style={{ marginRight: 8 }}>
+                  <MaterialIcons name="my-location" size={20} color={GREEN} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={openPickupPicker}>
+                  <MaterialIcons name="map" size={20} color={GREEN} />
+                </TouchableOpacity>
+              </>}
         </View>
 
         {/* Dropoff */}
@@ -174,12 +231,28 @@ export default function DeliveryBookingScreen() {
             placeholder="Where to deliver the package?"
             value={dropoffText}
             onChangeText={(t) => handleTextChange(t, 'dropoff')}
-            onFocus={() => setActiveField('dropoff')}
+            onFocus={() => { setSuggestions([]); setActiveField('dropoff'); }}
             placeholderTextColor="#aaa"
           />
+          <TouchableOpacity onPress={openDropoffPicker}>
+            <MaterialIcons name="map" size={20} color={GREEN} />
+          </TouchableOpacity>
         </View>
 
-        {/* Suggestions */}
+        {/* Recipient contact — auto-filled from location picker */}
+        {(recipientName || recipientPhone) ? (
+          <View style={styles.contactRow}>
+            <MaterialIcons name="person" size={15} color={GREEN} />
+            <Text style={styles.contactText}>
+              {recipientName}{recipientName && recipientPhone ? '  ·  ' : ''}{recipientPhone}
+            </Text>
+            <TouchableOpacity onPress={openDropoffPicker}>
+              <Text style={styles.contactEdit}>Edit</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
+        {/* Autocomplete suggestions */}
         {showingSuggestions && (
           <View style={styles.suggestionsBox}>
             {loadingSuggestions
@@ -200,11 +273,11 @@ export default function DeliveryBookingScreen() {
           </View>
         )}
 
-        {/* Package details */}
-        <Text style={styles.sectionTitle}>Package Description <Text style={styles.optional}>(optional)</Text></Text>
+        {/* Delivery item details */}
+        <Text style={styles.sectionTitle}>Delivery Item Details <Text style={styles.required}>*</Text></Text>
         <TextInput
           style={[styles.inputRow, styles.multiline]}
-          placeholder="What are you sending? e.g. documents, clothes..."
+          placeholder={'What are you sending?\ne.g. documents, clothes, food...'}
           value={packageDescription}
           onChangeText={setPackageDescription}
           placeholderTextColor="#aaa"
@@ -213,35 +286,21 @@ export default function DeliveryBookingScreen() {
           onFocus={() => { setSuggestions([]); setActiveField(null); }}
         />
 
-        <Text style={styles.sectionTitle}>Recipient Name</Text>
-        <View style={styles.inputRow}>
-          <MaterialIcons name="person" size={20} color="#888" style={styles.inputIcon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Who receives the package?"
-            value={recipientName}
-            onChangeText={setRecipientName}
-            placeholderTextColor="#aaa"
-            onFocus={() => { setSuggestions([]); setActiveField(null); }}
-          />
-        </View>
-
-        <Text style={styles.sectionTitle}>Recipient Phone</Text>
-        <View style={styles.inputRow}>
-          <MaterialIcons name="phone" size={20} color="#888" style={styles.inputIcon} />
-          <TextInput
-            style={styles.input}
-            placeholder="e.g. 09171234567"
-            value={recipientPhone}
-            onChangeText={setRecipientPhone}
-            placeholderTextColor="#aaa"
-            keyboardType="phone-pad"
-            onFocus={() => { setSuggestions([]); setActiveField(null); }}
-          />
-        </View>
+        {/* Notes to driver */}
+        <Text style={styles.sectionTitle}>Notes to Driver <Text style={styles.optional}>(optional)</Text></Text>
+        <TextInput
+          style={[styles.inputRow, styles.multiline]}
+          placeholder={'Any special instructions?\ne.g. Call before delivery, handle with care...'}
+          value={driverNotes}
+          onChangeText={setDriverNotes}
+          placeholderTextColor="#aaa"
+          multiline
+          numberOfLines={3}
+          onFocus={() => { setSuggestions([]); setActiveField(null); }}
+        />
 
         <View style={styles.noteBox}>
-          <MaterialIcons name="info-outline" size={15} color="#555" />
+          <MaterialIcons name="info-outline" size={15} color={GREEN} />
           <Text style={styles.noteText}>Small items only. Rider collects payment from recipient on delivery.</Text>
         </View>
 
@@ -306,10 +365,11 @@ const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 40 },
   sectionTitle: { fontSize: 13, fontWeight: '700', color: '#555', marginTop: 16, marginBottom: 6 },
   optional: { fontWeight: '400', color: '#aaa' },
+  required: { fontWeight: '700', color: '#E53935' },
   inputRow: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#E0E0E0',
-    paddingHorizontal: 12, paddingVertical: 10,
+    paddingHorizontal: 12, paddingVertical: 12, marginBottom: 4,
   },
   inputIcon: { marginRight: 8 },
   input: { flex: 1, fontSize: 15, color: '#333' },
@@ -344,4 +404,10 @@ const styles = StyleSheet.create({
   bookBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
   cancelModalBtn: { alignItems: 'center', paddingVertical: 10 },
   cancelModalText: { color: '#888', fontSize: 15 },
+  contactRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 4, paddingVertical: 6,
+  },
+  contactText: { flex: 1, fontSize: 13, color: '#444', fontWeight: '500' },
+  contactEdit: { fontSize: 13, color: GREEN, fontWeight: '700' },
 });

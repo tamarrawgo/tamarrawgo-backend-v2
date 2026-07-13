@@ -34,17 +34,19 @@
   },
   "dependencies": {
     "@expo/metro-runtime": "^56.0.13",
+    "@react-navigation/elements": "^2.9.18",
     "ajv": "^8.20.0",
     "babel-preset-expo": "^56.0.12",
     "expo": "^54.0.34",
     "expo-asset": "~12.0.13",
+    "expo-file-system": "~19.0.23",
     "expo-font": "~14.0.11",
-    "@react-navigation/elements": "^2.9.18",
     "expo-modules-core": "~3.0.30",
     "expo-router": "~6.0.0",
     "metro-runtime": "^0.84.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-native": "^0.81.5"
+    "react-native": "^0.81.5",
+    "sharp": "^0.34.5"
   }
 }

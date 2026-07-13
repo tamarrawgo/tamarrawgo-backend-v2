@@ -11,5 +11,5 @@ export default defineConfig({
       '@tamarrawgo/shared-utils': path.resolve(__dirname, '../../packages/shared-utils/src/index.ts'),
     },
   },
-  server: { port: 3001, proxy: { '/api': { target: 'http://localhost:3000', changeOrigin: true } } },
+  server: { port: 3001, proxy: { '/api': { target: 'https://tamarrawgo-backend-v2-production.up.railway.app', changeOrigin: true } } },
 });

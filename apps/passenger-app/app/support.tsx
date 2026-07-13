@@ -30,6 +30,13 @@ export default function SupportScreen() {
             <Text style={styles.cardSub}>+63 992 518 8587</Text>
           </View>
         </TouchableOpacity>
+        <TouchableOpacity style={[styles.card, { backgroundColor: '#E8F5E9', borderColor: '#C8E6C9' }]} onPress={() => Linking.openURL('https://tamarrawgo.com')}>
+          <Ionicons name="globe-outline" size={24} color="#1B6B2F" />
+          <View style={styles.cardText}>
+            <Text style={styles.cardTitle}>Visit Our Website</Text>
+            <Text style={styles.cardSub}>tamarrawgo.com</Text>
+          </View>
+        </TouchableOpacity>
         <TouchableOpacity style={[styles.card, { backgroundColor: '#E8F5E9', borderColor: '#C8E6C9' }]} onPress={() => Linking.openURL('https://m.me/61590194953679')}>
           <Ionicons name="logo-facebook" size={24} color="#1B6B2F" />
           <View style={styles.cardText}>

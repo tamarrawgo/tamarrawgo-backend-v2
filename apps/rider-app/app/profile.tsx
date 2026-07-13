@@ -53,9 +53,17 @@ export default function RiderProfileScreen() {
         )}
         <Text style={styles.name}>{user?.firstName} {user?.lastName}</Text>
         <Text style={styles.phone}>{user?.phone}</Text>
-        <View style={styles.badge}>
-          <Ionicons name="bicycle" size={14} color="#1B6B2F" />
-          <Text style={styles.badgeText}>Rider</Text>
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 32, alignItems: 'center' }}>
+          <View style={[styles.badge, { marginBottom: 0 }]}>
+            <Ionicons name="bicycle" size={14} color="#1B6B2F" />
+            <Text style={styles.badgeText}>Rider</Text>
+          </View>
+          {(user as any)?.rider?.status === 'APPROVED' && (
+            <View style={styles.verifiedBadge}>
+              <Ionicons name="checkmark-circle" size={14} color="#1565C0" />
+              <Text style={styles.verifiedBadgeText}>Verified</Text>
+            </View>
+          )}
         </View>
 
         {/* Wallet Balance Card */}
@@ -117,6 +125,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF3EC', paddingVertical: 4, paddingHorizontal: 12, borderRadius: 20, marginBottom: 32,
   },
   badgeText: { fontSize: 13, fontWeight: '700', color: '#1B6B2F' },
+  verifiedBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#E3F2FD', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 20,
+  },
+  verifiedBadgeText: { fontSize: 13, fontWeight: '700', color: '#1565C0' },
   walletCard: {
     width: '100%', backgroundColor: '#E8F5E9', borderRadius: 16, padding: 16,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',

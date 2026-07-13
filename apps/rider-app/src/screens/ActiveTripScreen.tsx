@@ -42,6 +42,7 @@ export default function ActiveTripScreen() {
   const navModeRef = useRef(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [selectedReason, setSelectedReason] = useState('');
+  const [showDeliveryDetails, setShowDeliveryDetails] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [distanceToPickup, setDistanceToPickup] = useState<number | null>(null);
   const nearPickup = distanceToPickup !== null && distanceToPickup <= 1000;
@@ -65,7 +66,15 @@ export default function ActiveTripScreen() {
     setSheetExpanded(expand);
   };
 
-  const CANCEL_REASONS = [
+  const isDeliveryType = (activeBooking as any)?.bookingType === 'DELIVERY' || (activeBooking as any)?.bookingType === 'PABILI';
+  const CANCEL_REASONS = isDeliveryType ? [
+    'Package not ready at pickup',
+    'Cannot find pickup location',
+    'Sender is unresponsive',
+    'Emergency / personal reason',
+    'Too far from pickup location',
+    'Other',
+  ] : [
     'Passenger not at pickup location',
     'Passenger requested different route',
     'Emergency / personal reason',
@@ -355,7 +364,7 @@ export default function ActiveTripScreen() {
         {/* Rider (own location) */}
         {riderLocation && (
           <Marker coordinate={riderLocation} title="You" anchor={{ x: 0.5, y: 1 }}>
-            <Text style={styles.emojiMarker}>🛺</Text>
+            <Text style={styles.emojiMarker}>{isDeliveryType ? '🏍️' : '🛺'}</Text>
           </Marker>
         )}
 
@@ -437,22 +446,34 @@ export default function ActiveTripScreen() {
           <Text style={styles.locationText} numberOfLines={1}>{activeBooking?.dropoff?.address}</Text>
         </View>
 
-        {/* Delivery / Pabili details */}
-        {(activeBooking as any)?.bookingType === 'DELIVERY' && (
-          <View style={styles.deliveryBox}>
-            <Text style={styles.deliveryBoxTitle}>📦 Delivery Details</Text>
-            {(activeBooking as any).packageDescription && <Text style={styles.deliveryBoxRow}>Package: {(activeBooking as any).packageDescription}</Text>}
-            {(activeBooking as any).recipientName && <Text style={styles.deliveryBoxRow}>Recipient: {(activeBooking as any).recipientName}</Text>}
-            {(activeBooking as any).recipientPhone && <Text style={styles.deliveryBoxRow}>Phone: {(activeBooking as any).recipientPhone}</Text>}
-          </View>
-        )}
-        {(activeBooking as any)?.bookingType === 'PABILI' && (
-          <View style={styles.deliveryBox}>
-            <Text style={styles.deliveryBoxTitle}>🛒 Pabili Details</Text>
-            {(activeBooking as any).storeAddress && <Text style={styles.deliveryBoxRow}>Store: {(activeBooking as any).storeAddress}</Text>}
-            {(activeBooking as any).shoppingList && <Text style={styles.deliveryBoxRow}>List: {(activeBooking as any).shoppingList}</Text>}
-            {(activeBooking as any).itemBudget && <Text style={styles.deliveryBoxRow}>Budget: ₱{Number((activeBooking as any).itemBudget).toFixed(2)}</Text>}
-          </View>
+        {/* Delivery / Pabili details — collapsible */}
+        {((activeBooking as any)?.bookingType === 'DELIVERY' || (activeBooking as any)?.bookingType === 'PABILI') && (
+          <TouchableOpacity style={styles.deliveryBox} onPress={() => setShowDeliveryDetails(v => !v)} activeOpacity={0.8}>
+            <View style={styles.deliveryBoxHeader}>
+              <Text style={styles.deliveryBoxTitle}>
+                {(activeBooking as any).bookingType === 'DELIVERY' ? '📦 Delivery Details' : '🛒 Pabili Details'}
+              </Text>
+              <MaterialIcons name={showDeliveryDetails ? 'expand-less' : 'expand-more'} size={18} color="#1B6B2F" />
+            </View>
+            {showDeliveryDetails && (activeBooking as any).bookingType === 'DELIVERY' && (
+              <>
+                {(activeBooking as any).packageDescription && <Text style={styles.deliveryBoxRow}>Package: {(activeBooking as any).packageDescription}</Text>}
+                {(activeBooking as any).recipientName && <Text style={styles.deliveryBoxRow}>Recipient: {(activeBooking as any).recipientName}</Text>}
+                {(activeBooking as any).recipientPhone && <Text style={styles.deliveryBoxRow}>Dropoff Phone: {(activeBooking as any).recipientPhone}</Text>}
+                {(activeBooking as any).pickupContactName && <Text style={styles.deliveryBoxRow}>Pickup Contact: {(activeBooking as any).pickupContactName}</Text>}
+                {(activeBooking as any).pickupContactPhone && <Text style={styles.deliveryBoxRow}>Pickup Phone: {(activeBooking as any).pickupContactPhone}</Text>}
+                {(activeBooking as any).notes && <Text style={styles.deliveryBoxRow}>📝 {(activeBooking as any).notes}</Text>}
+              </>
+            )}
+            {showDeliveryDetails && (activeBooking as any).bookingType === 'PABILI' && (
+              <>
+                {(activeBooking as any).storeAddress && <Text style={styles.deliveryBoxRow}>Store: {(activeBooking as any).storeAddress}</Text>}
+                {(activeBooking as any).shoppingList && <Text style={styles.deliveryBoxRow}>List: {(activeBooking as any).shoppingList}</Text>}
+                {(activeBooking as any).itemBudget && <Text style={styles.deliveryBoxRow}>Budget: ₱{Number((activeBooking as any).itemBudget).toFixed(2)}</Text>}
+                {(activeBooking as any).notes && <Text style={styles.deliveryBoxRow}>📝 {(activeBooking as any).notes}</Text>}
+              </>
+            )}
+          </TouchableOpacity>
         )}
 
         {/* Navigate */}
@@ -499,12 +520,26 @@ export default function ActiveTripScreen() {
           {/* Call & Chat buttons */}
           <View style={styles.contactRow}>
             <TouchableOpacity style={styles.contactBtn} onPress={() => {
-              const phone = activeBooking?.passenger?.phone;
+              let phone: string | undefined;
+              if (isDeliveryType) {
+                phone = status === BookingStatus.IN_PROGRESS
+                  ? (activeBooking as any)?.recipientPhone
+                  : (activeBooking as any)?.pickupContactPhone;
+              } else {
+                phone = activeBooking?.passenger?.phone;
+              }
+              const who = isDeliveryType
+                ? (status === BookingStatus.IN_PROGRESS ? 'Dropoff' : 'Pickup')
+                : 'Passenger';
               if (phone) Linking.openURL(`tel:${phone}`);
-              else Alert.alert('Unavailable', 'Passenger phone number not available');
+              else Alert.alert('Unavailable', `${who} phone number not available`);
             }}>
               <MaterialIcons name="call" size={20} color={GREEN} />
-              <Text style={styles.contactBtnText}>Call Passenger</Text>
+              <Text style={styles.contactBtnText}>
+                {isDeliveryType
+                  ? (status === BookingStatus.IN_PROGRESS ? 'Call Dropoff' : 'Call Pickup')
+                  : 'Call Passenger'}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.contactBtn} onPress={() => { setUnreadCount(0); router.push('/chat'); }}>
               <MaterialIcons name="chat" size={20} color={GREEN} />
@@ -600,6 +635,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F8E9', borderRadius: 10, padding: 10, marginBottom: 8,
     borderLeftWidth: 3, borderLeftColor: '#1B6B2F',
   },
+  deliveryBoxHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   deliveryBoxTitle: { fontSize: 13, fontWeight: '700', color: '#1B6B2F', marginBottom: 4 },
   deliveryBoxRow: { fontSize: 12, color: '#444', marginBottom: 2 },
   fareRow: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 8 },

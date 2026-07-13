@@ -87,7 +87,15 @@ export default function TrackingScreen() {
   }, []);
 
 
-  const CANCEL_REASONS = [
+  const isDeliveryType = activeBooking?.bookingType === 'DELIVERY' || activeBooking?.bookingType === 'PABILI';
+  const CANCEL_REASONS = isDeliveryType ? [
+    'Changed my mind',
+    'Rider is taking too long',
+    'Found another delivery service',
+    'Wrong pickup location entered',
+    'Emergency / personal reason',
+    'Other',
+  ] : [
     'Changed my mind',
     'Rider is taking too long',
     'Found another ride',
@@ -397,7 +405,7 @@ export default function TrackingScreen() {
             title="Driver"
             anchor={{ x: 0.5, y: 1 }}
           >
-            <Text style={styles.emojiMarker}>🛺</Text>
+            <Text style={styles.emojiMarker}>{activeBooking?.bookingType === 'DELIVERY' || activeBooking?.bookingType === 'PABILI' ? '🏍️' : '🛺'}</Text>
           </Marker>
         )}
       </MapView>
@@ -550,7 +558,7 @@ export default function TrackingScreen() {
       <Modal visible={showCancelModal} transparent animationType="slide" onRequestClose={() => setShowCancelModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Cancel Ride</Text>
+            <Text style={styles.modalTitle}>{isDeliveryType ? 'Cancel Booking' : 'Cancel Ride'}</Text>
             <Text style={styles.modalSubtitle}>Please tell us why you're cancelling:</Text>
 
             {CANCEL_REASONS.map((reason) => (
