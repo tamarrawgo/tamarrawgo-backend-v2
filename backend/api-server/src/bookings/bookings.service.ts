@@ -326,11 +326,19 @@ export class BookingsService {
     });
     if (activeBooking) throw new BadRequestException('You already have an active booking');
 
-    const updated = await this.prisma.booking.update({
-      where: { id: bookingId },
+    // Atomic update: only succeeds if booking is still SEARCHING — prevents two riders
+    // from accepting the same booking simultaneously (TOCTOU race condition)
+    const claimed = await this.prisma.booking.updateMany({
+      where: { id: bookingId, status: 'SEARCHING' },
       data: { riderId: rider.id, status: 'ACCEPTED', acceptedAt: new Date() },
+    });
+    if (claimed.count === 0) throw new BadRequestException('Booking is no longer available');
+
+    const updated = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
       include: { passenger: { select: { firstName: true, lastName: true, phone: true, fcmToken: true } } },
     });
+    if (!updated) throw new NotFoundException('Booking not found after accept');
 
     this.socket.notifyBookingAccepted(booking.passengerId, {
       bookingId,
@@ -511,7 +519,7 @@ export class BookingsService {
           data: { loyaltyPoints: { increment: RIDER_POINTS } },
         });
         await this.prisma.pointTransaction.create({
-          data: { userId: riderUser.id, points: RIDER_POINTS, type: 'EARN', description: 'Trip completed (+5 pts)', bookingId: booking.id },
+          data: { userId: riderUser.id, points: RIDER_POINTS, type: 'EARN', description: `Trip completed (+${RIDER_POINTS} pts)`, bookingId: booking.id },
         });
 
         if (riderUser.loyaltyPoints >= REDEEM_THRESHOLD) {

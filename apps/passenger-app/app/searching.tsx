@@ -34,14 +34,17 @@ export default function SearchingScreen() {
     })();
 
     // Listen for socket BOOKING_ASSIGNED event
+    let socketRef: any = null;
+    const handleAssigned = async () => {
+      try {
+        const booking: any = await api.get('/bookings/active');
+        if (booking?.id) setActiveBooking(booking as any);
+      } catch {}
+      router.replace('/tracking');
+    };
     connectSocket().then((socket) => {
-      socket.on(SocketEvent.BOOKING_ASSIGNED, async () => {
-        try {
-          const booking: any = await api.get('/bookings/active');
-          if (booking?.id) setActiveBooking(booking as any);
-        } catch {}
-        router.replace('/tracking');
-      });
+      socketRef = socket;
+      socket.on(SocketEvent.BOOKING_ASSIGNED, handleAssigned);
     });
 
     // Poll every 5s as fallback
@@ -69,7 +72,7 @@ export default function SearchingScreen() {
 
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
-      connectSocket().then((socket) => socket.off(SocketEvent.BOOKING_ASSIGNED));
+      if (socketRef) socketRef.off(SocketEvent.BOOKING_ASSIGNED, handleAssigned);
     };
   }, []);
 
@@ -92,7 +95,7 @@ export default function SearchingScreen() {
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color="#FF6B00" style={styles.spinner} />
+      <ActivityIndicator size="large" color="#1B6B2F" style={styles.spinner} />
       <Text style={styles.title}>Looking for a rider...</Text>
       <Text style={styles.subtitle}>Please wait while we find you a TamarrawGo rider nearby</Text>
 
@@ -123,10 +126,10 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: 12, color: '#999', fontWeight: '600', textTransform: 'uppercase', marginTop: 12 },
   value: { fontSize: 15, color: '#333', marginTop: 4 },
-  fare: { fontSize: 28, fontWeight: '800', color: '#FF6B00', marginTop: 4 },
+  fare: { fontSize: 28, fontWeight: '800', color: '#1B6B2F', marginTop: 4 },
   cancelBtn: {
-    borderWidth: 1.5, borderColor: '#FF6B00', borderRadius: 12,
+    borderWidth: 1.5, borderColor: '#1B6B2F', borderRadius: 12,
     paddingVertical: 14, paddingHorizontal: 40,
   },
-  cancelText: { color: '#FF6B00', fontSize: 15, fontWeight: '700' },
+  cancelText: { color: '#1B6B2F', fontSize: 15, fontWeight: '700' },
 });
