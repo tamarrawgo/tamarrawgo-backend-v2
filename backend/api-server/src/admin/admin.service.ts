@@ -140,7 +140,7 @@ export class AdminService {
     const conditions: any[] = [
       { role: 'PASSENGER' },
       { role: 'ADMIN' },
-      { role: 'RIDER' },
+      { role: 'RIDER', rider: { status: 'APPROVED' } },
     ];
     const where: any = { OR: conditions, status: { not: 'PENDING_VERIFICATION' } };
     if (search) {
