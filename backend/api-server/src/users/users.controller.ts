@@ -36,6 +36,12 @@ export class UsersController {
     return this.users.uploadProfilePhoto(user.id, body.base64, body.fileName);
   }
 
+  @Post('upload-valid-id')
+  @ApiOperation({ summary: 'Upload passenger valid ID' })
+  uploadValidId(@CurrentUser() user: any, @Body() body: { base64: string; fileName: string }) {
+    return this.users.uploadValidId(user.id, body.base64, body.fileName);
+  }
+
   @Get('trips')
   @ApiOperation({ summary: 'Get trip history' })
   getTripHistory(

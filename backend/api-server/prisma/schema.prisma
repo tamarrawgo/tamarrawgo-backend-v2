@@ -128,6 +128,7 @@ model User {
   role             UserRole   @default(PASSENGER)
   status           UserStatus @default(PENDING_VERIFICATION)
   profilePhoto     String?
+  validIdUrl       String?
   fcmToken         String?
   refreshTokenHash String?
   otpCode          String?

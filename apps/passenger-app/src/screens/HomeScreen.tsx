@@ -23,6 +23,18 @@ const MINDORO = { minLat: 11.9, maxLat: 13.6, minLng: 120.5, maxLng: 121.8 };
 const isInMindoro = (lat: number, lng: number) =>
   lat >= MINDORO.minLat && lat <= MINDORO.maxLat && lng >= MINDORO.minLng && lng <= MINDORO.maxLng;
 
+function checkVerification(user: any, router: any): boolean {
+  if (!user?.profilePhoto || !user?.validIdUrl) {
+    Alert.alert(
+      'Verification Required',
+      'Please upload your selfie and valid ID in your profile before booking.',
+      [{ text: 'Go to Profile', onPress: () => router.push('/(tabs)/profile') }, { text: 'Cancel', style: 'cancel' }],
+    );
+    return false;
+  }
+  return true;
+}
+
 async function checkMindoroLocation(): Promise<boolean> {
   try {
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -35,8 +47,8 @@ async function checkMindoroLocation(): Promise<boolean> {
 }
 const GREEN_LIGHT = '#E8F5E9';
 
-const TRICYCLE_IMG = require('../../assets/tricycle.png');
-const DRIVER_IMG   = require('../../assets/tricycle-driver.png');
+const TRICYCLE_IMG = require('../../assets/tricycle-login.png');
+const DRIVER_IMG   = require('../../assets/Mindoro.jpg');
 
 const QUICK_DESTINATIONS = [
   { name: 'Calapan City',  latitude: 13.4115, longitude: 121.1803 },
@@ -160,9 +172,10 @@ export default function HomeScreen() {
   }, []);
 
   const handleQuickDestination = useCallback((dest: { name: string; latitude: number; longitude: number; address?: string }) => {
+    if (!checkVerification(user, router)) return;
     setDropoff({ address: dest.address ?? dest.name + ', Oriental Mindoro', latitude: dest.latitude, longitude: dest.longitude });
     router.push('/search');
-  }, []);
+  }, [user]);
 
   const handleDrawerNav = useCallback((route: string) => {
     closeDrawer();
@@ -237,6 +250,7 @@ export default function HomeScreen() {
 
         {/* Search Bar */}
         <TouchableOpacity style={styles.searchBar} onPress={async () => {
+          if (!checkVerification(user, router)) return;
           if (!await checkMindoroLocation()) { Alert.alert('Outside Service Area', 'TamarrawGo is only available in Mindoro.'); return; }
           router.push('/search');
         }}>
@@ -305,6 +319,7 @@ export default function HomeScreen() {
         <Text style={styles.serviceLabel}>What do you need?</Text>
         <View style={styles.serviceRow}>
           <TouchableOpacity style={styles.serviceCard} onPress={async () => {
+            if (!checkVerification(user, router)) return;
             if (!await checkMindoroLocation()) { Alert.alert('Outside Service Area', 'TamarrawGo is only available in Mindoro.'); return; }
             router.push('/search');
           }}>
@@ -313,6 +328,7 @@ export default function HomeScreen() {
             <Text style={styles.serviceCardSub}>Book a tricycle</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.serviceCard} onPress={async () => {
+            if (!checkVerification(user, router)) return;
             if (!await checkMindoroLocation()) { Alert.alert('Outside Service Area', 'TamarrawGo is only available in Mindoro.'); return; }
             router.push('/delivery-booking' as any);
           }}>
@@ -321,6 +337,7 @@ export default function HomeScreen() {
             <Text style={styles.serviceCardSub}>Send a package</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.serviceCard} onPress={async () => {
+            if (!checkVerification(user, router)) return;
             if (!await checkMindoroLocation()) { Alert.alert('Outside Service Area', 'TamarrawGo is only available in Mindoro.'); return; }
             router.push('/pabili-booking' as any);
           }}>

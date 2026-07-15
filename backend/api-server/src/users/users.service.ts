@@ -20,6 +20,7 @@ export class UsersService {
         role: true,
         status: true,
         profilePhoto: true,
+        validIdUrl: true,
         loyaltyPoints: true,
         createdAt: true,
         rider: {
@@ -102,6 +103,25 @@ export class UsersService {
     const photoUrl = `${supabaseUrl}/storage/v1/object/public/rider-documents/${path}?t=${Date.now()}`;
     await this.prisma.user.update({ where: { id: userId }, data: { profilePhoto: photoUrl } });
     return { url: photoUrl };
+  }
+
+  async uploadValidId(userId: string, base64: string, fileName: string) {
+    const supabaseUrl = this.config.get('SUPABASE_URL');
+    const serviceKey = this.config.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !serviceKey) throw new Error('Storage not configured');
+
+    const buffer = Buffer.from(base64, 'base64');
+    const ext = fileName.split('.').pop()?.toLowerCase() ?? 'jpg';
+    const path = `passenger-valid-id/${userId}.${ext}`;
+    const contentType = ext === 'png' ? 'image/png' : 'image/jpeg';
+
+    await axios.put(`${supabaseUrl}/storage/v1/object/rider-documents/${path}`, buffer, {
+      headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': contentType, 'x-upsert': 'true' },
+    });
+
+    const idUrl = `${supabaseUrl}/storage/v1/object/public/rider-documents/${path}?t=${Date.now()}`;
+    await this.prisma.user.update({ where: { id: userId }, data: { validIdUrl: idUrl } });
+    return { url: idUrl };
   }
 
   private async detectFace(base64: string): Promise<boolean> {

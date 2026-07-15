@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Alert, Image, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Alert, Image, Modal, ScrollView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuthStore } from '../../src/store/auth.store';
 import { api } from '../../src/services/api';
 import FaceScanCamera from '../../src/components/FaceScanCamera';
@@ -20,14 +21,22 @@ export default function ProfileScreen() {
   const { user, logout } = useAuthStore();
   const [cameraOpen, setCameraOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingId, setUploadingId] = useState(false);
+
+  const hasSelfie = !!(user as any)?.profilePhoto;
+  const hasValidId = !!(user as any)?.validIdUrl;
+
+  const refreshProfile = async () => {
+    const profile: any = await api.get('/users/profile');
+    if (profile) useAuthStore.setState({ user: profile });
+  };
 
   const handleSelfieCapture = async (uri: string, base64: string) => {
     setCameraOpen(false);
     setUploading(true);
     try {
       await api.post('/users/upload-photo', { base64, fileName: 'selfie.jpg' });
-      const profile: any = await api.get('/users/profile');
-      if (profile) useAuthStore.setState({ user: profile });
+      await refreshProfile();
       Alert.alert('Success', 'Profile photo updated!');
     } catch (e: any) {
       const msg = e?.message ?? 'Could not upload photo';
@@ -42,6 +51,48 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleValidIdUpload = async () => {
+    Alert.alert('Upload Valid ID', 'Choose how to upload your valid ID', [
+      {
+        text: 'Take Photo',
+        onPress: async () => {
+          const { status } = await ImagePicker.requestCameraPermissionsAsync();
+          if (status !== 'granted') { Alert.alert('Permission needed', 'Camera access is required.'); return; }
+          const result = await ImagePicker.launchCameraAsync({ base64: true, quality: 0.7, mediaTypes: ImagePicker.MediaTypeOptions.Images });
+          if (!result.canceled && result.assets[0].base64) {
+            await submitValidId(result.assets[0].base64, 'valid-id.jpg');
+          }
+        },
+      },
+      {
+        text: 'Choose from Gallery',
+        onPress: async () => {
+          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (status !== 'granted') { Alert.alert('Permission needed', 'Gallery access is required.'); return; }
+          const result = await ImagePicker.launchImageLibraryAsync({ base64: true, quality: 0.7, mediaTypes: ImagePicker.MediaTypeOptions.Images });
+          if (!result.canceled && result.assets[0].base64) {
+            const ext = result.assets[0].uri.split('.').pop() ?? 'jpg';
+            await submitValidId(result.assets[0].base64, `valid-id.${ext}`);
+          }
+        },
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  const submitValidId = async (base64: string, fileName: string) => {
+    setUploadingId(true);
+    try {
+      await api.post('/users/upload-valid-id', { base64, fileName });
+      await refreshProfile();
+      Alert.alert('Success', 'Valid ID uploaded successfully!');
+    } catch (e: any) {
+      Alert.alert('Upload Failed', e?.message ?? 'Could not upload ID. Please try again.');
+    } finally {
+      setUploadingId(false);
+    }
+  };
+
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
@@ -51,53 +102,103 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Profile</Text>
-      </View>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Profile</Text>
+        </View>
 
-      {/* Avatar */}
-      <View style={styles.avatarSection}>
-        <TouchableOpacity onPress={() => setCameraOpen(true)} style={{ position: 'relative' }}>
-          {(user as any)?.profilePhoto ? (
-            <Image source={{ uri: (user as any).profilePhoto }} style={styles.avatarImg} />
-          ) : (
-            <View style={styles.avatar}>
-              <MaterialIcons name="person-outline" size={40} color={GREEN} />
+        {/* Avatar */}
+        <View style={styles.avatarSection}>
+          <TouchableOpacity onPress={() => setCameraOpen(true)} style={{ position: 'relative' }}>
+            {hasSelfie ? (
+              <Image source={{ uri: (user as any).profilePhoto }} style={styles.avatarImg} />
+            ) : (
+              <View style={styles.avatar}>
+                <MaterialIcons name="person-outline" size={40} color={GREEN} />
+              </View>
+            )}
+            <View style={styles.cameraIcon}>
+              <MaterialIcons name="camera-alt" size={14} color="#fff" />
+            </View>
+          </TouchableOpacity>
+          <Text style={styles.name}>{user?.firstName} {user?.lastName}</Text>
+          <Text style={styles.phone}>{user?.phone}</Text>
+        </View>
+
+        {/* Verification Card */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Account Verification</Text>
+          {(!hasSelfie || !hasValidId) && (
+            <View style={styles.verifyBanner}>
+              <MaterialIcons name="info" size={16} color="#B45309" />
+              <Text style={styles.verifyBannerText}>Complete verification to start booking</Text>
             </View>
           )}
-          <View style={styles.cameraIcon}>
-            <MaterialIcons name="camera-alt" size={14} color="#fff" />
-          </View>
-        </TouchableOpacity>
-        <Text style={styles.name}>{user?.firstName} {user?.lastName}</Text>
-        <Text style={styles.phone}>{user?.phone}</Text>
 
-        {!(user as any)?.profilePhoto && (
-          <TouchableOpacity style={styles.selfiePrompt} onPress={() => setCameraOpen(true)}>
-            <MaterialIcons name="face" size={18} color={GREEN} />
-            <Text style={styles.selfiePromptText}>Take a selfie to earn loyalty points!</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Menu */}
-      <View style={styles.menu}>
-        {MENU_ITEMS.map(item => (
-          <TouchableOpacity key={item.label} style={styles.menuRow} onPress={() => router.push(item.route as any)}>
-            <View style={styles.menuIcon}>
-              <MaterialIcons name={item.icon} size={20} color={GREEN} />
+          {/* Selfie row */}
+          <View style={styles.verifyRow}>
+            <View style={styles.verifyIcon}>
+              <MaterialIcons name="face" size={20} color={hasSelfie ? GREEN : '#999'} />
             </View>
-            <Text style={styles.menuLabel}>{item.label}</Text>
-            <MaterialIcons name="chevron-right" size={20} color="#ccc" />
-          </TouchableOpacity>
-        ))}
-      </View>
+            <View style={styles.verifyInfo}>
+              <Text style={styles.verifyLabel}>Selfie Photo</Text>
+              <Text style={styles.verifyStatus}>{hasSelfie ? 'Uploaded ✓' : 'Not uploaded'}</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.verifyBtn, hasSelfie && styles.verifyBtnDone]}
+              onPress={() => setCameraOpen(true)}
+              disabled={uploading}
+            >
+              <Text style={[styles.verifyBtnText, hasSelfie && styles.verifyBtnTextDone]}>
+                {uploading ? 'Uploading...' : hasSelfie ? 'Retake' : 'Take Selfie'}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-      {/* Logout */}
-      <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-        <MaterialIcons name="logout" size={18} color="#FF3B30" />
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity>
+          <View style={styles.divider} />
+
+          {/* Valid ID row */}
+          <View style={styles.verifyRow}>
+            <View style={styles.verifyIcon}>
+              <MaterialIcons name="badge" size={20} color={hasValidId ? GREEN : '#999'} />
+            </View>
+            <View style={styles.verifyInfo}>
+              <Text style={styles.verifyLabel}>Valid ID</Text>
+              <Text style={styles.verifyStatus}>{hasValidId ? 'Uploaded ✓' : 'Not uploaded'}</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.verifyBtn, hasValidId && styles.verifyBtnDone]}
+              onPress={handleValidIdUpload}
+              disabled={uploadingId}
+            >
+              <Text style={[styles.verifyBtnText, hasValidId && styles.verifyBtnTextDone]}>
+                {uploadingId ? 'Uploading...' : hasValidId ? 'Re-upload' : 'Upload ID'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Menu */}
+        <View style={styles.menu}>
+          {MENU_ITEMS.map(item => (
+            <TouchableOpacity key={item.label} style={styles.menuRow} onPress={() => router.push(item.route as any)}>
+              <View style={styles.menuIcon}>
+                <MaterialIcons name={item.icon} size={20} color={GREEN} />
+              </View>
+              <Text style={styles.menuLabel}>{item.label}</Text>
+              <MaterialIcons name="chevron-right" size={20} color="#ccc" />
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Logout */}
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+          <MaterialIcons name="logout" size={18} color="#FF3B30" />
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+
+        <View style={{ height: 32 }} />
+      </ScrollView>
 
       {/* Face Scan Camera */}
       <Modal visible={cameraOpen} animationType="slide">
@@ -119,10 +220,7 @@ const styles = StyleSheet.create({
     width: 80, height: 80, borderRadius: 40,
     backgroundColor: '#E8F5E9', alignItems: 'center', justifyContent: 'center', marginBottom: 12,
   },
-  avatarImg: {
-    width: 80, height: 80, borderRadius: 40, marginBottom: 12,
-    borderWidth: 2, borderColor: GREEN,
-  },
+  avatarImg: { width: 80, height: 80, borderRadius: 40, marginBottom: 12, borderWidth: 2, borderColor: GREEN },
   cameraIcon: {
     position: 'absolute', bottom: 10, right: -2,
     width: 26, height: 26, borderRadius: 13, backgroundColor: GREEN,
@@ -130,12 +228,33 @@ const styles = StyleSheet.create({
   },
   name: { fontSize: 20, fontWeight: '800', color: '#1A1A1A', marginBottom: 4 },
   phone: { fontSize: 14, color: '#999' },
-  selfiePrompt: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    marginTop: 12, backgroundColor: GREEN_LIGHT, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20,
+  section: {
+    backgroundColor: '#fff', marginHorizontal: 16, borderRadius: 16,
+    padding: 16, marginBottom: 16,
   },
-  selfiePromptText: { fontSize: 13, fontWeight: '600', color: GREEN },
-  menu: { backgroundColor: '#fff', marginHorizontal: 16, borderRadius: 16, overflow: 'hidden' },
+  sectionTitle: { fontSize: 15, fontWeight: '800', color: '#1A1A1A', marginBottom: 12 },
+  verifyBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#FEF3C7', borderRadius: 10, padding: 10, marginBottom: 12,
+  },
+  verifyBannerText: { fontSize: 13, color: '#B45309', fontWeight: '600', flex: 1 },
+  verifyRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
+  verifyIcon: {
+    width: 36, height: 36, borderRadius: 10, backgroundColor: '#F5F5F5',
+    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+  },
+  verifyInfo: { flex: 1 },
+  verifyLabel: { fontSize: 14, fontWeight: '700', color: '#333' },
+  verifyStatus: { fontSize: 12, color: '#999', marginTop: 2 },
+  verifyBtn: {
+    backgroundColor: GREEN, paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: 10,
+  },
+  verifyBtnDone: { backgroundColor: GREEN_LIGHT },
+  verifyBtnText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  verifyBtnTextDone: { color: GREEN },
+  divider: { height: 1, backgroundColor: '#F5F5F5', marginVertical: 4 },
+  menu: { backgroundColor: '#fff', marginHorizontal: 16, borderRadius: 16, overflow: 'hidden', marginBottom: 16 },
   menuRow: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16,
     borderBottomWidth: 1, borderBottomColor: '#F5F5F5',
@@ -147,7 +266,7 @@ const styles = StyleSheet.create({
   menuLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: '#333' },
   logoutBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    marginHorizontal: 16, marginTop: 20, paddingVertical: 14,
+    marginHorizontal: 16, paddingVertical: 14,
     backgroundColor: '#FFF0F0', borderRadius: 16,
   },
   logoutText: { fontSize: 15, fontWeight: '700', color: '#FF3B30' },
