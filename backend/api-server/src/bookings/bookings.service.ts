@@ -187,7 +187,7 @@ export class BookingsService {
   async getAvailableBookings(userId: string) {
     const rider = await this.prisma.riderProfile.findUnique({ where: { userId } });
     if (!rider || !rider.currentLatitude || !rider.currentLongitude) return [];
-    if (Number(rider.walletBalance) < 100) return [];
+    if (Number(rider.walletBalance) < 0) return [];
 
     const activeBooking = await this.prisma.booking.findFirst({
       where: { riderId: rider.id, status: { in: ['ACCEPTED', 'RIDER_ARRIVED', 'IN_PROGRESS'] } },
@@ -247,7 +247,7 @@ export class BookingsService {
         vehicleType: requiredVehicleType as any,
         currentLatitude: { not: null },
         currentLongitude: { not: null },
-        walletBalance: { gte: 100 },
+        walletBalance: { gte: 0 },
         bookingsAsRider: { none: { status: { in: ['ACCEPTED', 'RIDER_ARRIVED', 'IN_PROGRESS'] } } },
       },
       include: { user: { select: { id: true, fcmToken: true } } },
