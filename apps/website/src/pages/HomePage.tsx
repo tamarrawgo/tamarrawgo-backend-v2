@@ -394,7 +394,7 @@ export default function HomePage() {
         <p className="text-gray-500 max-w-lg mx-auto mb-10">Available for Android. Get the app and start booking rides today.</p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <a
-            href="https://drive.google.com/file/d/160HbWZTugojcTb8TzaFzLMg25ARe3iK2/view?usp=drive_link"
+            href="https://drive.google.com/file/d/1BZ7xJQfCLpyWiIemTu1fXtPfgcnmJVL5/view?usp=drive_link"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-primary"
