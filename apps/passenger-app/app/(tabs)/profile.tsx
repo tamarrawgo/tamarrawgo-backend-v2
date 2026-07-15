@@ -25,6 +25,7 @@ export default function ProfileScreen() {
 
   const hasSelfie = !!(user as any)?.profilePhoto;
   const hasValidId = !!(user as any)?.validIdUrl;
+  const verifyStatus: string = (user as any)?.verificationStatus ?? 'UNVERIFIED';
 
   const refreshProfile = async () => {
     const profile: any = await api.get('/users/profile');
@@ -122,13 +123,34 @@ export default function ProfileScreen() {
             </View>
           </TouchableOpacity>
           <Text style={styles.name}>{user?.firstName} {user?.lastName}</Text>
+          {verifyStatus === 'VERIFIED' && (
+            <View style={styles.verifiedBadge}>
+              <MaterialIcons name="verified" size={14} color="#1B6B2F" />
+              <Text style={styles.verifiedBadgeText}>Verified</Text>
+            </View>
+          )}
           <Text style={styles.phone}>{user?.phone}</Text>
         </View>
 
         {/* Verification Card */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account Verification</Text>
-          {(!hasSelfie || !hasValidId) && (
+          {verifyStatus === 'VERIFIED' ? (
+            <View style={[styles.verifyBanner, styles.verifyBannerGreen]}>
+              <MaterialIcons name="verified" size={16} color="#1B6B2F" />
+              <Text style={[styles.verifyBannerText, styles.verifyBannerTextGreen]}>Account Verified — You can book rides!</Text>
+            </View>
+          ) : verifyStatus === 'PENDING' ? (
+            <View style={[styles.verifyBanner, styles.verifyBannerBlue]}>
+              <MaterialIcons name="hourglass-empty" size={16} color="#1D4ED8" />
+              <Text style={[styles.verifyBannerText, styles.verifyBannerTextBlue]}>Documents submitted — Under admin review</Text>
+            </View>
+          ) : verifyStatus === 'REJECTED' ? (
+            <View style={[styles.verifyBanner, styles.verifyBannerRed]}>
+              <MaterialIcons name="cancel" size={16} color="#DC2626" />
+              <Text style={[styles.verifyBannerText, styles.verifyBannerTextRed]}>Verification rejected — Please re-upload clear photos</Text>
+            </View>
+          ) : (
             <View style={styles.verifyBanner}>
               <MaterialIcons name="info" size={16} color="#B45309" />
               <Text style={styles.verifyBannerText}>Complete verification to start booking</Text>
@@ -233,11 +255,23 @@ const styles = StyleSheet.create({
     padding: 16, marginBottom: 16,
   },
   sectionTitle: { fontSize: 15, fontWeight: '800', color: '#1A1A1A', marginBottom: 12 },
+  verifiedBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#E8F5E9', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4,
+    marginBottom: 6,
+  },
+  verifiedBadgeText: { fontSize: 12, color: GREEN, fontWeight: '700' },
   verifyBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: '#FEF3C7', borderRadius: 10, padding: 10, marginBottom: 12,
   },
   verifyBannerText: { fontSize: 13, color: '#B45309', fontWeight: '600', flex: 1 },
+  verifyBannerGreen: { backgroundColor: '#E8F5E9' },
+  verifyBannerTextGreen: { color: '#1B6B2F' },
+  verifyBannerBlue: { backgroundColor: '#EFF6FF' },
+  verifyBannerTextBlue: { color: '#1D4ED8' },
+  verifyBannerRed: { backgroundColor: '#FEF2F2' },
+  verifyBannerTextRed: { color: '#DC2626' },
   verifyRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
   verifyIcon: {
     width: 36, height: 36, borderRadius: 10, backgroundColor: '#F5F5F5',

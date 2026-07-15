@@ -21,6 +21,7 @@ export class UsersService {
         status: true,
         profilePhoto: true,
         validIdUrl: true,
+        verificationStatus: true,
         loyaltyPoints: true,
         createdAt: true,
         rider: {
@@ -77,6 +78,11 @@ export class UsersService {
     const serviceKey = this.config.get('SUPABASE_SERVICE_ROLE_KEY');
     if (!supabaseUrl || !serviceKey) throw new Error('Storage not configured');
 
+    const currentUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { validIdUrl: true, verificationStatus: true, role: true },
+    });
+
     // Delete any previous profile photo for this user (different extensions, old timestamped files)
     try {
       const { data: existing } = await axios.post(`${supabaseUrl}/storage/v1/object/list/rider-documents`, { prefix: 'profile-photos/' }, {
@@ -102,6 +108,15 @@ export class UsersService {
 
     const photoUrl = `${supabaseUrl}/storage/v1/object/public/rider-documents/${path}?t=${Date.now()}`;
     await this.prisma.user.update({ where: { id: userId }, data: { profilePhoto: photoUrl } });
+
+    if (
+      currentUser?.role === 'PASSENGER' &&
+      currentUser?.validIdUrl &&
+      (currentUser.verificationStatus === 'UNVERIFIED' || currentUser.verificationStatus === 'REJECTED')
+    ) {
+      await this.prisma.user.update({ where: { id: userId }, data: { verificationStatus: 'PENDING' } });
+    }
+
     return { url: photoUrl };
   }
 
@@ -109,6 +124,11 @@ export class UsersService {
     const supabaseUrl = this.config.get('SUPABASE_URL');
     const serviceKey = this.config.get('SUPABASE_SERVICE_ROLE_KEY');
     if (!supabaseUrl || !serviceKey) throw new Error('Storage not configured');
+
+    const currentUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { profilePhoto: true, verificationStatus: true, role: true },
+    });
 
     const buffer = Buffer.from(base64, 'base64');
     const ext = fileName.split('.').pop()?.toLowerCase() ?? 'jpg';
@@ -121,6 +141,15 @@ export class UsersService {
 
     const idUrl = `${supabaseUrl}/storage/v1/object/public/rider-documents/${path}?t=${Date.now()}`;
     await this.prisma.user.update({ where: { id: userId }, data: { validIdUrl: idUrl } });
+
+    if (
+      currentUser?.role === 'PASSENGER' &&
+      currentUser?.profilePhoto &&
+      (currentUser.verificationStatus === 'UNVERIFIED' || currentUser.verificationStatus === 'REJECTED')
+    ) {
+      await this.prisma.user.update({ where: { id: userId }, data: { verificationStatus: 'PENDING' } });
+    }
+
     return { url: idUrl };
   }
 

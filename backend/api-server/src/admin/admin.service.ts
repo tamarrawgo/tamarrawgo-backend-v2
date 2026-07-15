@@ -508,6 +508,92 @@ export class AdminService {
     return { message: 'Rider rejected and account deleted' };
   }
 
+  async getPendingPassengers(page = 1, limit = 50) {
+    const skip = (page - 1) * limit;
+    const where = { role: 'PASSENGER' as any, verificationStatus: 'PENDING' };
+    const [data, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true, firstName: true, lastName: true, phone: true, email: true,
+          profilePhoto: true, validIdUrl: true, verificationStatus: true,
+          city: true, barangay: true, createdAt: true, status: true,
+        },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+    return { data, total, page, limit };
+  }
+
+  async getAllPassengers(page = 1, limit = 20, search?: string) {
+    const skip = (page - 1) * limit;
+    const where: any = { role: 'PASSENGER' };
+    if (search) {
+      where.OR = [
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+    const [data, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true, firstName: true, lastName: true, phone: true, email: true,
+          profilePhoto: true, validIdUrl: true, verificationStatus: true,
+          city: true, barangay: true, createdAt: true, status: true, loyaltyPoints: true,
+        },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  async approvePassenger(userId: string, adminId?: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { firstName: true, lastName: true, phone: true, fcmToken: true },
+    });
+    if (!user) throw new NotFoundException('Passenger not found');
+
+    await this.prisma.user.update({ where: { id: userId }, data: { verificationStatus: 'VERIFIED' } });
+
+    const msg = 'Your selfie and valid ID have been verified. You can now book rides!';
+    await this.notifications.createNotification(userId, NotificationType.SYSTEM, 'Account Verified ✓', msg);
+    if (user.fcmToken) {
+      await this.notifications.sendPush(user.fcmToken, { title: 'Account Verified ✓', body: msg }).catch(() => {});
+    }
+
+    await this.logAction(adminId, 'APPROVE_PASSENGER', 'user', userId, { name: `${user.firstName} ${user.lastName}`, phone: user.phone });
+    return { message: 'Passenger verified' };
+  }
+
+  async rejectPassenger(userId: string, reason: string, adminId?: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { firstName: true, lastName: true, phone: true, fcmToken: true },
+    });
+    if (!user) throw new NotFoundException('Passenger not found');
+
+    await this.prisma.user.update({ where: { id: userId }, data: { verificationStatus: 'REJECTED' } });
+
+    const msg = reason || 'Your verification documents were rejected. Please re-upload clear photos.';
+    await this.notifications.createNotification(userId, NotificationType.SYSTEM, 'Verification Rejected', msg);
+    if (user.fcmToken) {
+      await this.notifications.sendPush(user.fcmToken, { title: 'Verification Rejected', body: msg }).catch(() => {});
+    }
+
+    await this.logAction(adminId, 'REJECT_PASSENGER', 'user', userId, { name: `${user.firstName} ${user.lastName}`, phone: user.phone, reason });
+    return { message: 'Passenger verification rejected' };
+  }
+
   async getTripMonitoring(page = 1, limit = 20, status?: string) {
     const maxRecords = 300;
     const skip = (page - 1) * limit;

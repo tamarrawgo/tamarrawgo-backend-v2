@@ -11,6 +11,7 @@ import TopupRequestsPage from './pages/TopupRequestsPage';
 import PromotionsPage from './pages/PromotionsPage';
 import ReportsPage from './pages/ReportsPage';
 import ComplaintsPage from './pages/ComplaintsPage';
+import PassengersPage from './pages/PassengersPage';
 import SettingsPage from './pages/SettingsPage';
 import ActivityLogPage from './pages/ActivityLogPage';
 
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="payments" element={<PaymentsPage />} />
           <Route path="topup-requests" element={<TopupRequestsPage />} />
           <Route path="promotions" element={<PromotionsPage />} />
+          <Route path="passengers" element={<PassengersPage />} />
           <Route path="complaints" element={<ComplaintsPage />} />
           <Route path="reports" element={<ReportsPage />} />
           <Route path="settings" element={<SettingsPage />} />

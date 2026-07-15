@@ -8,6 +8,7 @@ const navItems = [
   { path: '/dashboard',    label: 'Dashboard',       icon: 'dashboard' },
   { path: '/users',        label: 'Users',            icon: 'groups' },
   { path: '/riders',       label: 'Riders',           icon: 'badge' },
+  { path: '/passengers',   label: 'Passengers',       icon: 'person' },
   { path: '/trips',        label: 'Trips',            icon: 'route' },
   { path: '/payments',     label: 'Revenue',          icon: 'payments' },
   { path: '/topup-requests', label: 'Topup Requests', icon: 'account_balance_wallet' },
@@ -30,6 +31,13 @@ export default function Layout() {
     refetchInterval: 30000,
   });
   const pendingTopupCount = (pendingTopups as any)?.total ?? 0;
+
+  const { data: pendingPassengers } = useQuery({
+    queryKey: ['passengers-pending-count'],
+    queryFn: () => api.get('/admin/passengers/pending?limit=1'),
+    refetchInterval: 30000,
+  });
+  const pendingPassengerCount = (pendingPassengers as any)?.total ?? 0;
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
@@ -86,6 +94,11 @@ export default function Layout() {
                   {item.path === '/topup-requests' && pendingTopupCount > 0 && (
                     <span className="bg-red-500 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center leading-tight">
                       {pendingTopupCount}
+                    </span>
+                  )}
+                  {item.path === '/passengers' && pendingPassengerCount > 0 && (
+                    <span className="bg-red-500 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center leading-tight">
+                      {pendingPassengerCount}
                     </span>
                   )}
                 </>

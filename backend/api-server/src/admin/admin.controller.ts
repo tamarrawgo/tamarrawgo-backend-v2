@@ -149,6 +149,30 @@ export class AdminController {
     return this.admin.rejectRider(id, dto.reason ?? '', req.user?.sub);
   }
 
+  @Get('passengers/pending')
+  @ApiOperation({ summary: 'Get pending passenger verifications' })
+  getPendingPassengers(@Query('page') page = 1, @Query('limit') limit = 50) {
+    return this.admin.getPendingPassengers(+page, +limit);
+  }
+
+  @Get('passengers')
+  @ApiOperation({ summary: 'Get all passengers' })
+  getAllPassengers(@Query('page') page = 1, @Query('limit') limit = 20, @Query('search') search?: string) {
+    return this.admin.getAllPassengers(+page, +limit, search);
+  }
+
+  @Post('passengers/:id/approve')
+  @ApiOperation({ summary: 'Approve passenger verification' })
+  approvePassenger(@Param('id') id: string, @Request() req: any) {
+    return this.admin.approvePassenger(id, req.user?.sub);
+  }
+
+  @Post('passengers/:id/reject')
+  @ApiOperation({ summary: 'Reject passenger verification' })
+  rejectPassenger(@Param('id') id: string, @Body() body: { reason?: string }, @Request() req: any) {
+    return this.admin.rejectPassenger(id, body.reason ?? '', req.user?.sub);
+  }
+
   @Get('trips')
   @ApiOperation({ summary: 'Monitor all trips' })
   getTrips(@Query('page') page = 1, @Query('limit') limit = 20, @Query('status') status?: string) {

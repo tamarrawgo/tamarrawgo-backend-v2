@@ -32,6 +32,31 @@ function checkVerification(user: any, router: any): boolean {
     );
     return false;
   }
+  const status = user?.verificationStatus ?? 'UNVERIFIED';
+  if (status === 'PENDING') {
+    Alert.alert(
+      'Under Review',
+      'Your documents are being reviewed by admin. You will be notified once approved.',
+      [{ text: 'OK' }],
+    );
+    return false;
+  }
+  if (status === 'REJECTED') {
+    Alert.alert(
+      'Verification Rejected',
+      'Your verification was rejected. Please re-upload clear photos in your profile.',
+      [{ text: 'Go to Profile', onPress: () => router.push('/(tabs)/profile') }, { text: 'Cancel', style: 'cancel' }],
+    );
+    return false;
+  }
+  if (status !== 'VERIFIED') {
+    Alert.alert(
+      'Not Verified',
+      'Please complete your profile verification before booking.',
+      [{ text: 'Go to Profile', onPress: () => router.push('/(tabs)/profile') }, { text: 'Cancel', style: 'cancel' }],
+    );
+    return false;
+  }
   return true;
 }
 

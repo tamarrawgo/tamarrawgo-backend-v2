@@ -82,9 +82,10 @@ export class BookingsService {
   }
 
   async createBooking(passengerId: string, dto: CreateBookingDto) {
-    const passenger = await this.prisma.user.findUnique({ where: { id: passengerId }, select: { profilePhoto: true, validIdUrl: true } });
+    const passenger = await this.prisma.user.findUnique({ where: { id: passengerId }, select: { profilePhoto: true, validIdUrl: true, verificationStatus: true } });
     if (!passenger?.profilePhoto) throw new ForbiddenException('Please upload a selfie in your profile before booking.');
     if (!passenger?.validIdUrl) throw new ForbiddenException('Please upload a valid ID in your profile before booking.');
+    if (passenger.verificationStatus !== 'VERIFIED') throw new ForbiddenException('Your account is pending admin verification. You will be notified once approved.');
 
     const activeBooking = await this.prisma.booking.findFirst({
       where: { passengerId, status: { in: ['SEARCHING', 'ACCEPTED', 'RIDER_ARRIVED', 'IN_PROGRESS'] } },
