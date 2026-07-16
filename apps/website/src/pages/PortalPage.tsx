@@ -138,6 +138,7 @@ export default function PortalPage() {
   };
 
   const isRider = user?.role === 'RIDER';
+  const vehicleLabel = user?.rider?.vehicleType === 'DELIVERY' ? 'Motorcycle' : 'Tricycle';
   const getSaved = (type: string) => savedDocs.find((d: any) => d.type === type);
   const getStaged = (type: string) => stagedFiles[type];
   const hasFile = (type: string) => !!getSaved(type) || !!getStaged(type);
@@ -251,7 +252,7 @@ export default function PortalPage() {
                     <span className="material-icons text-2xl text-[#1B6B2F]">local_taxi</span>
                   </div>
                   <div className="flex-1">
-                    <p className="font-bold text-sm text-[#0D1F13]">Photos of Tricycle</p>
+                    <p className="font-bold text-sm text-[#0D1F13]">Photos of {vehicleLabel}</p>
                     <p className="text-xs mt-0.5 text-gray-400">
                       {TRICYCLE_TYPES.filter(t => hasFile(t.key)).length} of {TRICYCLE_TYPES.length} selected
                     </p>
