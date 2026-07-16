@@ -394,19 +394,17 @@ export default function HomePage() {
         <p className="text-gray-500 max-w-lg mx-auto mb-10">Available for Android. Get the app and start booking rides today.</p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <a
-            href="https://drive.google.com/file/d/1BZ7xJQfCLpyWiIemTu1fXtPfgcnmJVL5/view?usp=drive_link"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="https://bazbirezrdudrluqunvo.supabase.co/storage/v1/object/public/apk-releases/passenger-app.apk"
             className="btn-primary"
+            download
           >
             <span className="material-icons mr-2">smartphone</span>
             Passenger App
           </a>
           <a
-            href="https://drive.google.com/file/d/1RGApb_4rNWO5ibxzVmvehTKK78lUT-EW/view?usp=drive_link"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="https://bazbirezrdudrluqunvo.supabase.co/storage/v1/object/public/apk-releases/rider-app.apk"
             className="btn-outline"
+            download
           >
             <span className="material-icons mr-2">two_wheeler</span>
             Rider App
