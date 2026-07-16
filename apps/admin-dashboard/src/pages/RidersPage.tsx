@@ -9,7 +9,16 @@ const DOC_LABELS: Record<string, string> = {
   PROFILE_PHOTO: 'Rider Photo',
   INSURANCE: 'Insurance',
   NBI_CLEARANCE: 'NBI Clearance',
+  TRICYCLE_FRONT: 'Tricycle Front View',
+  TRICYCLE_BACK: 'Tricycle Back (Plate)',
+  TRICYCLE_LEFT: 'Tricycle Left Side',
+  TRICYCLE_RIGHT: 'Tricycle Right Side',
 };
+
+function getDocLabel(docType: string, vehicleType?: string): string {
+  const label = DOC_LABELS[docType] ?? docType;
+  return vehicleType === 'DELIVERY' ? label.replace('Tricycle', 'Motorcycle') : label;
+}
 
 const RIDER_STATUS_STYLES: Record<string, string> = {
   ACTIVE: 'bg-green-100 text-green-700',
@@ -217,13 +226,13 @@ export default function RidersPage() {
                           >
                             <img
                               src={doc.fileUrl}
-                              alt={DOC_LABELS[doc.type] ?? doc.type}
+                              alt={getDocLabel(doc.type, rider.vehicleType)}
                               className="w-full h-full object-cover"
                               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                             />
                           </div>
                           <div className="p-2">
-                            <p className="text-xs font-semibold text-gray-700">{DOC_LABELS[doc.type] ?? doc.type}</p>
+                            <p className="text-xs font-semibold text-gray-700">{getDocLabel(doc.type, rider.vehicleType)}</p>
                             <p className={`text-xs mt-0.5 ${doc.verified ? 'text-green-600' : 'text-yellow-600'}`}>
                               {doc.verified ? '✓ Verified' : '⏳ Pending'}
                             </p>
@@ -238,7 +247,7 @@ export default function RidersPage() {
                     const missing = required.filter(r => !uploaded.includes(r));
                     return missing.length > 0 ? (
                       <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-sm text-yellow-700">
-                        ⚠️ Missing: {missing.map(m => DOC_LABELS[m]).join(', ')}
+                        ⚠️ Missing: {missing.map(m => getDocLabel(m, rider.vehicleType)).join(', ')}
                       </div>
                     ) : (
                       <div className="mt-4 bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-700">
@@ -515,13 +524,13 @@ export default function RidersPage() {
                                     <div className="h-24 bg-gray-100">
                                       <img
                                         src={doc.fileUrl}
-                                        alt={DOC_LABELS[doc.type] ?? doc.type}
+                                        alt={getDocLabel(doc.type, rider.vehicleType)}
                                         className="w-full h-full object-cover"
                                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                                       />
                                     </div>
                                     <div className="px-2 py-1.5">
-                                      <p className="text-xs font-semibold text-gray-700 truncate">{DOC_LABELS[doc.type] ?? doc.type}</p>
+                                      <p className="text-xs font-semibold text-gray-700 truncate">{getDocLabel(doc.type, rider.vehicleType)}</p>
                                       <p className={`text-xs ${doc.verified ? 'text-green-600' : 'text-yellow-600'}`}>
                                         {doc.verified ? '✓ Verified' : '⏳ Pending'}
                                       </p>
