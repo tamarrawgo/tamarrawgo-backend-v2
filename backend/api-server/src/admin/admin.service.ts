@@ -169,6 +169,7 @@ export class AdminService {
           rider: {
             select: {
               id: true, licenseNumber: true, status: true, rating: true, onlineStatus: true, walletBalance: true,
+              vehicleType: true,
               vehicle: true,
               documents: { select: { id: true, type: true, fileUrl: true, verified: true, createdAt: true } },
             },
