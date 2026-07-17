@@ -9,7 +9,16 @@ const DOC_LABELS: Record<string, string> = {
   PROFILE_PHOTO: 'Rider Photo',
   INSURANCE: 'Insurance',
   NBI_CLEARANCE: 'NBI Clearance',
+  TRICYCLE_FRONT: 'Tricycle Front View',
+  TRICYCLE_BACK: 'Tricycle Back (Plate)',
+  TRICYCLE_LEFT: 'Tricycle Left Side',
+  TRICYCLE_RIGHT: 'Tricycle Right Side',
 };
+
+function getDocLabel(docType: string, vehicleType?: string): string {
+  const label = DOC_LABELS[docType] ?? docType;
+  return vehicleType === 'DELIVERY' ? label.replace('Tricycle', 'Motorcycle') : label;
+}
 
 type RoleFilter = 'ALL' | 'RIDER' | 'PASSENGER';
 
@@ -373,10 +382,10 @@ export default function UsersPage() {
                         {selectedUser.rider.documents.map((doc: any) => (
                           <div key={doc.id} className="border rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setPreviewImg(doc.fileUrl)}>
                             <div className="h-32 bg-gray-100">
-                              <img src={doc.fileUrl} alt={DOC_LABELS[doc.type] ?? doc.type} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                              <img src={doc.fileUrl} alt={getDocLabel(doc.type, selectedUser.rider?.vehicleType)} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                             </div>
                             <div className="p-2">
-                              <p className="text-xs font-semibold text-gray-700">{DOC_LABELS[doc.type] ?? doc.type}</p>
+                              <p className="text-xs font-semibold text-gray-700">{getDocLabel(doc.type, selectedUser.rider?.vehicleType)}</p>
                               <p className={`text-xs mt-0.5 ${doc.verified ? 'text-green-600' : 'text-yellow-600'}`}>{doc.verified ? '✓ Verified' : '⏳ Pending'}</p>
                             </div>
                           </div>
