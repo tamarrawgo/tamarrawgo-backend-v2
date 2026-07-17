@@ -32,6 +32,7 @@ export class UsersService {
             rating: true,
             totalTrips: true,
             walletBalance: true,
+            vehicleType: true,
             vehicle: true,
             documents: { select: { id: true, type: true, fileUrl: true, verified: true, createdAt: true } },
           },
