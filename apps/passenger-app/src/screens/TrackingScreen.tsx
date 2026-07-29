@@ -117,6 +117,9 @@ export default function TrackingScreen() {
       if (result?.polyline) {
         setRouteCoords(decodePolyline(result.polyline));
       }
+      if (result?.durationMinutes) {
+        setEtaMinutes(Math.max(1, result.durationMinutes));
+      }
     } catch {}
   }, []);
 
@@ -238,15 +241,6 @@ export default function TrackingScreen() {
       setRiderLocation(loc);
       setLocalRiderLoc({ ...loc });
       fitMapToRider(data.latitude, data.longitude);
-      const p = useBookingStore.getState().pickup;
-      const currentStatus = (useBookingStore.getState().activeBooking as any)?.status;
-      if (p && (currentStatus === BookingStatus.ACCEPTED || currentStatus === BookingStatus.SEARCHING)) {
-        const dLat = (data.latitude - p.latitude) * 111000;
-        const dLng = (data.longitude - p.longitude) * 111000 * Math.cos(p.latitude * Math.PI / 180);
-        const distM = Math.sqrt(dLat * dLat + dLng * dLng);
-        const mins = Math.max(1, Math.round(distM / 250));
-        setEtaMinutes(mins);
-      }
     };
 
     connectSocket().then((socket) => {
@@ -312,13 +306,6 @@ export default function TrackingScreen() {
           useBookingStore.getState().setRiderLocation(loc);
           setLocalRiderLoc({ ...loc });
           fitMapToRider(Number(rLat), Number(rLng));
-          const p = useBookingStore.getState().pickup;
-          if (p && (booking.status === 'ACCEPTED' || booking.status === 'SEARCHING')) {
-            const dLat = (Number(rLat) - p.latitude) * 111000;
-            const dLng = (Number(rLng) - p.longitude) * 111000 * Math.cos(p.latitude * Math.PI / 180);
-            const distM = Math.sqrt(dLat * dLat + dLng * dLng);
-            setEtaMinutes(Math.max(1, Math.round(distM / 250)));
-          }
         }
       } catch {} finally { polling = false; }
     };

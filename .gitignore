@@ -12,3 +12,12 @@ Thumbs.db
 *.tsbuildinfo
 coverage/
 .nyc_output/
+
+# Secrets - never commit these
+Credentials.txt
+firebase json/
+apps/passenger-app/google-services.json
+apps/rider-app/google-services.json
+APP release APK/
+apps/passenger-app/android/
+apps/rider-app/android/

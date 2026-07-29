@@ -36,8 +36,8 @@ const GREEN_LIGHT = '#E8F5E9';
 const TRICYCLE_IMG = require('../../assets/tricycle-small.png');
 
 const RIDE_TYPES = [
-  { id: 'regular', label: 'Regular Tricycle', price: '₱25 – ₱40', icon: 'local-taxi' as const },
-  { id: 'special', label: 'Special Trip (Group)', price: '₱Negotiable', icon: 'groups' as const },
+  { id: 'regular', label: 'Regular Tricycle (Shared)', price: '₱15 base · per seat', icon: 'local-taxi' as const, bookingType: 'REGULAR', maxPax: 2 },
+  { id: 'special', label: 'Special Trip (Exclusive)', price: '₱40 base · private', icon: 'groups' as const, bookingType: 'RIDE', maxPax: 4 },
 ];
 
 const PAYMENT_METHODS = [
@@ -86,8 +86,9 @@ export default function SearchScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+        const last = await Location.getLastKnownPositionAsync().catch(() => null);
+        const locCoords = last?.coords ?? (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })).coords;
+        const coords = { latitude: locCoords.latitude, longitude: locCoords.longitude };
         const geocode = await api.get(`/maps/reverse-geocode?lat=${coords.latitude}&lng=${coords.longitude}`)
           .catch(() => ({ address: 'Current Location' })) as any;
         const address = geocode?.address ?? 'Current Location';
@@ -154,6 +155,10 @@ export default function SearchScreen() {
     setActiveField(null);
   };
 
+  const selectedRideType = RIDE_TYPES.find(r => r.id === selectedRide) ?? RIDE_TYPES[0];
+  const bookingType = selectedRideType.bookingType;
+  const isRegular = bookingType === 'REGULAR';
+
   const handleFindRide = useCallback(async () => {
     if (!pickup) { Alert.alert('Error', 'Please set your pickup location.'); return; }
     if (!dropoffText || !dropoff) { Alert.alert('Error', 'Please select a destination from the suggestions.'); return; }
@@ -166,7 +171,8 @@ export default function SearchScreen() {
         dropoffLat: dropoff.latitude,
         dropoffLng: dropoff.longitude,
         passengerCount,
-        promoCode: promoCode.trim() || undefined,
+        bookingType,
+        promoCode: !isRegular ? (promoCode.trim() || undefined) : undefined,
       }) as any;
       if (Number(result?.totalFare ?? 0) <= 0 || Number(result?.distanceKm ?? 0) <= 0) {
         Alert.alert('Invalid Trip', 'Pickup and destination are too close. Please choose a different destination.');
@@ -204,9 +210,10 @@ export default function SearchScreen() {
       const booking = await api.post('/bookings', {
         pickup,
         dropoff,
+        bookingType,
         paymentMethod: selectedPayment,
         passengerCount,
-        promoCode: promoCode.trim() || undefined,
+        promoCode: !isRegular ? (promoCode.trim() || undefined) : undefined,
       });
       setActiveBooking(booking as any);
       setShowFareModal(false);
@@ -318,20 +325,34 @@ export default function SearchScreen() {
                 {/* Passenger Count */}
                 <Text style={styles.sectionLabel}>Number of Passengers</Text>
                 <View style={styles.passengerCountRow}>
-                  {[1, 2, 3, 4].map(n => (
-                    <TouchableOpacity
-                      key={n}
-                      style={[styles.passengerCountBtn, passengerCount === n && styles.passengerCountBtnSelected]}
-                      onPress={() => setPassengerCount(n)}
-                    >
-                      <MaterialIcons name="person" size={18} color={passengerCount === n ? '#fff' : GREEN} />
-                      <Text style={[styles.passengerCountText, passengerCount === n && { color: '#fff' }]}>{n}</Text>
-                    </TouchableOpacity>
-                  ))}
+                  {[1, 2, 3, 4].map(n => {
+                    const maxPax = selectedRideType.maxPax;
+                    const disabled = n > maxPax;
+                    return (
+                      <TouchableOpacity
+                        key={n}
+                        style={[
+                          styles.passengerCountBtn,
+                          passengerCount === n && styles.passengerCountBtnSelected,
+                          disabled && { opacity: 0.3 },
+                        ]}
+                        onPress={() => !disabled && setPassengerCount(n)}
+                        disabled={disabled}
+                      >
+                        <MaterialIcons name="person" size={18} color={passengerCount === n ? '#fff' : GREEN} />
+                        <Text style={[styles.passengerCountText, passengerCount === n && { color: '#fff' }]}>{n}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
-                {passengerCount > 1 && (
+                {isRegular && (
                   <Text style={styles.passengerCountHint}>
-                    +{(passengerCount - 1) * 20}% fare for {passengerCount} passengers
+                    {'Regular: ₱per-seat × ' + passengerCount + ' passenger' + (passengerCount > 1 ? 's' : '') + ' · max 3 per booking'}
+                  </Text>
+                )}
+                {!isRegular && passengerCount > 1 && (
+                  <Text style={styles.passengerCountHint}>
+                    {'+' + (passengerCount - 1) * 20 + '% fare for ' + passengerCount + ' passengers'}
                   </Text>
                 )}
 
@@ -477,15 +498,28 @@ export default function SearchScreen() {
 
             {/* Tricycle fare card */}
             <View style={styles.fareCard}>
-              <Text style={styles.fareEmoji}>🛺</Text>
+              <Text style={styles.fareEmoji}>{isRegular ? '🚌' : '🛺'}</Text>
               <View style={styles.fareInfo}>
-                <Text style={styles.fareName}>Tricycle</Text>
+                <Text style={styles.fareName}>{isRegular ? 'Regular (Shared)' : 'Special (Exclusive)'}</Text>
                 <Text style={styles.fareDesc}>
                   👤 {passengerCount} passenger{passengerCount > 1 ? 's' : ''} · {fareEstimate?.distanceKm?.toFixed(1) ?? '—'} km · ~{fareEstimate?.estimatedDurationMinutes ?? '—'} mins
                 </Text>
+                {isRegular && (fareEstimate as any)?.perSeatFare != null && (
+                  <Text style={styles.fareDesc}>
+                    ₱{Number((fareEstimate as any).perSeatFare).toFixed(0)} per seat × {passengerCount}
+                  </Text>
+                )}
               </View>
               <Text style={styles.fareAmount}>₱{fareEstimate?.totalFare?.toFixed(0) ?? '—'}</Text>
             </View>
+            {isRegular && (
+              <View style={styles.poolInfoCard}>
+                <Text style={styles.poolInfoIcon}>🚌</Text>
+                <Text style={styles.poolInfoText}>
+                  This is a shared ride. You may be matched with up to 3 total passengers. Your booking will show to riders once the pool is full or after 15 minutes.
+                </Text>
+              </View>
+            )}
 
             {/* Payment method */}
             <View style={styles.paymentInfoRow}>
@@ -499,29 +533,33 @@ export default function SearchScreen() {
               </Text>
             </View>
 
-            {/* Promo code */}
-            <View style={styles.promoRow}>
-              <MaterialIcons name="local-offer" size={16} color={promoApplied ? GREEN : '#999'} />
-              <TextInput
-                style={styles.promoInput}
-                placeholder="Enter promo code"
-                placeholderTextColor="#bbb"
-                value={promoCode}
-                onChangeText={(t) => { setPromoCode(t.toUpperCase()); setPromoApplied(false); }}
-                autoCapitalize="characters"
-              />
-              {promoApplied && (
-                <View style={styles.promoAppliedBadge}>
-                  <MaterialIcons name="check-circle" size={14} color={GREEN} />
-                  <Text style={styles.promoAppliedText}>-₱{promoDiscount.toFixed(0)}</Text>
+            {/* Promo code — not available for Regular pooling */}
+            {!isRegular && (
+              <>
+                <View style={styles.promoRow}>
+                  <MaterialIcons name="local-offer" size={16} color={promoApplied ? GREEN : '#999'} />
+                  <TextInput
+                    style={styles.promoInput}
+                    placeholder="Enter promo code"
+                    placeholderTextColor="#bbb"
+                    value={promoCode}
+                    onChangeText={(t) => { setPromoCode(t.toUpperCase()); setPromoApplied(false); }}
+                    autoCapitalize="characters"
+                  />
+                  {promoApplied && (
+                    <View style={styles.promoAppliedBadge}>
+                      <MaterialIcons name="check-circle" size={14} color={GREEN} />
+                      <Text style={styles.promoAppliedText}>-₱{promoDiscount.toFixed(0)}</Text>
+                    </View>
+                  )}
                 </View>
-              )}
-            </View>
-            {promoCode.trim() && !promoApplied && (
-              <Text style={styles.promoHint}>Tap "Find Nearby Tricycle" again to apply promo</Text>
-            )}
-            {promoApplied && (
-              <Text style={styles.promoSuccess}>Promo applied! ₱{promoDiscount.toFixed(0)} discount on this ride</Text>
+                {promoCode.trim() && !promoApplied && (
+                  <Text style={styles.promoHint}>Tap "Find Nearby Tricycle" again to apply promo</Text>
+                )}
+                {promoApplied && (
+                  <Text style={styles.promoSuccess}>Promo applied! ₱{promoDiscount.toFixed(0)} discount on this ride</Text>
+                )}
+              </>
             )}
 
             {/* Confirm */}
@@ -687,4 +725,11 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 4,
   },
   emojiMarker: { fontSize: 28, lineHeight: 30 },
+  poolInfoCard: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+    backgroundColor: '#E8F5E9', borderRadius: 12, padding: 12, marginBottom: 14,
+    borderWidth: 1, borderColor: '#C8E6C9',
+  },
+  poolInfoIcon: { fontSize: 18 },
+  poolInfoText: { flex: 1, fontSize: 12, color: '#2E7D32', lineHeight: 18 },
 });

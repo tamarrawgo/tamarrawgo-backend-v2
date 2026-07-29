@@ -10,9 +10,13 @@ const CIRCLE_SIZE = CAMERA_SIZE * 0.75;
 interface Props {
   onCapture: (uri: string, base64: string) => void;
   onClose: () => void;
+  facing?: 'front' | 'back';
+  title?: string;
+  instruction?: string;
+  showCircle?: boolean;
 }
 
-export default function FaceScanCamera({ onCapture, onClose }: Props) {
+export default function FaceScanCamera({ onCapture, onClose, facing = 'front', title = 'Face Scan', instruction, showCircle = true }: Props) {
   const [permission, requestPermission] = useCameraPermissions();
   const [ready, setReady] = useState(false);
   const cameraRef = useRef<any>(null);
@@ -55,25 +59,26 @@ export default function FaceScanCamera({ onCapture, onClose }: Props) {
         <TouchableOpacity onPress={onClose}>
           <MaterialIcons name="close" size={28} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Face Scan</Text>
+        <Text style={styles.headerTitle}>{title}</Text>
         <View style={{ width: 28 }} />
       </View>
 
-      <View style={styles.cameraWrap}>
+      <View style={showCircle ? styles.cameraWrap : styles.cameraWrapRect}>
         <CameraView
           ref={cameraRef}
           style={styles.camera}
-          facing="front"
+          facing={facing}
         />
-        {/* Circle overlay */}
-        <View style={styles.overlay} pointerEvents="none">
-          <View style={[styles.circle, ready ? styles.circleDetected : styles.circleWaiting]} />
-        </View>
+        {showCircle && (
+          <View style={styles.overlay} pointerEvents="none">
+            <View style={[styles.circle, ready ? styles.circleDetected : styles.circleWaiting]} />
+          </View>
+        )}
       </View>
 
       <Text style={styles.instruction}>
         {ready
-          ? 'Position your face inside the circle and tap capture'
+          ? (instruction ?? 'Position your face inside the circle and tap capture')
           : 'Getting camera ready...'}
       </Text>
 
@@ -100,6 +105,10 @@ const styles = StyleSheet.create({
   cameraWrap: {
     width: CAMERA_SIZE, height: CAMERA_SIZE, alignSelf: 'center',
     borderRadius: CAMERA_SIZE / 2, overflow: 'hidden', position: 'relative',
+  },
+  cameraWrapRect: {
+    width: '92%', height: CAMERA_SIZE * 0.68, alignSelf: 'center',
+    borderRadius: 16, overflow: 'hidden', position: 'relative',
   },
   camera: { flex: 1 },
   overlay: {

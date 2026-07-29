@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { FareService } from '../fare/fare.service';
 import { MapsService } from '../maps/maps.service';
@@ -56,6 +57,12 @@ export class BookingsService {
       return { ...estimate, passengerCount: 1, passengerMultiplier: 1, polyline, promoRejected: false };
     }
 
+    if (bookingType === 'REGULAR') {
+      const pCount = Math.min(Math.max(passengerCount ?? 1, 1), 2);
+      const estimate = await this.fare.estimateRegularFare(distanceKm, durationMinutes, pCount);
+      return { ...estimate, passengerCount: pCount, passengerMultiplier: pCount, polyline, promoRejected: false };
+    }
+
     // RIDE — existing logic
     const estimateNoPromo = await this.fare.estimateFare(distanceKm, durationMinutes, 0);
     const count = Math.min(Math.max(passengerCount, 1), 4);
@@ -88,7 +95,7 @@ export class BookingsService {
     if (passenger.verificationStatus !== 'VERIFIED') throw new ForbiddenException('Your account is pending admin verification. You will be notified once approved.');
 
     const activeBooking = await this.prisma.booking.findFirst({
-      where: { passengerId, status: { in: ['SEARCHING', 'ACCEPTED', 'RIDER_ARRIVED', 'IN_PROGRESS'] } },
+      where: { passengerId, status: { in: ['POOLING', 'SEARCHING', 'ACCEPTED', 'RIDER_ARRIVED', 'IN_PROGRESS'] as any } },
     });
     if (activeBooking) throw new BadRequestException('You already have an active booking');
 
@@ -132,6 +139,51 @@ export class BookingsService {
       fareEstimate.estimatedDurationMinutes = durationMinutes;
       fareEstimate.surgeMultiplier = 1;
       fareEstimate.discount = 0;
+    } else if (bookingType === 'REGULAR') {
+      const pCount = Math.min(Math.max(dto.passengerCount ?? 1, 1), 3);
+      fareEstimate = await this.fare.estimateRegularFare(distanceKm, durationMinutes, pCount);
+      fareEstimate.discount = 0;
+
+      const { poolGroupId, shouldDispatch } = await this.findOrJoinPoolGroup(
+        passengerId, dto.pickup.latitude, dto.pickup.longitude, pCount,
+      );
+
+      const booking = await this.prisma.booking.create({
+        data: {
+          passengerId,
+          status: 'POOLING' as any,
+          bookingType: 'REGULAR' as any,
+          poolGroupId,
+          poolExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
+          pickupAddress: dto.pickup.address,
+          pickupLatitude: dto.pickup.latitude,
+          pickupLongitude: dto.pickup.longitude,
+          pickupPlaceId: dto.pickup.placeId,
+          dropoffAddress: dto.dropoff.address,
+          dropoffLatitude: dto.dropoff.latitude,
+          dropoffLongitude: dto.dropoff.longitude,
+          dropoffPlaceId: dto.dropoff.placeId,
+          distanceKm: fareEstimate.distanceKm ?? distanceKm,
+          estimatedMinutes: fareEstimate.estimatedDurationMinutes ?? durationMinutes,
+          baseFare: fareEstimate.baseFare,
+          distanceFare: fareEstimate.distanceFare,
+          timeFare: fareEstimate.timeFare ?? 0,
+          surgeMultiplier: 1,
+          discount: 0,
+          estimatedFare: fareEstimate.totalFare,
+          passengerCount: pCount,
+          paymentMethod: dto.paymentMethod,
+          notes: dto.notes,
+          expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+        },
+        include: { passenger: { select: { firstName: true, lastName: true, phone: true } } },
+      });
+
+      if (shouldDispatch) {
+        await this.dispatchPoolGroup(poolGroupId);
+      }
+
+      return booking;
     } else {
       fareEstimate = await this.fare.estimateFare(distanceKm, durationMinutes, promoDiscount);
     }
@@ -199,10 +251,9 @@ export class BookingsService {
     });
     if (activeBooking) return [];
 
-    // TRICYCLE riders see RIDE bookings; DELIVERY riders see DELIVERY + PABILI bookings
-    const allowedTypes = (rider as any).vehicleType === 'DELIVERY'
-      ? ['DELIVERY', 'PABILI']
-      : ['RIDE'];
+    // TRICYCLE riders see RIDE + REGULAR bookings; DELIVERY riders see DELIVERY + PABILI
+    const isDeliveryRider = (rider as any).vehicleType === 'DELIVERY';
+    const allowedTypes = isDeliveryRider ? ['DELIVERY', 'PABILI'] : ['RIDE'];
 
     const searching = await this.prisma.booking.findMany({
       where: { status: 'SEARCHING', bookingType: { in: allowedTypes as any } },
@@ -210,7 +261,7 @@ export class BookingsService {
       orderBy: { createdAt: 'asc' },
     });
 
-    return searching
+    const singleBookings = searching
       .filter((b) => {
         const dist = haversineDistance(
           { latitude: b.pickupLatitude, longitude: b.pickupLongitude },
@@ -238,6 +289,12 @@ export class BookingsService {
         itemBudget: (b as any).itemBudget ? Number((b as any).itemBudget) : undefined,
         expiresAt: b.expiresAt?.getTime() ?? Date.now() + 5 * 60 * 1000,
       }));
+
+    if (isDeliveryRider) return singleBookings;
+
+    // TRICYCLE riders also see ready REGULAR pool groups
+    const poolGroups = await this.getReadyPoolGroups(rider);
+    return [...singleBookings, ...poolGroups];
   }
 
   private async dispatchToNearbyRiders(booking: any) {
@@ -313,6 +370,233 @@ export class BookingsService {
 
     this.logger.log(`Booking ${booking.id} dispatched to ${nearby.length} riders`);
   }
+
+  // ── Regular / Pooling helpers ──────────────────────────────────────────────
+
+  private async findOrJoinPoolGroup(
+    passengerId: string,
+    pickupLat: number,
+    pickupLng: number,
+    newPaxCount: number,
+  ): Promise<{ poolGroupId: string; shouldDispatch: boolean }> {
+    const existingPools = await this.prisma.booking.findMany({
+      where: {
+        status: 'POOLING' as any,
+        bookingType: 'REGULAR' as any,
+        poolExpiresAt: { gt: new Date() },
+        passengerId: { not: passengerId },
+      },
+      select: { poolGroupId: true, pickupLatitude: true, pickupLongitude: true, passengerCount: true },
+    });
+
+    // Group by poolGroupId and aggregate total pax + representative coords
+    const groups = new Map<string, { totalPax: number; lat: number; lng: number }>();
+    for (const b of existingPools) {
+      if (!b.poolGroupId) continue;
+      const g = groups.get(b.poolGroupId) ?? { totalPax: 0, lat: b.pickupLatitude, lng: b.pickupLongitude };
+      g.totalPax += b.passengerCount;
+      groups.set(b.poolGroupId, g);
+    }
+
+    for (const [groupId, g] of groups) {
+      if (g.totalPax + newPaxCount > 3) continue;
+      const dist = haversineDistance(
+        { latitude: pickupLat, longitude: pickupLng },
+        { latitude: g.lat, longitude: g.lng },
+      );
+      if (dist <= SEARCH_RADIUS_KM) {
+        return { poolGroupId: groupId, shouldDispatch: g.totalPax + newPaxCount >= 3 };
+      }
+    }
+
+    return { poolGroupId: randomUUID(), shouldDispatch: false };
+  }
+
+  private async dispatchPoolGroup(poolGroupId: string) {
+    const bookings: any[] = await this.prisma.booking.findMany({
+      where: { poolGroupId, status: 'POOLING' as any } as any,
+      include: { passenger: { select: { firstName: true, lastName: true, phone: true } } },
+    });
+    if (bookings.length === 0) return;
+
+    const totalPax = bookings.reduce((s, b) => s + b.passengerCount, 0);
+    const totalFare = bookings.reduce((s, b) => s + Number(b.estimatedFare), 0);
+    const first = bookings[0];
+
+    const payload = {
+      type: 'POOL_GROUP',
+      poolGroupId,
+      bookings: bookings.map((b) => ({
+        bookingId: b.id,
+        passenger: { id: b.passengerId, firstName: b.passenger.firstName, lastName: b.passenger.lastName, phone: b.passenger.phone },
+        pickup: { address: b.pickupAddress, latitude: b.pickupLatitude, longitude: b.pickupLongitude },
+        dropoff: { address: b.dropoffAddress, latitude: b.dropoffLatitude, longitude: b.dropoffLongitude },
+        estimatedFare: Number(b.estimatedFare),
+        passengerCount: b.passengerCount,
+        distanceKm: b.distanceKm,
+      })),
+      totalPassengers: totalPax,
+      totalFare,
+      distanceKm: first.distanceKm,
+      expiresAt: (first as any).poolExpiresAt?.getTime() ?? Date.now() + 15 * 60 * 1000,
+    };
+
+    const riders = await this.prisma.riderProfile.findMany({
+      where: {
+        onlineStatus: 'ONLINE',
+        status: 'APPROVED',
+        vehicleType: 'TRICYCLE' as any,
+        currentLatitude: { not: null },
+        currentLongitude: { not: null },
+        walletBalance: { gte: 0 },
+        bookingsAsRider: { none: { status: { in: ['ACCEPTED', 'RIDER_ARRIVED', 'IN_PROGRESS'] } } },
+      },
+      include: { user: { select: { id: true, fcmToken: true } } },
+    });
+
+    const nearby = riders.filter((r) => {
+      if (!r.currentLatitude || !r.currentLongitude) return false;
+      return haversineDistance(
+        { latitude: first.pickupLatitude, longitude: first.pickupLongitude },
+        { latitude: r.currentLatitude, longitude: r.currentLongitude },
+      ) <= SEARCH_RADIUS_KM;
+    });
+
+    for (const rider of nearby) {
+      this.socket.sendBookingRequest(rider.user.id, payload as any);
+      if (rider.user.fcmToken) {
+        await this.notifications.sendPush(rider.user.fcmToken, {
+          title: '🚌 Regular Pool Trip!',
+          body: `${totalPax} passengers · ₱${totalFare.toFixed(0)} total`,
+          data: { type: NotificationType.BOOKING_REQUEST, poolGroupId },
+        });
+      }
+    }
+
+    this.logger.log(`Pool group ${poolGroupId} dispatched to ${nearby.length} riders`);
+  }
+
+  private async getReadyPoolGroups(rider: any) {
+    const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000);
+
+    const poolingBookings = await this.prisma.booking.findMany({
+      where: {
+        status: 'POOLING' as any,
+        bookingType: 'REGULAR' as any,
+        createdAt: { lte: fifteenMinAgo },
+      },
+      include: { passenger: { select: { firstName: true, lastName: true, phone: true } } },
+    });
+
+    const groups = new Map<string, any[]>();
+    for (const b of poolingBookings) {
+      if (!(b as any).poolGroupId) continue;
+      const arr = groups.get((b as any).poolGroupId) ?? [];
+      arr.push(b);
+      groups.set((b as any).poolGroupId, arr);
+    }
+
+    const result: any[] = [];
+    for (const [groupId, bookings] of groups) {
+      const first = bookings[0];
+      const dist = haversineDistance(
+        { latitude: first.pickupLatitude, longitude: first.pickupLongitude },
+        { latitude: rider.currentLatitude, longitude: rider.currentLongitude },
+      );
+      if (dist > SEARCH_RADIUS_KM) continue;
+
+      const totalPax = bookings.reduce((s: number, b: any) => s + b.passengerCount, 0);
+      const totalFare = bookings.reduce((s: number, b: any) => s + Number(b.estimatedFare), 0);
+
+      result.push({
+        type: 'POOL_GROUP',
+        poolGroupId: groupId,
+        bookings: bookings.map((b: any) => ({
+          bookingId: b.id,
+          passenger: { id: b.passengerId, firstName: b.passenger.firstName, lastName: b.passenger.lastName, phone: b.passenger.phone },
+          pickup: { address: b.pickupAddress, latitude: b.pickupLatitude, longitude: b.pickupLongitude },
+          dropoff: { address: b.dropoffAddress, latitude: b.dropoffLatitude, longitude: b.dropoffLongitude },
+          estimatedFare: Number(b.estimatedFare),
+          passengerCount: b.passengerCount,
+          distanceKm: b.distanceKm,
+        })),
+        totalPassengers: totalPax,
+        totalFare,
+        distanceKm: first.distanceKm,
+        expiresAt: first.poolExpiresAt?.getTime() ?? Date.now() + 15 * 60 * 1000,
+        waitingMinutes: Math.floor((Date.now() - first.createdAt.getTime()) / 60000),
+      });
+    }
+    return result;
+  }
+
+  async acceptPoolGroup(riderId: string, poolGroupId: string) {
+    const rider = await this.prisma.riderProfile.findUnique({
+      where: { userId: riderId },
+      include: { user: true, vehicle: true },
+    });
+    if (!rider) throw new NotFoundException('Rider profile not found');
+    if (rider.status !== 'APPROVED') throw new ForbiddenException('Rider not approved');
+
+    const activeBooking = await this.prisma.booking.findFirst({
+      where: { riderId: rider.id, status: { in: ['ACCEPTED', 'RIDER_ARRIVED', 'IN_PROGRESS'] } },
+    });
+    if (activeBooking) throw new BadRequestException('You already have an active booking');
+
+    // Atomic: update only if all bookings in group are still POOLING
+    const claimed = await this.prisma.booking.updateMany({
+      where: { poolGroupId, status: 'POOLING' as any } as any,
+      data: { riderId: rider.id, status: 'ACCEPTED' as any, acceptedAt: new Date() },
+    });
+    if (claimed.count === 0) throw new BadRequestException('Pool group is no longer available');
+
+    const bookings: any[] = await this.prisma.booking.findMany({
+      where: { poolGroupId } as any,
+      include: { passenger: { select: { firstName: true, lastName: true, phone: true, fcmToken: true } } },
+    });
+
+    // Notify all passengers
+    for (const b of bookings) {
+      this.socket.notifyBookingAccepted(b.passengerId, {
+        bookingId: b.id,
+        status: BookingStatus.ACCEPTED,
+        rider: {
+          riderId: rider.id,
+          userId: rider.userId,
+          firstName: rider.user.firstName,
+          lastName: rider.user.lastName,
+          rating: rider.rating,
+          latitude: rider.currentLatitude ?? 0,
+          longitude: rider.currentLongitude ?? 0,
+          distanceKm: 0,
+          etaMinutes: 0,
+          vehicle: rider.vehicle as any,
+        },
+      });
+      if (b.passenger.fcmToken) {
+        await this.notifications.sendPush(b.passenger.fcmToken, {
+          title: 'Rider Found!',
+          body: `${rider.user.firstName} is on the way! (Pool trip)`,
+          data: { type: NotificationType.RIDER_ASSIGNED, bookingId: b.id },
+        });
+      }
+    }
+
+    // Dismiss pool from all other riders
+    const onlineRiders = await this.prisma.riderProfile.findMany({
+      where: { onlineStatus: 'ONLINE', status: 'APPROVED' },
+      include: { user: { select: { id: true } } },
+    });
+    for (const r of onlineRiders) {
+      if (r.user.id !== rider.user.id) {
+        this.socket.sendToUser(r.user.id, 'pool:taken', { poolGroupId });
+      }
+    }
+
+    return bookings;
+  }
+
+  // ── End pooling helpers ────────────────────────────────────────────────────
 
   async acceptBooking(riderId: string, bookingId: string) {
     const rider = await this.prisma.riderProfile.findUnique({
@@ -732,7 +1016,7 @@ export class BookingsService {
     return this.prisma.booking.findFirst({
       where: {
         OR: [{ passengerId: userId }, { rider: { userId } }],
-        status: { in: ['SEARCHING', 'ACCEPTED', 'RIDER_ARRIVED', 'IN_PROGRESS'] },
+        status: { in: ['POOLING', 'SEARCHING', 'ACCEPTED', 'RIDER_ARRIVED', 'IN_PROGRESS'] as any },
       },
       include: {
         rider: {

@@ -58,6 +58,13 @@ export class BookingsController {
     return this.bookings.getBookingById(id);
   }
 
+  @Post('pool/:groupId/accept')
+  @ApiOperation({ summary: 'Rider accepts a regular pool group' })
+  @HttpCode(HttpStatus.OK)
+  acceptPoolGroup(@CurrentUser() user: any, @Param('groupId') groupId: string) {
+    return this.bookings.acceptPoolGroup(user.id, groupId);
+  }
+
   @Post(':id/accept')
   @ApiOperation({ summary: 'Rider accepts a booking' })
   @HttpCode(HttpStatus.OK)

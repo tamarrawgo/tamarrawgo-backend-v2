@@ -34,6 +34,7 @@ enum OnlineStatus {
 }
 
 enum BookingStatus {
+  POOLING
   SEARCHING
   ACCEPTED
   RIDER_ARRIVED
@@ -114,6 +115,7 @@ enum VehicleType {
 
 enum BookingType {
   RIDE
+  REGULAR
   DELIVERY
   PABILI
 }
@@ -251,6 +253,8 @@ model Booking {
   promoCode           String?
   notes               String?
   cancellationReason  String?
+  poolGroupId         String?
+  poolExpiresAt       DateTime?
   acceptedAt          DateTime?
   arrivedAt           DateTime?
   pickedUpAt          DateTime?
@@ -268,6 +272,7 @@ model Booking {
   @@index([passengerId, status])
   @@index([riderId, status])
   @@index([status, createdAt])
+  @@index([poolGroupId])
   @@map("bookings")
 }
 
@@ -426,6 +431,9 @@ model FareConfiguration {
   pabiliBaseFare       Decimal  @default(60) @db.Decimal(10, 2)
   pabiliRatePerKm      Decimal  @default(10) @db.Decimal(10, 2)
   pabiliServiceFee     Decimal  @default(20) @db.Decimal(10, 2)
+  // Regular (pooled shared tricycle)
+  regularBaseFare      Decimal  @default(15) @db.Decimal(10, 2)
+  regularRatePerKm     Decimal  @default(10) @db.Decimal(10, 2)
   isActive             Boolean  @default(true)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt

@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Alert, Image, Modal, ScrollView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
 import { useAuthStore } from '../../src/store/auth.store';
 import { api } from '../../src/services/api';
 import FaceScanCamera from '../../src/components/FaceScanCamera';
@@ -20,6 +19,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [idCameraOpen, setIdCameraOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadingId, setUploadingId] = useState(false);
 
@@ -52,34 +52,12 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleValidIdUpload = async () => {
-    Alert.alert('Upload Valid ID', 'Choose how to upload your valid ID', [
-      {
-        text: 'Take Photo',
-        onPress: async () => {
-          const { status } = await ImagePicker.requestCameraPermissionsAsync();
-          if (status !== 'granted') { Alert.alert('Permission needed', 'Camera access is required.'); return; }
-          const result = await ImagePicker.launchCameraAsync({ base64: true, quality: 0.7, mediaTypes: ImagePicker.MediaTypeOptions.Images });
-          if (!result.canceled && result.assets[0].base64) {
-            await submitValidId(result.assets[0].base64, 'valid-id.jpg');
-          }
-        },
-      },
-      {
-        text: 'Choose from Gallery',
-        onPress: async () => {
-          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-          if (status !== 'granted') { Alert.alert('Permission needed', 'Gallery access is required.'); return; }
-          const result = await ImagePicker.launchImageLibraryAsync({ base64: true, quality: 0.7, mediaTypes: ImagePicker.MediaTypeOptions.Images });
-          if (!result.canceled && result.assets[0].base64) {
-            const ext = result.assets[0].uri.split('.').pop() ?? 'jpg';
-            await submitValidId(result.assets[0].base64, `valid-id.${ext}`);
-          }
-        },
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+  const handleIdCapture = async (_uri: string, base64: string) => {
+    setIdCameraOpen(false);
+    await submitValidId(base64, 'valid-id.jpg');
   };
+
+  const handleValidIdUpload = () => setIdCameraOpen(true);
 
   const submitValidId = async (base64: string, fileName: string) => {
     setUploadingId(true);
@@ -142,7 +120,7 @@ export default function ProfileScreen() {
             </View>
           ) : verifyStatus === 'PENDING' ? (
             <View style={[styles.verifyBanner, styles.verifyBannerBlue]}>
-              <MaterialIcons name="hourglass-empty" size={16} color="#1D4ED8" />
+              <MaterialIcons name="schedule" size={16} color="#1D4ED8" />
               <Text style={[styles.verifyBannerText, styles.verifyBannerTextBlue]}>Documents submitted — Under admin review</Text>
             </View>
           ) : verifyStatus === 'REJECTED' ? (
@@ -222,11 +200,23 @@ export default function ProfileScreen() {
         <View style={{ height: 32 }} />
       </ScrollView>
 
-      {/* Face Scan Camera */}
+      {/* Face Scan Camera — selfie */}
       <Modal visible={cameraOpen} animationType="slide">
         <FaceScanCamera
           onCapture={handleSelfieCapture}
           onClose={() => setCameraOpen(false)}
+        />
+      </Modal>
+
+      {/* Camera for Valid ID — back camera, no face detection */}
+      <Modal visible={idCameraOpen} animationType="slide">
+        <FaceScanCamera
+          facing="back"
+          title="Capture Valid ID"
+          instruction="Capture your valid ID"
+          showCircle={false}
+          onCapture={handleIdCapture}
+          onClose={() => setIdCameraOpen(false)}
         />
       </Modal>
     </SafeAreaView>

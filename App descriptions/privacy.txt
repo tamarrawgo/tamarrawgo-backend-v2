@@ -1,0 +1,163 @@
+Welcome to TAMARRAW GO. Your privacy is important to us. This Privacy Policy explains how TAMARRAW GO collects, uses, stores, and protects your personal information when you use our mobile application, website, and related services.
+
+By using TAMARRAW GO, you agree to the collection and use of information in accordance with this Privacy Policy.
+
+1. Information We Collect
+Personal Information
+
+When you create an account, we may collect:
+
+Full Name
+Mobile Number
+Email Address
+Profile Photo (optional)
+Date of Birth (if required)
+Government-issued Identification (for driver verification)
+Location Information
+
+To provide transportation services, we collect:
+
+Current GPS location
+Pickup and drop-off locations
+Route and trip information
+
+Location services may continue during active rides to ensure trip accuracy and safety.
+
+Driver Information
+
+For driver accounts, we may collect:
+
+Driver's License Information
+Vehicle Registration Details
+Vehicle Information
+Insurance Information (if applicable)
+Driver Verification Documents
+Device Information
+
+We may automatically collect:
+
+Device Model
+Operating System
+IP Address
+App Version
+Device Identifiers
+2. How We Use Your Information
+
+We use collected information to:
+
+Create and manage user accounts
+Process ride bookings
+Match passengers with drivers
+Facilitate payments
+Improve app performance
+Provide customer support
+Enhance safety and security
+Detect fraud and unauthorized activities
+Comply with legal obligations
+3. Sharing of Information
+
+TAMARRAW GO does not sell your personal information.
+
+We may share information with:
+
+Drivers and Passengers
+
+To facilitate rides, limited information may be shared, including:
+
+Name
+Profile Photo
+Pickup and Drop-off Details
+Contact Information (when necessary)
+Service Providers
+
+We may share data with trusted third-party providers that help us operate our services, including:
+
+Payment processors
+Cloud storage providers
+Customer support services
+Security and fraud prevention providers
+Legal Authorities
+
+We may disclose information when required by law or to protect public safety, legal rights, and the integrity of our platform.
+
+4. Data Security
+
+We implement reasonable administrative, technical, and physical safeguards to protect your personal information against unauthorized access, disclosure, alteration, or destruction.
+
+However, no method of transmission over the internet is completely secure, and we cannot guarantee absolute security.
+
+5. Data Retention
+
+We retain personal information only for as long as necessary to:
+
+Provide our services
+Resolve disputes
+Enforce agreements
+Comply with legal requirements
+
+After the retention period, information may be securely deleted or anonymized.
+
+6. Your Rights
+
+Subject to applicable laws, you may have the right to:
+
+Access your personal information
+Correct inaccurate information
+Request deletion of your account
+Withdraw consent where applicable
+Request a copy of your stored data
+
+Requests may be subject to identity verification and legal limitations.
+
+7. Children's Privacy
+
+TAMARRAW GO services are intended for individuals who are at least 18 years old or of legal age to enter into agreements under applicable laws.
+
+We do not knowingly collect personal information from children without proper consent.
+
+8. Cookies and Analytics
+
+Our app and website may use cookies, analytics tools, and similar technologies to:
+
+Improve user experience
+Analyze platform performance
+Monitor service usage
+Enhance security
+
+Users may manage certain permissions through their device settings.
+
+9. Third-Party Services
+
+TAMARRAW GO may contain links or integrations with third-party services. We are not responsible for the privacy practices of third-party platforms.
+
+Users are encouraged to review the privacy policies of those services separately.
+
+10. Changes to This Privacy Policy
+
+We may update this Privacy Policy from time to time.
+
+Any changes will become effective upon posting the revised version within the application or website.
+
+Continued use of TAMARRAW GO after updates constitutes acceptance of the revised Privacy Policy.
+
+11. Data Privacy Compliance
+
+TAMARRAW GO is committed to protecting user information in accordance with the applicable provisions of the Data Privacy Act of 2012 and other relevant laws and regulations.
+
+12. Contact Us
+
+For questions, concerns, or privacy-related requests, please contact:
+
+TAMARRAW GO Support Team
+
+📧 support@tamarrawgo.com
+
+📞 (Insert Official Contact Number)
+
+🌴 Oriental Mindoro, Philippines
+
+By using TAMARRAW GO, you acknowledge that you have read, understood, and agreed to this Privacy Policy.
+
+TAMARRAW GO
+
+Proudly Mindoreño. Built for Mindoro. 🚖💚💛🌴

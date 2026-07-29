@@ -23,6 +23,20 @@ const MINDORO = { minLat: 11.9, maxLat: 13.6, minLng: 120.5, maxLng: 121.8 };
 const isInMindoro = (lat: number, lng: number) =>
   lat >= MINDORO.minLat && lat <= MINDORO.maxLat && lng >= MINDORO.minLng && lng <= MINDORO.maxLng;
 
+let _riderLocationCache: { result: boolean; ts: number } | null = null;
+async function checkMindoroLocation(): Promise<boolean> {
+  if (_riderLocationCache && Date.now() - _riderLocationCache.ts < 120_000) return _riderLocationCache.result;
+  try {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') return true;
+    const last = await Location.getLastKnownPositionAsync().catch(() => null);
+    const coords = last?.coords ?? (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })).coords;
+    const result = isInMindoro(coords.latitude, coords.longitude);
+    _riderLocationCache = { result, ts: Date.now() };
+    return result;
+  } catch { return true; }
+}
+
 export default function RiderHomeScreen() {
   const mapRef = useRef<MapView>(null);
   const locationInterval = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -33,6 +47,7 @@ export default function RiderHomeScreen() {
   } = useRiderStore();
   const hasActiveBooking = activeBooking && !['COMPLETED', 'CANCELLED'].includes((activeBooking as any)?.status);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number; heading: number } | null>(null);
+  const [isInServiceArea, setIsInServiceArea] = useState(true);
   const [summary, setSummary] = useState<{ today: number; totalTrips: number; todayTrips: number; averageRating: number } | null>(null);
   const router = useRouter();
   const { user, logout } = useAuthStore();
@@ -107,6 +122,9 @@ export default function RiderHomeScreen() {
         const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude, heading: loc.coords.heading ?? 0 };
         lastKnownLocation.current = coords;
         setUserLocation(coords);
+        const inMindoro = isInMindoro(coords.latitude, coords.longitude);
+        _riderLocationCache = { result: inMindoro, ts: Date.now() };
+        setIsInServiceArea(inMindoro);
         mapRef.current?.animateToRegion({ ...coords, latitudeDelta: 0.01, longitudeDelta: 0.01 }, 1000);
       } catch {
         // GPS not available
@@ -171,6 +189,14 @@ export default function RiderHomeScreen() {
     socket.on('booking:taken', (data: any) => {
       removeBookingRequest(data.bookingId);
     });
+    socket.on('pool:taken', (data: any) => {
+      // Remove all bookings in the pool group from the request list
+      const { bookingRequests } = useRiderStore.getState();
+      const poolRequest = bookingRequests.find((r: any) => r.poolGroupId === data.poolGroupId);
+      if (poolRequest) removeBookingRequest(poolRequest.poolGroupId ?? poolRequest.bookingId);
+      // Also remove by individual bookingIds inside the pool
+      (poolRequest?.bookings ?? []).forEach((b: any) => removeBookingRequest(b.bookingId));
+    });
     socket.on('passenger:booking:cancel', (data: any) => {
       removeBookingRequest(data.bookingId);
       if (useRiderStore.getState().activeBooking?.bookingId === data.bookingId) {
@@ -197,8 +223,9 @@ export default function RiderHomeScreen() {
           Alert.alert('Location Required', 'Enable location permission to go online.');
           return;
         }
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        if (!isInMindoro(loc.coords.latitude, loc.coords.longitude)) {
+        const inMindoro = await checkMindoroLocation();
+        setIsInServiceArea(inMindoro);
+        if (!inMindoro) {
           Alert.alert('Outside Service Area', 'TamarrawGo is only available in Mindoro. You cannot go online outside the island.');
           return;
         }
@@ -256,9 +283,72 @@ export default function RiderHomeScreen() {
     }
   };
 
+  const acceptPoolGroup = async (poolGroupId: string, poolRequest: any) => {
+    try {
+      const bookings = await api.post(`/bookings/pool/${poolGroupId}/accept`) as any[];
+      const firstBooking = Array.isArray(bookings) ? bookings[0] : bookings;
+      setActiveBooking({
+        bookingId: firstBooking.id,
+        status: BookingStatus.ACCEPTED,
+        bookingType: 'REGULAR',
+        poolGroupId,
+        poolBookings: poolRequest.bookings,
+        pickup: { address: firstBooking.pickupAddress, latitude: firstBooking.pickupLatitude, longitude: firstBooking.pickupLongitude },
+        dropoff: { address: firstBooking.dropoffAddress, latitude: firstBooking.dropoffLatitude, longitude: firstBooking.dropoffLongitude },
+        passenger: { firstName: firstBooking.passenger?.firstName, lastName: firstBooking.passenger?.lastName, phone: firstBooking.passenger?.phone },
+        estimatedFare: poolRequest.totalFare,
+      } as any);
+      clearBookingRequests();
+      router.push('/active-trip');
+    } catch (err: any) {
+      Alert.alert('Error', err?.message ?? 'Failed to accept pool group');
+      // Remove pool from list using poolGroupId as key
+      useRiderStore.getState().bookingRequests
+        .filter((r: any) => r.poolGroupId === poolGroupId)
+        .forEach((r: any) => removeBookingRequest(r.poolGroupId));
+    }
+  };
+
   const rejectBooking = (bookingId: string) => removeBookingRequest(bookingId);
 
   const renderBookingItem = ({ item }: { item: any }) => {
+    // Pool group card
+    if (item.type === 'POOL_GROUP') {
+      return (
+        <View style={[styles.bookingCard, styles.poolCard]}>
+          <View style={styles.typeBadge}>
+            <Text style={styles.typeBadgeText}>🚌 Regular Pool · {item.totalPassengers} passenger{item.totalPassengers > 1 ? 's' : ''}</Text>
+          </View>
+          {(item.bookings ?? []).map((b: any, idx: number) => (
+            <View key={b.bookingId} style={styles.poolBookingRow}>
+              <Text style={styles.poolBookingIdx}>Booking {idx + 1} · 👤 {b.passengerCount}</Text>
+              <View style={styles.bookingInfo}>
+                <MaterialIcons name="location-on" size={14} color="#1B6B2F" />
+                <Text style={styles.bookingAddr} numberOfLines={1}>{b.pickup?.address}</Text>
+              </View>
+              <View style={styles.bookingInfo}>
+                <MaterialIcons name="place" size={14} color="#333" />
+                <Text style={styles.bookingAddr} numberOfLines={1}>{b.dropoff?.address}</Text>
+              </View>
+              <Text style={styles.poolBookingFare}>₱{Number(b.estimatedFare).toFixed(0)} · {formatDistance(b.distanceKm)}</Text>
+            </View>
+          ))}
+          <View style={styles.bookingMeta}>
+            <Text style={styles.bookingFare}>Total {formatCurrency(item.totalFare)}</Text>
+            <Text style={styles.bookingDist}>{item.waitingMinutes ?? 0} min wait</Text>
+          </View>
+          <View style={styles.bookingActions}>
+            <TouchableOpacity style={styles.rejectBtn} onPress={() => removeBookingRequest(item.poolGroupId)}>
+              <Text style={styles.rejectText}>Decline</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.acceptBtn} onPress={() => acceptPoolGroup(item.poolGroupId, item)}>
+              <Text style={styles.acceptText}>Accept Pool</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
+
     const bType: string = item.bookingType ?? 'RIDE';
     const isDelivery = bType === 'DELIVERY';
     const isPabili = bType === 'PABILI';
@@ -278,7 +368,6 @@ export default function RiderHomeScreen() {
           <MaterialIcons name="place" size={16} color="#333" />
           <Text style={styles.bookingAddr} numberOfLines={1}>{item.dropoff?.address}</Text>
         </View>
-        {/* Delivery-specific details */}
         {isDelivery && item.packageDescription && (
           <Text style={styles.bookingDetailText}>📦 {item.packageDescription}</Text>
         )}
@@ -288,7 +377,6 @@ export default function RiderHomeScreen() {
         {isDelivery && item.notes && (
           <Text style={styles.bookingDetailText}>📝 Note: {item.notes}</Text>
         )}
-        {/* Pabili-specific details */}
         {isPabili && item.storeAddress && (
           <Text style={styles.bookingDetailText}>🏪 Store: {item.storeAddress}</Text>
         )}
@@ -369,9 +457,11 @@ export default function RiderHomeScreen() {
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: 12 }}>
           <Text style={styles.statusLabel}>{isOnline ? 'You are ONLINE' : 'You are OFFLINE'}</Text>
-          <Text style={styles.statusSub}>{isOnline ? 'Ready to receive bookings' : 'Toggle to go online'}</Text>
+          <Text style={styles.statusSub}>
+            {isOnline ? 'Ready to receive bookings' : !isInServiceArea ? 'Outside service area (Mindoro only)' : 'Toggle to go online'}
+          </Text>
         </View>
-        <CustomToggle value={isOnline} onValueChange={toggleOnline} />
+        <CustomToggle value={isOnline} onValueChange={toggleOnline} disabled={!isInServiceArea && !isOnline} />
       </View>
 
       {/* Bottom Card — shown only when no booking requests */}
@@ -562,6 +652,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF3E0', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, marginTop: 4,
   },
   promoBadgeText: { fontSize: 11, fontWeight: '600', color: '#E65100', flex: 1 },
+  poolCard: { backgroundColor: '#E8F5E9', borderColor: '#1B6B2F', borderWidth: 2 },
+  poolBookingRow: {
+    borderTopWidth: 1, borderTopColor: '#A5D6A7', marginTop: 8, paddingTop: 8,
+  },
+  poolBookingIdx: { fontSize: 12, fontWeight: '700', color: '#1B6B2F', marginBottom: 4 },
+  poolBookingFare: { fontSize: 12, color: '#2E7D32', marginTop: 2 },
 
   // Drawer
   hamburgerBtn: { padding: 4 },

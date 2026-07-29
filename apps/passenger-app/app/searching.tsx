@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useBookingStore } from '../src/store/booking.store';
@@ -11,6 +11,8 @@ export default function SearchingScreen() {
   const activeBooking = _ab as any;
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const [poolWaitMinutes, setPoolWaitMinutes] = useState(0);
+
   useEffect(() => {
     // Refresh booking from API on mount
     (async () => {
@@ -18,7 +20,6 @@ export default function SearchingScreen() {
         const booking: any = await api.get('/bookings/active');
         if (booking && booking.id) {
           setActiveBooking(booking as any);
-          // Already accepted — go straight to tracking
           if (booking.status === 'ACCEPTED' || booking.status === 'RIDER_ARRIVED' || booking.status === 'IN_PROGRESS') {
             router.replace('/tracking');
             return;
@@ -28,12 +29,9 @@ export default function SearchingScreen() {
           router.replace('/(tabs)/home');
           return;
         }
-      } catch {
-        // keep whatever is in store
-      }
+      } catch {}
     })();
 
-    // Listen for socket BOOKING_ASSIGNED event
     let socketRef: any = null;
     const handleAssigned = async () => {
       try {
@@ -47,7 +45,6 @@ export default function SearchingScreen() {
       socket.on(SocketEvent.BOOKING_ASSIGNED, handleAssigned);
     });
 
-    // Poll every 5s as fallback
     pollRef.current = setInterval(async () => {
       try {
         const booking: any = await api.get('/bookings/active');
@@ -66,7 +63,11 @@ export default function SearchingScreen() {
           setActiveBooking(null);
           router.replace('/(tabs)/home');
         }
-        // SEARCHING and EXPIRED (re-dispatching) — stay on this screen
+        // POOLING, SEARCHING, EXPIRED — stay on this screen
+        if (booking.status === 'POOLING' && booking.createdAt) {
+          const waited = Math.floor((Date.now() - new Date(booking.createdAt).getTime()) / 60000);
+          setPoolWaitMinutes(waited);
+        }
       } catch {}
     }, 5000);
 
@@ -93,11 +94,31 @@ export default function SearchingScreen() {
     }
   };
 
+  const isPooling = (activeBooking as any)?.bookingType === 'REGULAR' || (activeBooking as any)?.status === 'POOLING';
+
   return (
     <View style={styles.container}>
       <ActivityIndicator size="large" color="#1B6B2F" style={styles.spinner} />
-      <Text style={styles.title}>Looking for a rider...</Text>
-      <Text style={styles.subtitle}>Please wait while we find you a TamarrawGo rider nearby</Text>
+      <Text style={styles.title}>
+        {isPooling ? 'Waiting for pool...' : 'Looking for a rider...'}
+      </Text>
+      <Text style={styles.subtitle}>
+        {isPooling
+          ? 'Your booking will be shown to riders once the pool is full or after 15 minutes.'
+          : 'Please wait while we find you a TamarrawGo rider nearby'}
+      </Text>
+
+      {isPooling && (
+        <View style={styles.poolBadge}>
+          <Text style={styles.poolBadgeEmoji}>🚌</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.poolBadgeTitle}>Regular (Shared Ride)</Text>
+            <Text style={styles.poolBadgeDesc}>
+              Waiting {poolWaitMinutes} min · up to 15 min to fill pool
+            </Text>
+          </View>
+        </View>
+      )}
 
       {activeBooking?.dropoffAddress ? (
         <View style={styles.bookingInfo}>
@@ -132,4 +153,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14, paddingHorizontal: 40,
   },
   cancelText: { color: '#1B6B2F', fontSize: 15, fontWeight: '700' },
+  poolBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#E8F5E9', borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: '#C8E6C9', width: '100%', marginBottom: 20,
+  },
+  poolBadgeEmoji: { fontSize: 28 },
+  poolBadgeTitle: { fontSize: 14, fontWeight: '700', color: '#1B6B2F' },
+  poolBadgeDesc: { fontSize: 12, color: '#666', marginTop: 2 },
 });

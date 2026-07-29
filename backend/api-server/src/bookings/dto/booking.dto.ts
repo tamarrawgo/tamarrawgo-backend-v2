@@ -14,7 +14,7 @@ export class CreateBookingDto {
   @ApiProperty({ type: LocationDto }) @ValidateNested() @Type(() => LocationDto) pickup: LocationDto;
   @ApiProperty({ type: LocationDto }) @ValidateNested() @Type(() => LocationDto) dropoff: LocationDto;
   @ApiProperty({ enum: PaymentMethod }) @IsEnum(PaymentMethod) paymentMethod: PaymentMethod;
-  @ApiPropertyOptional({ enum: ['RIDE', 'DELIVERY', 'PABILI'] }) @IsString() @IsOptional() bookingType?: 'RIDE' | 'DELIVERY' | 'PABILI';
+  @ApiPropertyOptional({ enum: ['RIDE', 'REGULAR', 'DELIVERY', 'PABILI'] }) @IsString() @IsOptional() bookingType?: 'RIDE' | 'REGULAR' | 'DELIVERY' | 'PABILI';
   @ApiPropertyOptional() @IsNumber() @IsOptional() @Min(1) @Max(4) passengerCount?: number;
   @ApiPropertyOptional() @IsString() @IsOptional() promoCode?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() notes?: string;
@@ -37,7 +37,7 @@ export class FareEstimateDto {
   @ApiProperty() @IsNumber() @Min(-180) @Max(180) dropoffLng: number;
   @ApiPropertyOptional() @IsNumber() @IsOptional() @Min(1) @Max(4) passengerCount?: number;
   @ApiPropertyOptional() @IsString() @IsOptional() promoCode?: string;
-  @ApiPropertyOptional({ enum: ['RIDE', 'DELIVERY', 'PABILI'] }) @IsString() @IsOptional() bookingType?: string;
+  @ApiPropertyOptional({ enum: ['RIDE', 'REGULAR', 'DELIVERY', 'PABILI'] }) @IsString() @IsOptional() bookingType?: string;
 }
 
 export class CancelBookingDto {

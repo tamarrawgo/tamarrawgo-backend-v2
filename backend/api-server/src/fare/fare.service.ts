@@ -39,6 +39,27 @@ export class FareService {
     return { ...estimate, surgeType };
   }
 
+  async estimateRegularFare(distanceKm: number, durationMinutes: number, passengerCount: number) {
+    const config = await this.getActiveFareConfig();
+    const base = Number((config as any).regularBaseFare ?? 15);
+    const perKm = Number((config as any).regularRatePerKm ?? 10);
+    const perMin = Number(config.ratePerMinute);
+    const pCount = Math.min(Math.max(passengerCount, 1), 3);
+    const perSeatFare = base + distanceKm * perKm + durationMinutes * perMin;
+    const bookingFare = Math.round(perSeatFare * pCount * 100) / 100;
+    return {
+      distanceKm,
+      estimatedDurationMinutes: durationMinutes,
+      baseFare: base,
+      distanceFare: Math.round(distanceKm * perKm * 100) / 100,
+      timeFare: Math.round(durationMinutes * perMin * 100) / 100,
+      perSeatFare: Math.round(perSeatFare * 100) / 100,
+      totalFare: bookingFare,
+      surgeMultiplier: 1,
+      surgeType: null,
+    };
+  }
+
   async estimateDeliveryFare(distanceKm: number) {
     const config = await this.getActiveFareConfig();
     const base = Number((config as any).deliveryBaseFare ?? 80);
@@ -82,6 +103,8 @@ export class FareService {
     pabiliBaseFare?: number;
     pabiliRatePerKm?: number;
     pabiliServiceFee?: number;
+    regularBaseFare?: number;
+    regularRatePerKm?: number;
   }) {
     const config = await this.getActiveFareConfig();
     return this.prisma.fareConfiguration.update({ where: { id: config.id }, data });

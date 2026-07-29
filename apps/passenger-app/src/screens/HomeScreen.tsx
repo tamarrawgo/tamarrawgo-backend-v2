@@ -60,14 +60,22 @@ function checkVerification(user: any, router: any): boolean {
   return true;
 }
 
+// Cache location check for 2 minutes so rapid taps don't re-run GPS each time
+let _locationCache: { result: boolean; ts: number } | null = null;
+
 async function checkMindoroLocation(): Promise<boolean> {
+  if (_locationCache && Date.now() - _locationCache.ts < 120_000) return _locationCache.result;
   try {
     const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') return true; // don't block if permission denied
-    const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-    return isInMindoro(loc.coords.latitude, loc.coords.longitude);
+    if (status !== 'granted') return true;
+    // Use last known position first (instant), fall back to live GPS only if unavailable
+    const last = await Location.getLastKnownPositionAsync().catch(() => null);
+    const coords = last?.coords ?? (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })).coords;
+    const result = isInMindoro(coords.latitude, coords.longitude);
+    _locationCache = { result, ts: Date.now() };
+    return result;
   } catch {
-    return true; // don't block on GPS failure
+    return true;
   }
 }
 const GREEN_LIGHT = '#E8F5E9';
@@ -94,11 +102,19 @@ export default function HomeScreen() {
   const drawerAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
 
   const selfieAlertShown = useRef(false);
+  const lastFocusFetch = useRef(0);
 
-  // Refresh profile + unread count when screen gains focus
+  // Refresh profile + unread count when screen gains focus (throttled to 15 s)
   useFocusEffect(
     useCallback(() => {
-      api.get('/users/profile').then((profile: any) => {
+      const now = Date.now();
+      if (now - lastFocusFetch.current < 15_000) return;
+      lastFocusFetch.current = now;
+
+      Promise.all([
+        api.get('/users/profile').catch(() => null),
+        api.get('/notifications').catch(() => null),
+      ]).then(([profile, res]: any[]) => {
         if (profile) {
           useAuthStore.setState({ user: profile });
           if (!profile.profilePhoto && !selfieAlertShown.current) {
@@ -112,13 +128,16 @@ export default function HomeScreen() {
             }, 1000);
           }
         }
-      }).catch(() => {});
-      api.get('/notifications').then((res: any) => {
-        const notifs = res?.data ?? (Array.isArray(res) ? res : []);
-        setUnreadCount(notifs.filter((n: any) => !n.read).length);
-      }).catch(() => {});
+        if (res) {
+          const notifs = res?.data ?? (Array.isArray(res) ? res : []);
+          setUnreadCount(notifs.filter((n: any) => !n.read).length);
+        }
+      });
     }, [])
   );
+
+  // Warm Mindoro location cache on mount so first button tap is instant
+  useEffect(() => { checkMindoroLocation(); }, []);
 
   useEffect(() => {
     (async () => {
@@ -139,8 +158,10 @@ export default function HomeScreen() {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status === 'granted') {
-          const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-          const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+          // Use last known position immediately (instant), then geocode it
+          const last = await Location.getLastKnownPositionAsync().catch(() => null);
+          const locCoords = last?.coords ?? (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })).coords;
+          const coords = { latitude: locCoords.latitude, longitude: locCoords.longitude };
           const geocode = await api.get(`/maps/reverse-geocode?lat=${coords.latitude}&lng=${coords.longitude}`)
             .catch(() => ({ address: 'Current Location' })) as any;
           setPickup({ ...coords, address: geocode?.address ?? 'Current Location' });
@@ -195,6 +216,19 @@ export default function HomeScreen() {
   const closeDrawer = useCallback(() => {
     Animated.timing(drawerAnim, { toValue: -DRAWER_WIDTH, duration: 200, useNativeDriver: true }).start(() => setDrawerOpen(false));
   }, []);
+
+  const handleServicePress = useCallback((route: string) => {
+    if (!checkVerification(user, router)) return;
+    if (_locationCache && Date.now() - _locationCache.ts < 120_000) {
+      if (!_locationCache.result) { Alert.alert('Outside Service Area', 'TamarrawGo is only available in Mindoro.'); return; }
+      router.push(route as any);
+      return;
+    }
+    router.push(route as any);
+    checkMindoroLocation().then(inMindoro => {
+      if (!inMindoro) { router.back(); Alert.alert('Outside Service Area', 'TamarrawGo is only available in Mindoro.'); }
+    });
+  }, [user]);
 
   const handleQuickDestination = useCallback((dest: { name: string; latitude: number; longitude: number; address?: string }) => {
     if (!checkVerification(user, router)) return;
@@ -274,11 +308,7 @@ export default function HomeScreen() {
         </View>
 
         {/* Search Bar */}
-        <TouchableOpacity style={styles.searchBar} onPress={async () => {
-          if (!checkVerification(user, router)) return;
-          if (!await checkMindoroLocation()) { Alert.alert('Outside Service Area', 'TamarrawGo is only available in Mindoro.'); return; }
-          router.push('/search');
-        }}>
+        <TouchableOpacity style={styles.searchBar} onPress={() => handleServicePress('/search')}>
           <MaterialIcons name="search" size={22} color="#888" />
           <Text style={styles.searchText}>Enter destination</Text>
           <View style={styles.searchCircle}>
@@ -343,29 +373,17 @@ export default function HomeScreen() {
       <View style={styles.bookNowWrapper}>
         <Text style={styles.serviceLabel}>What do you need?</Text>
         <View style={styles.serviceRow}>
-          <TouchableOpacity style={styles.serviceCard} onPress={async () => {
-            if (!checkVerification(user, router)) return;
-            if (!await checkMindoroLocation()) { Alert.alert('Outside Service Area', 'TamarrawGo is only available in Mindoro.'); return; }
-            router.push('/search');
-          }}>
+          <TouchableOpacity style={styles.serviceCard} onPress={() => handleServicePress('/search')}>
             <Text style={styles.serviceEmoji}>🛺</Text>
             <Text style={styles.serviceCardTitle}>Ride</Text>
             <Text style={styles.serviceCardSub}>Book a tricycle</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.serviceCard} onPress={async () => {
-            if (!checkVerification(user, router)) return;
-            if (!await checkMindoroLocation()) { Alert.alert('Outside Service Area', 'TamarrawGo is only available in Mindoro.'); return; }
-            router.push('/delivery-booking' as any);
-          }}>
+          <TouchableOpacity style={styles.serviceCard} onPress={() => handleServicePress('/delivery-booking')}>
             <Text style={styles.serviceEmoji}>📦</Text>
             <Text style={styles.serviceCardTitle}>Delivery</Text>
             <Text style={styles.serviceCardSub}>Send a package</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.serviceCard} onPress={async () => {
-            if (!checkVerification(user, router)) return;
-            if (!await checkMindoroLocation()) { Alert.alert('Outside Service Area', 'TamarrawGo is only available in Mindoro.'); return; }
-            router.push('/pabili-booking' as any);
-          }}>
+          <TouchableOpacity style={styles.serviceCard} onPress={() => handleServicePress('/pabili-booking')}>
             <Text style={styles.serviceEmoji}>🛒</Text>
             <Text style={styles.serviceCardTitle}>Pabili</Text>
             <Text style={styles.serviceCardSub}>Rider buys for you</Text>
