@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 const PLACES = [
@@ -32,6 +32,13 @@ const STEPS = [
 
 export default function HomePage() {
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [muted, setMuted] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const toggleMute = () => {
+    if (videoRef.current) videoRef.current.muted = !muted;
+    setMuted(!muted);
+  };
 
   return (
     <>
@@ -39,6 +46,7 @@ export default function HomePage() {
       <section className="relative overflow-hidden flex items-center min-h-[60vh] md:min-h-[80vh] lg:min-h-[100vh]">
         {/* Video background */}
         <video
+          ref={videoRef}
           className="absolute inset-0 w-full h-full object-cover"
           autoPlay
           loop
@@ -50,6 +58,14 @@ export default function HomePage() {
         </video>
         {/* Dark overlay so text is readable */}
         <div className="absolute inset-0 bg-black/50" />
+        {/* Mute/Unmute button */}
+        <button
+          onClick={toggleMute}
+          className="absolute bottom-6 right-6 z-20 flex items-center gap-2 bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-full transition-all"
+        >
+          <span className="material-icons text-lg">{muted ? 'volume_off' : 'volume_up'}</span>
+          <span className="text-sm font-semibold">{muted ? 'Unmute' : 'Mute'}</span>
+        </button>
         {/* Content */}
         <div className="relative z-10 w-full px-8 md:px-16 lg:px-28 py-20 md:py-28 lg:py-36">
           <div className="max-w-2xl">
