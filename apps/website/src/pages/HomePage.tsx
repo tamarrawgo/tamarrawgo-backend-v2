@@ -57,7 +57,7 @@ export default function HomePage() {
           playsInline
           preload="auto"
         >
-          <source src="/images/TamarrawGOvideo.mp4" type="video/mp4" />
+          <source src="/images/TamarrawGOvideo_2.mp4" type="video/mp4" />
         </video>
         {/* Dark overlay so text is readable */}
         <div className="absolute inset-0 bg-black/50" />
