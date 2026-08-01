@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const PLACES = [
@@ -32,38 +32,32 @@ const STEPS = [
 
 export default function HomePage() {
   const [lightbox, setLightbox] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) video.play().catch(() => {});
-          else video.pause();
-        });
-      },
-      { threshold: 0.5 }
-    );
-    observer.observe(video);
-    return () => observer.disconnect();
-  }, []);
 
   return (
     <>
-      {/* Hero */}
+      {/* Hero — Video Background */}
       <section className="relative overflow-hidden flex items-center min-h-[60vh] md:min-h-[80vh] lg:min-h-[100vh]">
-        <div className="absolute inset-0">
-          <img src="/images/hero2background.png" alt="" className="w-full h-full object-cover" />
-        </div>
+        {/* Video background */}
+        <video
+          className="absolute inset-0 w-full h-full object-cover"
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+        >
+          <source src="/images/TamarrawGOvideo.mp4" type="video/mp4" />
+        </video>
+        {/* Dark overlay so text is readable */}
+        <div className="absolute inset-0 bg-black/50" />
+        {/* Content */}
         <div className="relative z-10 w-full px-8 md:px-16 lg:px-28 py-20 md:py-28 lg:py-36">
           <div className="max-w-2xl">
-            <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-[8rem] font-black text-[#0D1F13] leading-[0.9] mb-6 md:mb-10 animate-hero-1" style={{ textShadow: '0 2px 10px rgba(255,255,255,0.5)' }}>
+            <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-[8rem] font-black text-white leading-[0.9] mb-6 md:mb-10 animate-hero-1" style={{ textShadow: '0 2px 20px rgba(0,0,0,0.6)' }}>
               Your Ride,<br />
-              <span className="text-[#1B6B2F]">One Tap<br className="hidden sm:block" /> Away</span>
+              <span className="text-[#4CAF50]">One Tap<br className="hidden sm:block" /> Away</span>
             </h1>
-            <p className="text-lg sm:text-xl md:text-2xl text-white leading-relaxed mb-8 md:mb-12 max-w-xl animate-hero-2">
+            <p className="text-lg sm:text-xl md:text-2xl text-white/90 leading-relaxed mb-8 md:mb-12 max-w-xl animate-hero-2">
               TamarrawGo connects you with reliable tricycle riders in your area.
               Book a ride, track in real-time, and arrive safely at your destination.
             </p>
@@ -72,32 +66,13 @@ export default function HomePage() {
                 <span className="material-icons mr-2">android</span>
                 Download App
               </a>
-              <Link to="/login" className="btn-outline bg-white/80 backdrop-blur-sm text-base md:text-lg px-6 md:px-8 py-3 md:py-4">
+              <Link to="/login" className="btn-outline bg-white/20 backdrop-blur-sm border-white text-white text-base md:text-lg px-6 md:px-8 py-3 md:py-4">
                 <span className="material-icons mr-2">upload_file</span>
                 Upload Documents
               </Link>
             </div>
           </div>
         </div>
-      </section>
-
-      {/* Video Section */}
-      <section className="w-full bg-black">
-        <div className="text-center py-10">
-          <h2 className="text-3xl md:text-4xl font-black text-[#0D1F13] mb-3">See TamarrawGo in Action</h2>
-          <p className="text-gray-500 text-lg">Experience smarter, safer tricycle rides in Oriental Mindoro</p>
-        </div>
-        <video
-          ref={videoRef}
-          className="w-full"
-          controls
-          playsInline
-          muted
-          preload="metadata"
-          poster="/images/hero2background.png"
-        >
-          <source src="/images/TamarrawGOvideo.mp4" type="video/mp4" />
-        </video>
       </section>
 
       {/* Features */}
