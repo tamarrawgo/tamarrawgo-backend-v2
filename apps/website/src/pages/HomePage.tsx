@@ -64,6 +64,29 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Video Section */}
+      <section className="bg-[#0D3320] py-16 lg:py-24">
+        <div className="max-w-5xl mx-auto px-6 lg:px-12">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-black text-white mb-3">See TamarrawGo in Action</h2>
+            <p className="text-green-300 text-lg">Experience smarter, safer tricycle rides in Oriental Mindoro</p>
+          </div>
+          <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-[#1B6B2F]">
+            <video
+              className="w-full aspect-video object-cover"
+              controls
+              playsInline
+              preload="metadata"
+              poster="/images/hero2background.png"
+            >
+              <source src="/images/TamarrawGOvideo.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          </div>
+          <p className="text-center text-green-400 text-sm mt-4">🚌 TamarrawGo — We Move Communities Forward</p>
+        </div>
+      </section>
+
       {/* Features */}
       <section className="max-w-6xl mx-auto px-6 lg:px-12 py-20 lg:py-28">
         <div className="text-center mb-16">
