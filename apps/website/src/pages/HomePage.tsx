@@ -32,12 +32,15 @@ const STEPS = [
 
 export default function HomePage() {
   const [lightbox, setLightbox] = useState<string | null>(null);
-  const [muted, setMuted] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const toggleMute = () => {
-    if (videoRef.current) videoRef.current.muted = !muted;
-    setMuted(!muted);
+  const enableSound = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = false;
+      videoRef.current.play();
+    }
+    setSoundEnabled(true);
   };
 
   return (
@@ -58,14 +61,16 @@ export default function HomePage() {
         </video>
         {/* Dark overlay so text is readable */}
         <div className="absolute inset-0 bg-black/50" />
-        {/* Mute/Unmute button */}
-        <button
-          onClick={toggleMute}
-          className="absolute bottom-6 right-6 z-20 flex items-center gap-2 bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-full transition-all"
-        >
-          <span className="material-icons text-lg">{muted ? 'volume_off' : 'volume_up'}</span>
-          <span className="text-sm font-semibold">{muted ? 'Unmute' : 'Mute'}</span>
-        </button>
+        {/* Sound prompt overlay — shown until user enables sound */}
+        {!soundEnabled && (
+          <button
+            onClick={enableSound}
+            className="absolute bottom-6 right-6 z-20 flex items-center gap-3 bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white px-5 py-3 rounded-full border border-white/30 transition-all hover:scale-105 animate-pulse"
+          >
+            <span className="material-icons text-xl text-[#4CAF50]">volume_up</span>
+            <span className="text-sm font-bold">Tap to enable sound</span>
+          </button>
+        )}
         {/* Content */}
         <div className="relative z-10 w-full px-8 md:px-16 lg:px-28 py-20 md:py-28 lg:py-36">
           <div className="max-w-2xl">
