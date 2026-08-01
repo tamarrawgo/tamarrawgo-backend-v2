@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 const PLACES = [
@@ -32,6 +32,23 @@ const STEPS = [
 
 export default function HomePage() {
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) video.play().catch(() => {});
+          else video.pause();
+        });
+      },
+      { threshold: 0.5 }
+    );
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <>
@@ -65,26 +82,22 @@ export default function HomePage() {
       </section>
 
       {/* Video Section */}
-      <section className="bg-[#0D3320] py-16 lg:py-24">
-        <div className="max-w-5xl mx-auto px-6 lg:px-12">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl md:text-4xl font-black text-white mb-3">See TamarrawGo in Action</h2>
-            <p className="text-green-300 text-lg">Experience smarter, safer tricycle rides in Oriental Mindoro</p>
-          </div>
-          <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-[#1B6B2F]">
-            <video
-              className="w-full aspect-video object-cover"
-              controls
-              playsInline
-              preload="metadata"
-              poster="/images/hero2background.png"
-            >
-              <source src="/images/TamarrawGOvideo.mp4" type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
-          </div>
-          <p className="text-center text-green-400 text-sm mt-4">🚌 TamarrawGo — We Move Communities Forward</p>
+      <section className="w-full bg-black">
+        <div className="text-center py-10">
+          <h2 className="text-3xl md:text-4xl font-black text-[#0D1F13] mb-3">See TamarrawGo in Action</h2>
+          <p className="text-gray-500 text-lg">Experience smarter, safer tricycle rides in Oriental Mindoro</p>
         </div>
+        <video
+          ref={videoRef}
+          className="w-full"
+          controls
+          playsInline
+          muted
+          preload="metadata"
+          poster="/images/hero2background.png"
+        >
+          <source src="/images/TamarrawGOvideo.mp4" type="video/mp4" />
+        </video>
       </section>
 
       {/* Features */}
