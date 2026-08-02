@@ -116,6 +116,16 @@ export default function UsersPage() {
     return <span className={`badge ${map[status] ?? 'badge-gray'}`}>{status}</span>;
   };
 
+  const verifyBadge = (verificationStatus: string) => {
+    const map: Record<string, string> = {
+      VERIFIED: 'badge-green', REJECTED: 'badge-red', PENDING: 'badge-yellow',
+    };
+    const label: Record<string, string> = {
+      VERIFIED: '✓ Verified', REJECTED: '✕ ID Rejected', PENDING: '⏳ ID Pending',
+    };
+    return <span className={`badge ${map[verificationStatus] ?? 'badge-gray'}`}>{label[verificationStatus] ?? verificationStatus}</span>;
+  };
+
   return (
     <div className="p-4 lg:p-8">
       <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
@@ -184,7 +194,10 @@ export default function UsersPage() {
                 <td className="px-6 py-4 text-gray-500">{user.phone}</td>
                 <td className="px-6 py-4 text-gray-500">{user.email ?? '—'}</td>
                 <td className="px-6 py-4"><span className="badge badge-blue">{user.role}</span></td>
-                <td className="px-6 py-4">{statusBadge(user.status)}</td>
+                <td className="px-6 py-4 flex flex-wrap gap-1 items-center">
+                  {statusBadge(user.status)}
+                  {user.role === 'PASSENGER' && user.verificationStatus && verifyBadge(user.verificationStatus)}
+                </td>
                 <td className="px-6 py-4 text-gray-400">{new Date(user.createdAt).toLocaleDateString()}</td>
                 <td className="px-6 py-4">
                   {user.role === 'ADMIN' ? (
@@ -260,9 +273,10 @@ export default function UsersPage() {
                   ) : (
                     <h3 className="text-2xl font-black text-gray-900">{selectedUser.firstName} {selectedUser.lastName}</h3>
                   )}
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <span className="badge badge-blue">{selectedUser.role}</span>
                     {statusBadge(selectedUser.status)}
+                    {selectedUser.role === 'PASSENGER' && selectedUser.verificationStatus && verifyBadge(selectedUser.verificationStatus)}
                   </div>
                 </div>
               </div>
