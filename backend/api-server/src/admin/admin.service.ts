@@ -529,9 +529,10 @@ export class AdminService {
     return { data, total, page, limit };
   }
 
-  async getAllPassengers(page = 1, limit = 20, search?: string) {
+  async getAllPassengers(page = 1, limit = 20, search?: string, verificationStatus?: string) {
     const skip = (page - 1) * limit;
     const where: any = { role: 'PASSENGER' };
+    if (verificationStatus) where.verificationStatus = verificationStatus;
     if (search) {
       where.OR = [
         { firstName: { contains: search, mode: 'insensitive' } },

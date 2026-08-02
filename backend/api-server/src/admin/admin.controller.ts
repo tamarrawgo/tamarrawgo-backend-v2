@@ -157,8 +157,8 @@ export class AdminController {
 
   @Get('passengers')
   @ApiOperation({ summary: 'Get all passengers' })
-  getAllPassengers(@Query('page') page = 1, @Query('limit') limit = 20, @Query('search') search?: string) {
-    return this.admin.getAllPassengers(+page, +limit, search);
+  getAllPassengers(@Query('page') page = 1, @Query('limit') limit = 20, @Query('search') search?: string, @Query('verificationStatus') verificationStatus?: string) {
+    return this.admin.getAllPassengers(+page, +limit, search, verificationStatus);
   }
 
   @Post('passengers/:id/approve')

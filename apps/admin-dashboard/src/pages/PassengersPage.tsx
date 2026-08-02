@@ -29,8 +29,10 @@ function AddressChip({ city, barangay }: { city?: string; barangay?: string }) {
   );
 }
 
+type Tab = 'pending' | 'verified' | 'rejected' | 'all';
+
 export default function PassengersPage() {
-  const [tab, setTab] = useState<'pending' | 'all'>('pending');
+  const [tab, setTab] = useState<Tab>('pending');
 
   // Pending tab state
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -50,13 +52,19 @@ export default function PassengersPage() {
     queryFn: () => api.get('/admin/passengers/pending?limit=50'),
   });
 
+  const verificationStatusParam: Record<Tab, string | undefined> = {
+    pending: undefined, all: undefined, verified: 'VERIFIED', rejected: 'REJECTED',
+  };
+
   const params = new URLSearchParams({ page: String(page), limit: '20' });
   if (search) params.set('search', search);
+  const vsParam = verificationStatusParam[tab];
+  if (vsParam) params.set('verificationStatus', vsParam);
 
   const { data: allPassengers, isLoading: allLoading } = useQuery({
-    queryKey: ['passengers-all', page, search],
+    queryKey: ['passengers-all', tab, page, search],
     queryFn: () => api.get(`/admin/passengers?${params}`),
-    enabled: tab === 'all',
+    enabled: tab !== 'pending',
     placeholderData: (prev: any) => prev,
   });
 
@@ -82,7 +90,7 @@ export default function PassengersPage() {
     },
   });
 
-  const totalPages = allPassengers ? Math.ceil(allPassengers.total / 20) : 1;
+  const totalPages = allPassengers ? Math.ceil((allPassengers as any).total / 20) : 1;
 
   return (
     <div className="p-4 lg:p-8">
@@ -92,14 +100,32 @@ export default function PassengersPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-4 mb-6">
+      <div className="flex flex-wrap gap-2 mb-6">
         <button
-          onClick={() => setTab('pending')}
+          onClick={() => { setTab('pending'); setPage(1); }}
           className={`px-4 py-2 rounded-xl font-semibold text-sm transition-colors ${tab === 'pending' ? 'bg-primary text-white' : 'bg-white text-gray-600 border border-gray-200'}`}
         >
           Pending Approval
-          {(pending?.total ?? 0) > 0 && (
-            <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">{pending.total}</span>
+          {((pending as any)?.total ?? 0) > 0 && (
+            <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">{(pending as any).total}</span>
+          )}
+        </button>
+        <button
+          onClick={() => { setTab('verified'); setPage(1); }}
+          className={`px-4 py-2 rounded-xl font-semibold text-sm transition-colors ${tab === 'verified' ? 'bg-green-600 text-white' : 'bg-white text-gray-600 border border-gray-200'}`}
+        >
+          ✓ Verified
+          {(allPassengers as any)?.total != null && tab === 'verified' && (
+            <span className="ml-2 bg-green-500 text-white text-xs rounded-full px-2 py-0.5">{(allPassengers as any).total}</span>
+          )}
+        </button>
+        <button
+          onClick={() => { setTab('rejected'); setPage(1); }}
+          className={`px-4 py-2 rounded-xl font-semibold text-sm transition-colors ${tab === 'rejected' ? 'bg-red-600 text-white' : 'bg-white text-gray-600 border border-gray-200'}`}
+        >
+          ✕ Rejected
+          {(allPassengers as any)?.total != null && tab === 'rejected' && (
+            <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">{(allPassengers as any).total}</span>
           )}
         </button>
         <button
@@ -107,8 +133,8 @@ export default function PassengersPage() {
           className={`px-4 py-2 rounded-xl font-semibold text-sm transition-colors ${tab === 'all' ? 'bg-primary text-white' : 'bg-white text-gray-600 border border-gray-200'}`}
         >
           All Passengers
-          {allPassengers?.total != null && tab === 'all' && (
-            <span className="ml-2 bg-gray-200 text-gray-700 text-xs rounded-full px-2 py-0.5">{allPassengers.total}</span>
+          {(allPassengers as any)?.total != null && tab === 'all' && (
+            <span className="ml-2 bg-gray-200 text-gray-700 text-xs rounded-full px-2 py-0.5">{(allPassengers as any).total}</span>
           )}
         </button>
       </div>
@@ -268,8 +294,8 @@ export default function PassengersPage() {
         </div>
       )}
 
-      {/* ── ALL PASSENGERS TAB ──────────────────────────────────────────── */}
-      {tab === 'all' && (
+      {/* ── ALL / VERIFIED / REJECTED TABS ─────────────────────────────── */}
+      {(tab === 'all' || tab === 'verified' || tab === 'rejected') && (
         <>
           {/* Search */}
           <div className="card mb-6">
@@ -442,7 +468,7 @@ export default function PassengersPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-6">
               <p className="text-sm text-gray-500">
-                Page {page} of {totalPages} · {allPassengers?.total} passengers
+                Page {page} of {totalPages} · {(allPassengers as any)?.total} passengers
               </p>
               <div className="flex gap-2">
                 <button
