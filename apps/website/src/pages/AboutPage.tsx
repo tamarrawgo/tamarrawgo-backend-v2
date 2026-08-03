@@ -42,7 +42,7 @@ export default function AboutPage() {
             </p>
           </div>
           <div className="flex-shrink-0">
-            <img src="/images/About_image.png" alt="TamarrawGo" className="h-48 lg:h-64 object-contain drop-shadow-2xl" />
+            <img src="/images/About_image.png" alt="TamarrawGo" className="w-full max-w-sm lg:max-w-lg object-contain drop-shadow-2xl" />
           </div>
         </div>
       </div>
