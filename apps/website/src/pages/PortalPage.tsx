@@ -98,12 +98,21 @@ export default function PortalPage() {
     setMessage('');
   };
 
-  const fileToBase64 = (file: File): Promise<string> => {
+  const compressImage = (file: File, maxWidth = 1200, quality = 0.75): Promise<string> => {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve((reader.result as string).split(',')[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL('image/jpeg', quality).split(',')[1]);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image load failed')); };
+      img.src = url;
     });
   };
 
@@ -115,8 +124,8 @@ export default function PortalPage() {
     try {
       for (const [docType, { file }] of entries) {
         setSaveProgress(`Uploading ${uploaded + 1} of ${entries.length}...`);
-        const base64 = await fileToBase64(file);
-        await api.post('/riders/upload-file', { base64, fileName: file.name, docType });
+        const base64 = await compressImage(file);
+        await (api as any).post('/riders/upload-file', { base64, fileName: file.name, docType }, { timeout: 120000 });
         uploaded++;
       }
       setStagedFiles({});
