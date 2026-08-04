@@ -135,13 +135,20 @@ export class AdminService {
     return { resetAt: now };
   }
 
-  async getUsers(page = 1, limit = 20, search?: string, city?: string) {
+  async getUsers(page = 1, limit = 20, search?: string, city?: string, role?: string) {
     const skip = (page - 1) * limit;
-    const conditions: any[] = [
-      { role: 'PASSENGER' },
-      { role: 'ADMIN' },
-      { role: 'RIDER', rider: { status: 'APPROVED' } },
-    ];
+    let conditions: any[];
+    if (role === 'RIDER') {
+      conditions = [{ role: 'RIDER', rider: { status: 'APPROVED' } }];
+    } else if (role === 'PASSENGER') {
+      conditions = [{ role: 'PASSENGER' }];
+    } else {
+      conditions = [
+        { role: 'PASSENGER' },
+        { role: 'ADMIN' },
+        { role: 'RIDER', rider: { status: 'APPROVED' } },
+      ];
+    }
     const where: any = { OR: conditions, status: { not: 'PENDING_VERIFICATION' } };
     if (search) {
       where.AND = [{

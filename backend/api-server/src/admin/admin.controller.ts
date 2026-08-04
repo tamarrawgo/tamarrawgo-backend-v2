@@ -65,8 +65,8 @@ export class AdminController {
 
   @Get('users')
   @ApiOperation({ summary: 'List all users' })
-  getUsers(@Query('page') page = 1, @Query('limit') limit = 20, @Query('search') search?: string, @Query('city') city?: string) {
-    return this.admin.getUsers(+page, +limit, search, city);
+  getUsers(@Query('page') page = 1, @Query('limit') limit = 20, @Query('search') search?: string, @Query('city') city?: string, @Query('role') role?: string) {
+    return this.admin.getUsers(+page, +limit, search, city, role);
   }
 
   @Patch('users/:id')

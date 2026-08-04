@@ -34,19 +34,18 @@ export default function UsersPage() {
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: ['users', page, search, cityFilter],
+    queryKey: ['users', page, search, cityFilter, roleFilter],
     queryFn: () => {
       const params = new URLSearchParams({ page: String(page), limit: '20' });
       if (search) params.set('search', search);
       if (cityFilter) params.set('city', cityFilter);
+      if (roleFilter !== 'ALL') params.set('role', roleFilter);
       return api.get(`/admin/users?${params}`);
     },
     placeholderData: (prev) => prev,
   });
 
-  const filteredUsers = (data?.data ?? []).filter((u: any) =>
-    roleFilter === 'ALL' ? true : u.role === roleFilter
-  );
+  const filteredUsers = (data?.data ?? []);
 
   const suspend = useMutation({
     mutationFn: (id: string) => api.patch(`/admin/users/${id}/suspend`),
@@ -157,7 +156,7 @@ export default function UsersPage() {
         ] as { key: RoleFilter; label: string }[]).map((opt) => (
           <button
             key={opt.key}
-            onClick={() => setRoleFilter(opt.key)}
+            onClick={() => { setRoleFilter(opt.key); setPage(1); }}
             className={`px-5 py-2 rounded-xl text-sm font-bold transition-colors ${
               roleFilter === opt.key ? 'bg-primary text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
             }`}
