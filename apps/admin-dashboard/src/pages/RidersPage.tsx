@@ -56,8 +56,10 @@ function VehicleTypeBadge({ vehicleType }: { vehicleType?: string }) {
   );
 }
 
+type RiderTab = 'pending' | 'approved' | 'rejected' | 'all';
+
 export default function RidersPage() {
-  const [tab, setTab] = useState<'pending' | 'all'>('pending');
+  const [tab, setTab] = useState<RiderTab>('pending');
 
   // Pending tab state
   const [expandedRider, setExpandedRider] = useState<string | null>(null);
@@ -80,16 +82,22 @@ export default function RidersPage() {
     queryFn: () => api.get('/admin/riders/pending?limit=50'),
   });
 
-  // All riders query
+  const riderStatusParam: Record<RiderTab, string | undefined> = {
+    pending: undefined, all: undefined, approved: 'APPROVED', rejected: 'REJECTED',
+  };
+
+  // All / Approved / Rejected riders query
   const params = new URLSearchParams({ page: String(page), limit: '20' });
   if (search) params.set('search', search);
   if (cityFilter) params.set('city', cityFilter);
   if (barangayFilter) params.set('barangay', barangayFilter);
+  const statusParam = riderStatusParam[tab];
+  if (statusParam) params.set('status', statusParam);
 
   const { data: allRiders, isLoading: allLoading } = useQuery({
-    queryKey: ['riders-all', page, search, cityFilter, barangayFilter],
+    queryKey: ['riders-all', tab, page, search, cityFilter, barangayFilter],
     queryFn: () => api.get(`/admin/riders?${params}`),
-    enabled: tab === 'all',
+    enabled: tab !== 'pending',
     placeholderData: (prev: any) => prev,
   });
 
@@ -117,7 +125,7 @@ export default function RidersPage() {
   });
 
   const hasFilters = search || cityFilter || barangayFilter;
-  const totalPages = allRiders ? Math.ceil(allRiders.total / 20) : 1;
+  const totalPages = allRiders ? Math.ceil((allRiders as any).total / 20) : 1;
 
   return (
     <div className="p-4 lg:p-8">
@@ -127,14 +135,32 @@ export default function RidersPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-4 mb-6">
+      <div className="flex flex-wrap gap-2 mb-6">
         <button
-          onClick={() => setTab('pending')}
+          onClick={() => { setTab('pending'); setPage(1); }}
           className={`px-4 py-2 rounded-xl font-semibold text-sm transition-colors ${tab === 'pending' ? 'bg-primary text-white' : 'bg-white text-gray-600 border border-gray-200'}`}
         >
           Pending Approval
-          {pending?.total > 0 && (
-            <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">{pending.total}</span>
+          {((pending as any)?.total ?? 0) > 0 && (
+            <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">{(pending as any).total}</span>
+          )}
+        </button>
+        <button
+          onClick={() => { setTab('approved'); setPage(1); }}
+          className={`px-4 py-2 rounded-xl font-semibold text-sm transition-colors ${tab === 'approved' ? 'bg-green-600 text-white' : 'bg-white text-gray-600 border border-gray-200'}`}
+        >
+          ✓ Approved
+          {(allRiders as any)?.total != null && tab === 'approved' && (
+            <span className="ml-2 bg-green-500 text-white text-xs rounded-full px-2 py-0.5">{(allRiders as any).total}</span>
+          )}
+        </button>
+        <button
+          onClick={() => { setTab('rejected'); setPage(1); }}
+          className={`px-4 py-2 rounded-xl font-semibold text-sm transition-colors ${tab === 'rejected' ? 'bg-red-600 text-white' : 'bg-white text-gray-600 border border-gray-200'}`}
+        >
+          ✕ Rejected
+          {(allRiders as any)?.total != null && tab === 'rejected' && (
+            <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">{(allRiders as any).total}</span>
           )}
         </button>
         <button
@@ -142,8 +168,8 @@ export default function RidersPage() {
           className={`px-4 py-2 rounded-xl font-semibold text-sm transition-colors ${tab === 'all' ? 'bg-primary text-white' : 'bg-white text-gray-600 border border-gray-200'}`}
         >
           All Riders
-          {allRiders?.total != null && tab === 'all' && (
-            <span className="ml-2 bg-gray-200 text-gray-700 text-xs rounded-full px-2 py-0.5">{allRiders.total}</span>
+          {(allRiders as any)?.total != null && tab === 'all' && (
+            <span className="ml-2 bg-gray-200 text-gray-700 text-xs rounded-full px-2 py-0.5">{(allRiders as any).total}</span>
           )}
         </button>
       </div>
@@ -286,8 +312,8 @@ export default function RidersPage() {
         </div>
       )}
 
-      {/* ── ALL RIDERS TAB ───────────────────────────────────────────────── */}
-      {tab === 'all' && (
+      {/* ── APPROVED / REJECTED / ALL TABS ──────────────────────────────── */}
+      {(tab === 'all' || tab === 'approved' || tab === 'rejected') && (
         <>
           {/* Search & Filter Bar */}
           <div className="card mb-6">
@@ -553,7 +579,7 @@ export default function RidersPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-6">
               <p className="text-sm text-gray-500">
-                Page {page} of {totalPages} · {allRiders?.total} riders
+                Page {page} of {totalPages} · {(allRiders as any)?.total} riders
               </p>
               <div className="flex gap-2">
                 <button

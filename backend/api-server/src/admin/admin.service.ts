@@ -352,7 +352,7 @@ export class AdminService {
     return { data: riders, total, page, limit };
   }
 
-  async getAllRiders(page = 1, limit = 20, search?: string, city?: string, barangay?: string) {
+  async getAllRiders(page = 1, limit = 20, search?: string, city?: string, barangay?: string, status?: string) {
     const skip = (page - 1) * limit;
     const userWhere: any = { role: 'RIDER' };
     if (search) {
@@ -366,7 +366,9 @@ export class AdminService {
     if (city) userWhere.city = { contains: city, mode: 'insensitive' };
     if (barangay) userWhere.barangay = { contains: barangay, mode: 'insensitive' };
 
-    const where = { user: userWhere };
+    const riderWhere: any = { user: userWhere };
+    if (status) riderWhere.status = status;
+    const where = riderWhere;
     const [riders, total] = await Promise.all([
       this.prisma.riderProfile.findMany({
         where,
@@ -511,9 +513,10 @@ export class AdminService {
   async rejectRider(riderId: string, reason: string, adminId?: string) {
     const rider = await this.prisma.riderProfile.findUnique({ where: { id: riderId }, include: { user: { select: { firstName: true, lastName: true, phone: true } } } });
     if (!rider) throw new NotFoundException('Rider not found');
+    await this.prisma.riderProfile.update({ where: { id: riderId }, data: { status: 'REJECTED' as any } });
+    await this.prisma.user.update({ where: { id: rider.userId }, data: { status: 'SUSPENDED' } });
     await this.logAction(adminId, 'REJECT_RIDER', 'rider', riderId, { name: `${rider.user.firstName} ${rider.user.lastName}`, phone: rider.user.phone, reason });
-    await this.deleteUser(rider.userId);
-    return { message: 'Rider rejected and account deleted' };
+    return { message: 'Rider rejected' };
   }
 
   async getPendingPassengers(page = 1, limit = 50) {
