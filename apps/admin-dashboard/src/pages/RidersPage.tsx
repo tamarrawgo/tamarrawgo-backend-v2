@@ -111,6 +111,14 @@ export default function RidersPage() {
     },
   });
 
+  const deleteRider = useMutation({
+    mutationFn: (userId: string) => api.delete(`/admin/users/${userId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['riders-all'] });
+      qc.invalidateQueries({ queryKey: ['dashboard-stats'] });
+    },
+  });
+
   const reject = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       api.post(`/admin/riders/${id}/reject`, { reason }),
@@ -454,6 +462,19 @@ export default function RidersPage() {
                         <p className="text-xs text-gray-400">{rider.documents?.length ?? 0} docs · {rider.user?.loyaltyPoints ?? 0} pts</p>
                       </div>
 
+                      {/* Delete button — Rejected tab only */}
+                      {tab === 'rejected' && (
+                        <button
+                          onClick={() => {
+                            if (!window.confirm(`Permanently delete "${rider.user?.firstName} ${rider.user?.lastName}"? This cannot be undone.`)) return;
+                            deleteRider.mutate(rider.user?.id);
+                          }}
+                          disabled={deleteRider.isPending}
+                          className="text-sm bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-xl flex-shrink-0 font-medium disabled:opacity-50"
+                        >
+                          🗑 Delete
+                        </button>
+                      )}
                       {/* Toggle */}
                       <button
                         onClick={() => setExpandedAllRider(isExpanded ? null : rider.id)}

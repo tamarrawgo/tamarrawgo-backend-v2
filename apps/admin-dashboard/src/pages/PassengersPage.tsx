@@ -68,6 +68,14 @@ export default function PassengersPage() {
     placeholderData: (prev: any) => prev,
   });
 
+  const deletePassenger = useMutation({
+    mutationFn: (id: string) => api.delete(`/admin/users/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['passengers-all'] });
+      qc.invalidateQueries({ queryKey: ['dashboard-stats'] });
+    },
+  });
+
   const approve = useMutation({
     mutationFn: (id: string) => api.post(`/admin/passengers/${id}/approve`),
     onSuccess: () => {
@@ -374,6 +382,18 @@ export default function PassengersPage() {
                         <p className="text-xs text-gray-400">{p.loyaltyPoints ?? 0} pts</p>
                       </div>
 
+                      {tab === 'rejected' && (
+                        <button
+                          onClick={() => {
+                            if (!window.confirm(`Permanently delete "${p.firstName} ${p.lastName}"? This cannot be undone.`)) return;
+                            deletePassenger.mutate(p.id);
+                          }}
+                          disabled={deletePassenger.isPending}
+                          className="text-sm bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-xl flex-shrink-0 font-medium disabled:opacity-50"
+                        >
+                          🗑 Delete
+                        </button>
+                      )}
                       <button
                         onClick={() => setExpandedAllId(isExpanded ? null : p.id)}
                         className="text-sm border border-gray-200 text-gray-600 px-3 py-2 rounded-xl hover:bg-gray-50 flex-shrink-0"
