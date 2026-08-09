@@ -335,7 +335,7 @@ export class AdminService {
 
   async getPendingRiders(page = 1, limit = 20) {
     const skip = (page - 1) * limit;
-    const where = { status: 'PENDING' as any, user: { status: 'ACTIVE' as any } };
+    const where = { status: 'PENDING' as any };
     const [riders, total] = await Promise.all([
       this.prisma.riderProfile.findMany({
         where,
