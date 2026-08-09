@@ -528,9 +528,16 @@ export class AdminService {
     return { message: 'Rider rejected' };
   }
 
-  async getPendingPassengers(page = 1, limit = 50) {
+  async getPendingPassengers(page = 1, limit = 30, search?: string) {
     const skip = (page - 1) * limit;
-    const where = { role: 'PASSENGER' as any, verificationStatus: 'PENDING' };
+    const where: any = { role: 'PASSENGER' as any, verificationStatus: 'PENDING' };
+    if (search) {
+      where.OR = [
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search } },
+      ];
+    }
     const [data, total] = await Promise.all([
       this.prisma.user.findMany({
         where,

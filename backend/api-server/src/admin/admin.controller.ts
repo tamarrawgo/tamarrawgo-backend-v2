@@ -152,8 +152,8 @@ export class AdminController {
 
   @Get('passengers/pending')
   @ApiOperation({ summary: 'Get pending passenger verifications' })
-  getPendingPassengers(@Query('page') page = 1, @Query('limit') limit = 50) {
-    return this.admin.getPendingPassengers(+page, +limit);
+  getPendingPassengers(@Query('page') page = 1, @Query('limit') limit = 30, @Query('search') search?: string) {
+    return this.admin.getPendingPassengers(+page, +limit, search);
   }
 
   @Get('passengers')

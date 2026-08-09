@@ -39,6 +39,9 @@ export default function PassengersPage() {
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [previewImg, setPreviewImg] = useState<string | null>(null);
+  const [pendingSearch, setPendingSearch] = useState('');
+  const [pendingPage, setPendingPage] = useState(1);
+  const PENDING_LIMIT = 30;
 
   // All tab state
   const [search, setSearch] = useState('');
@@ -48,8 +51,13 @@ export default function PassengersPage() {
   const qc = useQueryClient();
 
   const { data: pending, isLoading: pendingLoading } = useQuery({
-    queryKey: ['passengers-pending'],
-    queryFn: () => api.get('/admin/passengers/pending?limit=50'),
+    queryKey: ['passengers-pending', pendingPage, pendingSearch],
+    queryFn: () => {
+      const p = new URLSearchParams({ page: String(pendingPage), limit: String(PENDING_LIMIT) });
+      if (pendingSearch) p.set('search', pendingSearch);
+      return api.get(`/admin/passengers/pending?${p}`);
+    },
+    placeholderData: (prev: any) => prev,
   });
 
   const verificationStatusParam: Record<Tab, string | undefined> = {
@@ -150,12 +158,29 @@ export default function PassengersPage() {
       {/* ── PENDING TAB ─────────────────────────────────────────────────── */}
       {tab === 'pending' && (
         <div className="space-y-4">
+          {/* Search bar */}
+          <div className="card py-3">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                </svg>
+              </span>
+              <input
+                type="text"
+                className="input pl-9 text-sm w-full"
+                placeholder="Search by name or phone..."
+                value={pendingSearch}
+                onChange={(e) => { setPendingSearch(e.target.value); setPendingPage(1); }}
+              />
+            </div>
+          </div>
           {pendingLoading ? (
             <div className="card text-center text-gray-400 py-12">Loading...</div>
           ) : pending?.data?.length === 0 ? (
             <div className="card text-center py-12">
               <p className="text-4xl mb-4">✅</p>
-              <p className="text-gray-500 font-medium">No pending verifications</p>
+              <p className="text-gray-500 font-medium">{pendingSearch ? 'No passengers match your search' : 'No pending verifications'}</p>
             </div>
           ) : pending?.data?.map((passenger: any) => (
             <div key={passenger.id} className="card">
@@ -299,6 +324,32 @@ export default function PassengersPage() {
               )}
             </div>
           ))}
+
+          {/* Pending pagination */}
+          {(() => {
+            const total = (pending as any)?.total ?? 0;
+            const totalPendingPages = Math.ceil(total / PENDING_LIMIT);
+            if (totalPendingPages <= 1) return null;
+            return (
+              <div className="flex items-center justify-between mt-4">
+                <p className="text-sm text-gray-500">
+                  Page {pendingPage} of {totalPendingPages} · {total} pending passengers
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setPendingPage(p => Math.max(1, p - 1)); setExpandedId(null); }}
+                    disabled={pendingPage === 1}
+                    className="px-3 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-40"
+                  >← Prev</button>
+                  <button
+                    onClick={() => { setPendingPage(p => Math.min(totalPendingPages, p + 1)); setExpandedId(null); }}
+                    disabled={pendingPage === totalPendingPages}
+                    className="px-3 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-40"
+                  >Next →</button>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
