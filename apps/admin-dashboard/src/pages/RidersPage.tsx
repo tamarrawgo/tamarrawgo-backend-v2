@@ -66,6 +66,7 @@ export default function RidersPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [previewImg, setPreviewImg] = useState<string | null>(null);
+  const [pendingSearch, setPendingSearch] = useState('');
 
   // All Riders tab state
   const [search, setSearch] = useState('');
@@ -185,14 +186,41 @@ export default function RidersPage() {
       {/* ── PENDING TAB ──────────────────────────────────────────────────── */}
       {tab === 'pending' && (
         <div className="space-y-4">
+          {/* Search bar */}
+          <div className="card py-3">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                </svg>
+              </span>
+              <input
+                type="text"
+                className="input pl-9 text-sm w-full"
+                placeholder="Search by name or phone..."
+                value={pendingSearch}
+                onChange={(e) => setPendingSearch(e.target.value)}
+              />
+            </div>
+          </div>
           {pendingLoading ? (
             <div className="card text-center text-gray-400 py-12">Loading...</div>
-          ) : pending?.data?.length === 0 ? (
-            <div className="card text-center py-12">
-              <p className="text-4xl mb-4">✅</p>
-              <p className="text-gray-500 font-medium">No pending approvals</p>
-            </div>
-          ) : pending?.data?.map((rider: any) => (
+          ) : (() => {
+            const filtered = (pending?.data ?? []).filter((r: any) => {
+              if (!pendingSearch) return true;
+              const q = pendingSearch.toLowerCase();
+              return (
+                `${r.user?.firstName} ${r.user?.lastName}`.toLowerCase().includes(q) ||
+                r.user?.phone?.includes(q)
+              );
+            });
+            if (filtered.length === 0) return (
+              <div className="card text-center py-12">
+                <p className="text-4xl mb-4">✅</p>
+                <p className="text-gray-500 font-medium">{pendingSearch ? 'No riders match your search' : 'No pending approvals'}</p>
+              </div>
+            );
+            return filtered.map((rider: any) => (
             <div key={rider.id} className="card">
               <div className="flex items-center justify-between gap-6">
                 <div className="flex items-center gap-4">
@@ -316,7 +344,8 @@ export default function RidersPage() {
                 </div>
               )}
             </div>
-          ))}
+          ));
+          })()}
         </div>
       )}
 
