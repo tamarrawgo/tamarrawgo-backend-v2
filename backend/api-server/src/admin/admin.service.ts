@@ -333,9 +333,18 @@ export class AdminService {
     return this.prisma.user.delete({ where: { id: userId } });
   }
 
-  async getPendingRiders(page = 1, limit = 20) {
+  async getPendingRiders(page = 1, limit = 20, search?: string) {
     const skip = (page - 1) * limit;
-    const where = { status: 'PENDING' as any };
+    const userWhere: any = {};
+    if (search) {
+      userWhere.OR = [
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search } },
+      ];
+    }
+    const where: any = { status: 'PENDING' as any };
+    if (search) where.user = userWhere;
     const [riders, total] = await Promise.all([
       this.prisma.riderProfile.findMany({
         where,

@@ -81,8 +81,12 @@ export default function RidersPage() {
 
   // Pending riders query
   const { data: pending, isLoading: pendingLoading } = useQuery({
-    queryKey: ['riders-pending', pendingPage],
-    queryFn: () => api.get(`/admin/riders/pending?page=${pendingPage}&limit=${PENDING_LIMIT}`),
+    queryKey: ['riders-pending', pendingPage, pendingSearch],
+    queryFn: () => {
+      const p = new URLSearchParams({ page: String(pendingPage), limit: String(PENDING_LIMIT) });
+      if (pendingSearch) p.set('search', pendingSearch);
+      return api.get(`/admin/riders/pending?${p}`);
+    },
     placeholderData: (prev: any) => prev,
   });
 
@@ -202,28 +206,21 @@ export default function RidersPage() {
                 className="input pl-9 text-sm w-full"
                 placeholder="Search by name or phone..."
                 value={pendingSearch}
-                onChange={(e) => setPendingSearch(e.target.value)}
+                onChange={(e) => { setPendingSearch(e.target.value); setPendingPage(1); }}
               />
             </div>
           </div>
           {pendingLoading ? (
             <div className="card text-center text-gray-400 py-12">Loading...</div>
           ) : (() => {
-            const filtered = (pending?.data ?? []).filter((r: any) => {
-              if (!pendingSearch) return true;
-              const q = pendingSearch.toLowerCase();
-              return (
-                `${r.user?.firstName} ${r.user?.lastName}`.toLowerCase().includes(q) ||
-                r.user?.phone?.includes(q)
-              );
-            });
-            if (filtered.length === 0) return (
+            const riders = pending?.data ?? [];
+            if (riders.length === 0) return (
               <div className="card text-center py-12">
                 <p className="text-4xl mb-4">✅</p>
                 <p className="text-gray-500 font-medium">{pendingSearch ? 'No riders match your search' : 'No pending approvals'}</p>
               </div>
             );
-            return filtered.map((rider: any) => (
+            return riders.map((rider: any) => (
             <div key={rider.id} className="card">
               <div className="flex items-center justify-between gap-6">
                 <div className="flex items-center gap-4">

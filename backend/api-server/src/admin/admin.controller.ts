@@ -136,8 +136,8 @@ export class AdminController {
 
   @Get('riders/pending')
   @ApiOperation({ summary: 'Get pending rider approvals' })
-  getPendingRiders(@Query('page') page = 1, @Query('limit') limit = 20) {
-    return this.admin.getPendingRiders(+page, +limit);
+  getPendingRiders(@Query('page') page = 1, @Query('limit') limit = 20, @Query('search') search?: string) {
+    return this.admin.getPendingRiders(+page, +limit, search);
   }
 
   @Post('riders/:id/approve')
