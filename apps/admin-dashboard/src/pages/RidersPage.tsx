@@ -67,6 +67,8 @@ export default function RidersPage() {
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [previewImg, setPreviewImg] = useState<string | null>(null);
   const [pendingSearch, setPendingSearch] = useState('');
+  const [pendingPage, setPendingPage] = useState(1);
+  const PENDING_LIMIT = 30;
 
   // All Riders tab state
   const [search, setSearch] = useState('');
@@ -79,8 +81,9 @@ export default function RidersPage() {
 
   // Pending riders query
   const { data: pending, isLoading: pendingLoading } = useQuery({
-    queryKey: ['riders-pending'],
-    queryFn: () => api.get('/admin/riders/pending?limit=50'),
+    queryKey: ['riders-pending', pendingPage],
+    queryFn: () => api.get(`/admin/riders/pending?page=${pendingPage}&limit=${PENDING_LIMIT}`),
+    placeholderData: (prev: any) => prev,
   });
 
   const riderStatusParam: Record<RiderTab, string | undefined> = {
@@ -345,6 +348,32 @@ export default function RidersPage() {
               )}
             </div>
           ));
+          })()}
+
+          {/* Pending pagination */}
+          {(() => {
+            const total = (pending as any)?.total ?? 0;
+            const totalPendingPages = Math.ceil(total / PENDING_LIMIT);
+            if (totalPendingPages <= 1) return null;
+            return (
+              <div className="flex items-center justify-between mt-4">
+                <p className="text-sm text-gray-500">
+                  Page {pendingPage} of {totalPendingPages} · {total} pending riders
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setPendingPage(p => Math.max(1, p - 1)); setExpandedRider(null); }}
+                    disabled={pendingPage === 1}
+                    className="px-3 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-40"
+                  >← Prev</button>
+                  <button
+                    onClick={() => { setPendingPage(p => Math.min(totalPendingPages, p + 1)); setExpandedRider(null); }}
+                    disabled={pendingPage === totalPendingPages}
+                    className="px-3 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-40"
+                  >Next →</button>
+                </div>
+              </div>
+            );
           })()}
         </div>
       )}
