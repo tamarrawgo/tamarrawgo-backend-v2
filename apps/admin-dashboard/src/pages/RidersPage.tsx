@@ -76,6 +76,7 @@ export default function RidersPage() {
   const [barangayFilter, setBarangayFilter] = useState('');
   const [page, setPage] = useState(1);
   const [expandedAllRider, setExpandedAllRider] = useState<string | null>(null);
+  const [exportLoading, setExportLoading] = useState(false);
 
   const qc = useQueryClient();
 
@@ -142,6 +143,51 @@ export default function RidersPage() {
 
   const hasFilters = search || cityFilter || barangayFilter;
   const totalPages = allRiders ? Math.ceil((allRiders as any).total / 20) : 1;
+
+  const handleExportCSV = async () => {
+    setExportLoading(true);
+    try {
+      const p = new URLSearchParams({ limit: '9999' });
+      if (search) p.set('search', search);
+      if (cityFilter) p.set('city', cityFilter);
+      if (barangayFilter) p.set('barangay', barangayFilter);
+      if (statusParam) p.set('status', statusParam);
+      const result: any = await api.get(`/admin/riders?${p}`);
+      const riders: any[] = result.data ?? [];
+
+      const escape = (v: any) => {
+        const s = String(v ?? '');
+        return s.includes(',') || s.includes('"') || s.includes('\n')
+          ? `"${s.replace(/"/g, '""')}"` : s;
+      };
+      const headers = [
+        'First Name', 'Last Name', 'Phone', 'Email', 'City', 'Barangay',
+        'Rider Status', 'Account Status', 'Vehicle Type', 'License Number',
+        'Vehicle Brand', 'Vehicle Model', 'Plate Number',
+        'Wallet Balance (₱)', 'Loyalty Points', 'Joined Date',
+      ];
+      const rows = riders.map(r => [
+        r.user?.firstName, r.user?.lastName, r.user?.phone, r.user?.email,
+        r.user?.city, r.user?.barangay, r.status, r.user?.status,
+        r.vehicleType, r.licenseNumber,
+        r.vehicle?.brand, r.vehicle?.model, r.vehicle?.plateNumber,
+        Number(r.walletBalance ?? 0).toFixed(2),
+        r.user?.loyaltyPoints ?? 0,
+        r.user?.createdAt ? new Date(r.user.createdAt).toLocaleDateString('en-PH') : '',
+      ].map(escape).join(','));
+
+      const csv = '﻿' + [headers.join(','), ...rows].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `riders-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExportLoading(false);
+    }
+  };
 
   return (
     <div className="p-4 lg:p-8">
@@ -448,6 +494,13 @@ export default function RidersPage() {
                   Clear
                 </button>
               )}
+              <button
+                onClick={handleExportCSV}
+                disabled={exportLoading}
+                className="text-sm bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-medium disabled:opacity-50 flex items-center gap-2"
+              >
+                {exportLoading ? 'Exporting...' : '⬇ Export CSV'}
+              </button>
             </div>
           </div>
 
