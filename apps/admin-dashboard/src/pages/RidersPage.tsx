@@ -74,6 +74,7 @@ export default function RidersPage() {
   const [search, setSearch] = useState('');
   const [cityFilter, setCityFilter] = useState('');
   const [barangayFilter, setBarangayFilter] = useState('');
+  const [vehicleTypeFilter, setVehicleTypeFilter] = useState('');
   const [page, setPage] = useState(1);
   const [expandedAllRider, setExpandedAllRider] = useState<string | null>(null);
   const [exportLoading, setExportLoading] = useState(false);
@@ -100,11 +101,12 @@ export default function RidersPage() {
   if (search) params.set('search', search);
   if (cityFilter) params.set('city', cityFilter);
   if (barangayFilter) params.set('barangay', barangayFilter);
+  if (vehicleTypeFilter) params.set('vehicleType', vehicleTypeFilter);
   const statusParam = riderStatusParam[tab];
   if (statusParam) params.set('status', statusParam);
 
   const { data: allRiders, isLoading: allLoading } = useQuery({
-    queryKey: ['riders-all', tab, page, search, cityFilter, barangayFilter],
+    queryKey: ['riders-all', tab, page, search, cityFilter, barangayFilter, vehicleTypeFilter],
     queryFn: () => api.get(`/admin/riders?${params}`),
     enabled: tab !== 'pending',
     placeholderData: (prev: any) => prev,
@@ -141,7 +143,7 @@ export default function RidersPage() {
     },
   });
 
-  const hasFilters = search || cityFilter || barangayFilter;
+  const hasFilters = search || cityFilter || barangayFilter || vehicleTypeFilter;
   const totalPages = allRiders ? Math.ceil((allRiders as any).total / 20) : 1;
 
   const handleExportCSV = async () => {
@@ -151,6 +153,7 @@ export default function RidersPage() {
       if (search) p.set('search', search);
       if (cityFilter) p.set('city', cityFilter);
       if (barangayFilter) p.set('barangay', barangayFilter);
+      if (vehicleTypeFilter) p.set('vehicleType', vehicleTypeFilter);
       if (statusParam) p.set('status', statusParam);
       const result: any = await api.get(`/admin/riders?${p}`);
       const riders: any[] = result.data ?? [];
@@ -485,10 +488,26 @@ export default function RidersPage() {
                 </div>
               </div>
 
+              {/* Vehicle type filter */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500">Vehicle Type</label>
+                <div className="flex gap-1">
+                  {(['', 'TRICYCLE', 'DELIVERY'] as const).map((v) => (
+                    <button
+                      key={v}
+                      onClick={() => { setVehicleTypeFilter(v); setPage(1); }}
+                      className={`px-3 py-2 text-xs rounded-xl border font-semibold transition-colors ${vehicleTypeFilter === v ? 'bg-primary text-white border-primary' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                    >
+                      {v === '' ? 'All' : v === 'TRICYCLE' ? '🛺 Tricycle' : '🏍️ Motorcycle'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Clear filters */}
               {hasFilters && (
                 <button
-                  onClick={() => { setSearch(''); setCityFilter(''); setBarangayFilter(''); setPage(1); }}
+                  onClick={() => { setSearch(''); setCityFilter(''); setBarangayFilter(''); setVehicleTypeFilter(''); setPage(1); }}
                   className="text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-xl px-4 py-2 hover:bg-gray-50"
                 >
                   Clear

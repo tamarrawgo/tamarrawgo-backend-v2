@@ -130,8 +130,9 @@ export class AdminController {
     @Query('city') city?: string,
     @Query('barangay') barangay?: string,
     @Query('status') status?: string,
+    @Query('vehicleType') vehicleType?: string,
   ) {
-    return this.admin.getAllRiders(+page, +limit, search, city, barangay, status);
+    return this.admin.getAllRiders(+page, +limit, search, city, barangay, status, vehicleType);
   }
 
   @Get('riders/pending')

@@ -361,7 +361,7 @@ export class AdminService {
     return { data: riders, total, page, limit };
   }
 
-  async getAllRiders(page = 1, limit = 20, search?: string, city?: string, barangay?: string, status?: string) {
+  async getAllRiders(page = 1, limit = 20, search?: string, city?: string, barangay?: string, status?: string, vehicleType?: string) {
     const skip = (page - 1) * limit;
     const userWhere: any = { role: 'RIDER' };
     if (search) {
@@ -377,6 +377,7 @@ export class AdminService {
 
     const riderWhere: any = { user: userWhere };
     if (status) riderWhere.status = status;
+    if (vehicleType) riderWhere.vehicleType = vehicleType;
     const where = riderWhere;
     const [riders, total] = await Promise.all([
       this.prisma.riderProfile.findMany({
