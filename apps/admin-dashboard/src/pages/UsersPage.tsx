@@ -170,16 +170,16 @@ export default function UsersPage() {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              {['Name', 'Phone', 'Email', 'Role', 'Status', 'Joined', 'Actions'].map((h) => (
+              {['Name', 'Phone', 'Email', 'Role', 'Wallet', 'Status', 'Joined', 'Actions'].map((h) => (
                 <th key={h} className="px-6 py-4 text-left font-semibold text-gray-600">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {isLoading ? (
-              <tr><td colSpan={7} className="px-6 py-12 text-center text-gray-400">Loading...</td></tr>
+              <tr><td colSpan={8} className="px-6 py-12 text-center text-gray-400">Loading...</td></tr>
             ) : filteredUsers.length === 0 ? (
-              <tr><td colSpan={7} className="px-6 py-12 text-center text-gray-400">No users found</td></tr>
+              <tr><td colSpan={8} className="px-6 py-12 text-center text-gray-400">No users found</td></tr>
             ) : filteredUsers.map((user: any) => (
               <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4">
@@ -193,6 +193,15 @@ export default function UsersPage() {
                 <td className="px-6 py-4 text-gray-500">{user.phone}</td>
                 <td className="px-6 py-4 text-gray-500">{user.email ?? '—'}</td>
                 <td className="px-6 py-4"><span className="badge badge-blue">{user.role}</span></td>
+                <td className="px-6 py-4">
+                  {user.role === 'RIDER' && user.rider ? (
+                    <span className={`text-sm font-semibold ${Number(user.rider.walletBalance ?? 0) < 100 ? 'text-red-500' : 'text-gray-800'}`}>
+                      ₱{Number(user.rider.walletBalance ?? 0).toFixed(2)}
+                    </span>
+                  ) : (
+                    <span className="text-gray-300">—</span>
+                  )}
+                </td>
                 <td className="px-6 py-4 flex flex-wrap gap-1 items-center">
                   {statusBadge(user.status)}
                   {user.role === 'PASSENGER' && user.verificationStatus && verifyBadge(user.verificationStatus)}
