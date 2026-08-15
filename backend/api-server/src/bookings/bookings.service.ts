@@ -290,11 +290,7 @@ export class BookingsService {
         expiresAt: b.expiresAt?.getTime() ?? Date.now() + 5 * 60 * 1000,
       }));
 
-    if (isDeliveryRider) return singleBookings;
-
-    // TRICYCLE riders also see ready REGULAR pool groups
-    const poolGroups = await this.getReadyPoolGroups(rider);
-    return [...singleBookings, ...poolGroups];
+    return singleBookings;
   }
 
   private async dispatchToNearbyRiders(booking: any) {
