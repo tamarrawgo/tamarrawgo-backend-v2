@@ -410,7 +410,7 @@ export default function RiderHomeScreen() {
           </View>
         )}
         <View style={styles.bookingMeta}>
-          <Text style={styles.bookingFare}>{formatCurrency(item.estimatedFare)}</Text>
+          <Text style={styles.bookingFare}>{formatCurrency(+item.estimatedFare || 0)}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             {!isDelivery && !isPabili && <Text style={styles.bookingDist}>👤 {item.passengerCount ?? 1}</Text>}
             <Text style={styles.bookingDist}>{formatDistance(item.distanceKm)}</Text>

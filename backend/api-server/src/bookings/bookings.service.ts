@@ -275,8 +275,8 @@ export class BookingsService {
         passenger: { id: b.passengerId, firstName: b.passenger.firstName, lastName: b.passenger.lastName, phone: b.passenger.phone, rating: 5.0 },
         pickup: { address: b.pickupAddress, latitude: b.pickupLatitude, longitude: b.pickupLongitude },
         dropoff: { address: b.dropoffAddress, latitude: b.dropoffLatitude, longitude: b.dropoffLongitude },
-        estimatedFare: Number(b.estimatedFare),
-        discount: Number(b.discount ?? 0),
+        estimatedFare: parseFloat(String(b.estimatedFare ?? 0)),
+        discount: parseFloat(String(b.discount ?? 0)),
         distanceKm: b.distanceKm,
         passengerCount: b.passengerCount,
         packageDescription: (b as any).packageDescription,
@@ -336,8 +336,8 @@ export class BookingsService {
       },
       pickup: { address: booking.pickupAddress, latitude: booking.pickupLatitude, longitude: booking.pickupLongitude },
       dropoff: { address: booking.dropoffAddress, latitude: booking.dropoffLatitude, longitude: booking.dropoffLongitude },
-      estimatedFare: Number(booking.estimatedFare),
-      discount: Number(booking.discount ?? 0),
+      estimatedFare: parseFloat(String(booking.estimatedFare ?? 0)),
+      discount: parseFloat(String(booking.discount ?? 0)),
       distanceKm: booking.distanceKm,
       passengerCount: booking.passengerCount ?? 1,
       packageDescription: booking.packageDescription,
@@ -356,10 +356,10 @@ export class BookingsService {
       if (rider.user.fcmToken) {
         const pushTitle = bookingType === 'DELIVERY' ? '📦 Delivery Request!' : bookingType === 'PABILI' ? '🛒 Pabili Request!' : 'New Booking Request!';
         const pushBody = bookingType === 'DELIVERY'
-          ? `Package: ${booking.packageDescription ?? 'Item'} → ₱${Number(booking.estimatedFare).toFixed(0)}`
+          ? `Package: ${booking.packageDescription ?? 'Item'} → ₱${parseFloat(String(booking.estimatedFare ?? 0)).toFixed(0)}`
           : bookingType === 'PABILI'
-          ? `Pabili at: ${booking.storeAddress ?? booking.pickupAddress} → ₱${Number(booking.estimatedFare).toFixed(0)}`
-          : `Pickup: ${booking.pickupAddress} → ₱${Number(booking.estimatedFare).toFixed(0)}`;
+          ? `Pabili at: ${booking.storeAddress ?? booking.pickupAddress} → ₱${parseFloat(String(booking.estimatedFare ?? 0)).toFixed(0)}`
+          : `Pickup: ${booking.pickupAddress} → ₱${parseFloat(String(booking.estimatedFare ?? 0)).toFixed(0)}`;
         await this.notifications.sendPush(rider.user.fcmToken, {
           title: pushTitle,
           body: pushBody,
@@ -420,7 +420,7 @@ export class BookingsService {
     if (bookings.length === 0) return;
 
     const totalPax = bookings.reduce((s, b) => s + b.passengerCount, 0);
-    const totalFare = bookings.reduce((s, b) => s + Number(b.estimatedFare), 0);
+    const totalFare = bookings.reduce((s, b) => s + parseFloat(String(b.estimatedFare ?? 0)), 0);
     const first = bookings[0];
 
     const payload = {
@@ -431,7 +431,7 @@ export class BookingsService {
         passenger: { id: b.passengerId, firstName: b.passenger.firstName, lastName: b.passenger.lastName, phone: b.passenger.phone },
         pickup: { address: b.pickupAddress, latitude: b.pickupLatitude, longitude: b.pickupLongitude },
         dropoff: { address: b.dropoffAddress, latitude: b.dropoffLatitude, longitude: b.dropoffLongitude },
-        estimatedFare: Number(b.estimatedFare),
+        estimatedFare: parseFloat(String(b.estimatedFare ?? 0)),
         passengerCount: b.passengerCount,
         distanceKm: b.distanceKm,
       })),
@@ -506,7 +506,7 @@ export class BookingsService {
       if (dist > SEARCH_RADIUS_KM) continue;
 
       const totalPax = bookings.reduce((s: number, b: any) => s + b.passengerCount, 0);
-      const totalFare = bookings.reduce((s: number, b: any) => s + Number(b.estimatedFare), 0);
+      const totalFare = bookings.reduce((s: number, b: any) => s + parseFloat(String(b.estimatedFare ?? 0)), 0);
 
       result.push({
         type: 'POOL_GROUP',
@@ -516,7 +516,7 @@ export class BookingsService {
           passenger: { id: b.passengerId, firstName: b.passenger.firstName, lastName: b.passenger.lastName, phone: b.passenger.phone },
           pickup: { address: b.pickupAddress, latitude: b.pickupLatitude, longitude: b.pickupLongitude },
           dropoff: { address: b.dropoffAddress, latitude: b.dropoffLatitude, longitude: b.dropoffLongitude },
-          estimatedFare: Number(b.estimatedFare),
+          estimatedFare: parseFloat(String(b.estimatedFare ?? 0)),
           passengerCount: b.passengerCount,
           distanceKm: b.distanceKm,
         })),
@@ -727,7 +727,7 @@ export class BookingsService {
   private async handleTripCompletion(booking: any) {
     if (!booking.riderId) return;
 
-    const fare = Number(booking.estimatedFare);
+    const fare = parseFloat(String(booking.estimatedFare ?? 0));
     const promoDiscount = Number(booking.discount ?? 0);
     const hasPromo = promoDiscount > 0;
     const riderProfile = await this.prisma.riderProfile.findUnique({ where: { id: booking.riderId } });
