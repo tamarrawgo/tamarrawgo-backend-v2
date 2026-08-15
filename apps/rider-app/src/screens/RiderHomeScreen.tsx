@@ -86,7 +86,15 @@ export default function RiderHomeScreen() {
 
   useEffect(() => {
     (async () => {
-      // Check if rider has an active booking (session recovery after app close)
+      // If store already has an active booking (persisted from last session), go there immediately.
+      // ActiveTripScreen will validate against the API and redirect home if cancelled/completed.
+      const storedBooking = useRiderStore.getState().activeBooking;
+      if (storedBooking?.bookingId) {
+        router.replace('/active-trip');
+        return;
+      }
+
+      // No persisted booking — check API (handles first-time launch or after logout)
       try {
         const activeBooking = await api.get('/bookings/active') as any;
         if (activeBooking?.id && ['ACCEPTED', 'RIDER_ARRIVED', 'IN_PROGRESS'].includes(activeBooking.status)) {

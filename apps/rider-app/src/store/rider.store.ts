@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface RiderState {
   isOnline: boolean;
@@ -15,22 +17,32 @@ interface RiderState {
   setEarnings: (e: any) => void;
 }
 
-export const useRiderStore = create<RiderState>((set) => ({
-  isOnline: false,
-  bookingRequests: [],
-  activeBooking: null,
-  earnings: null,
+export const useRiderStore = create<RiderState>()(
+  persist(
+    (set) => ({
+      isOnline: false,
+      bookingRequests: [],
+      activeBooking: null,
+      earnings: null,
 
-  setOnline: (isOnline) => set({ isOnline }),
-  addBookingRequest: (req) => set((state) => {
-    if (state.bookingRequests.some((r) => r.bookingId === req.bookingId)) return state;
-    return { bookingRequests: [...state.bookingRequests, req] };
-  }),
-  removeBookingRequest: (bookingId) => set((state) => ({
-    bookingRequests: state.bookingRequests.filter((r) => r.bookingId !== bookingId),
-  })),
-  setBookingRequests: (bookingRequests) => set({ bookingRequests }),
-  clearBookingRequests: () => set({ bookingRequests: [] }),
-  setActiveBooking: (activeBooking) => set({ activeBooking }),
-  setEarnings: (earnings) => set({ earnings }),
-}));
+      setOnline: (isOnline) => set({ isOnline }),
+      addBookingRequest: (req) => set((state) => {
+        if (state.bookingRequests.some((r) => r.bookingId === req.bookingId)) return state;
+        return { bookingRequests: [...state.bookingRequests, req] };
+      }),
+      removeBookingRequest: (bookingId) => set((state) => ({
+        bookingRequests: state.bookingRequests.filter((r) => r.bookingId !== bookingId),
+      })),
+      setBookingRequests: (bookingRequests) => set({ bookingRequests }),
+      clearBookingRequests: () => set({ bookingRequests: [] }),
+      setActiveBooking: (activeBooking) => set({ activeBooking }),
+      setEarnings: (earnings) => set({ earnings }),
+    }),
+    {
+      name: 'rider-active-booking',
+      storage: createJSONStorage(() => AsyncStorage),
+      // Only persist activeBooking — online status and requests should reset on restart
+      partialize: (state) => ({ activeBooking: state.activeBooking }),
+    }
+  )
+);

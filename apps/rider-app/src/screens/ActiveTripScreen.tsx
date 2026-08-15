@@ -229,6 +229,37 @@ export default function ActiveTripScreen() {
     }
   }, [activeBooking?.status]); // Only re-run when status changes, NOT on location update
 
+  // On mount: validate the persisted booking is still active and refresh its data.
+  // Handles the case where the booking was cancelled while the phone was off.
+  useEffect(() => {
+    api.get('/bookings/active').then((booking: any) => {
+      if (!booking?.id || !['ACCEPTED', 'RIDER_ARRIVED', 'IN_PROGRESS'].includes(booking.status)) {
+        setActiveBooking(null);
+        router.back();
+      } else {
+        setActiveBooking({
+          bookingId: booking.id,
+          status: booking.status,
+          bookingType: booking.bookingType ?? 'RIDE',
+          pickup: { address: booking.pickupAddress, latitude: booking.pickupLatitude, longitude: booking.pickupLongitude },
+          dropoff: { address: booking.dropoffAddress, latitude: booking.dropoffLatitude, longitude: booking.dropoffLongitude },
+          passenger: { firstName: booking.passenger?.firstName, lastName: booking.passenger?.lastName, phone: booking.passenger?.phone },
+          estimatedFare: booking.estimatedFare,
+          packageDescription: booking.packageDescription,
+          pickupContactName: booking.pickupContactName,
+          pickupContactPhone: booking.pickupContactPhone,
+          recipientName: booking.recipientName,
+          recipientPhone: booking.recipientPhone,
+          storeAddress: booking.storeAddress,
+          shoppingList: booking.shoppingList,
+          itemBudget: booking.itemBudget ? Number(booking.itemBudget) : undefined,
+        });
+      }
+    }).catch(() => {
+      // Network not ready — keep showing the persisted booking, rider can still see details
+    });
+  }, []);
+
   useEffect(() => {
     let cleanup: (() => void) | undefined;
     connectSocket().then((socket) => {
