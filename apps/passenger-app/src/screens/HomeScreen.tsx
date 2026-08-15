@@ -141,12 +141,23 @@ export default function HomeScreen() {
 
   useEffect(() => {
     (async () => {
+      // Check persisted store first — restores session instantly without waiting for network
+      const storedBooking = useBookingStore.getState().activeBooking as any;
+      if (storedBooking?.id) {
+        if (storedBooking.status === 'SEARCHING' || storedBooking.status === 'POOLING') {
+          router.replace('/searching');
+        } else {
+          router.replace('/tracking');
+        }
+        return;
+      }
+
       try {
         const existing = await api.get('/bookings/active') as any;
         if (existing) {
           setActiveBooking(existing);
           // Route based on booking status
-          if (existing.status === 'SEARCHING') {
+          if (existing.status === 'SEARCHING' || existing.status === 'POOLING') {
             router.replace('/searching');
           } else {
             router.replace('/tracking');

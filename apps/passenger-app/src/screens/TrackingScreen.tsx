@@ -128,23 +128,29 @@ export default function TrackingScreen() {
     (async () => {
       try {
         const full: any = await api.get('/bookings/active');
-        if (full?.id) {
-          setActiveBooking(full);
-          if (!pickup && full.pickupLatitude && full.pickupLongitude) {
-            setPickup({ address: full.pickupAddress, latitude: full.pickupLatitude, longitude: full.pickupLongitude });
-          }
-          if (!dropoff && full.dropoffLatitude && full.dropoffLongitude) {
-            setDropoff({ address: full.dropoffAddress, latitude: full.dropoffLatitude, longitude: full.dropoffLongitude });
-          }
-          const rLat = full.rider?.currentLatitude;
-          const rLng = full.rider?.currentLongitude;
-          if (rLat && rLng) {
-            const loc = { latitude: rLat, longitude: rLng, heading: 0 };
-            setRiderLocation(loc);
-            setLocalRiderLoc(loc);
-          }
+        if (!full?.id || !['SEARCHING', 'POOLING', 'ACCEPTED', 'RIDER_ARRIVED', 'IN_PROGRESS'].includes(full.status)) {
+          // Booking was cancelled or completed while the phone was off
+          reset();
+          router.replace('/(tabs)/home');
+          return;
         }
-      } catch {}
+        setActiveBooking(full);
+        if (!pickup && full.pickupLatitude && full.pickupLongitude) {
+          setPickup({ address: full.pickupAddress, latitude: full.pickupLatitude, longitude: full.pickupLongitude });
+        }
+        if (!dropoff && full.dropoffLatitude && full.dropoffLongitude) {
+          setDropoff({ address: full.dropoffAddress, latitude: full.dropoffLatitude, longitude: full.dropoffLongitude });
+        }
+        const rLat = full.rider?.currentLatitude;
+        const rLng = full.rider?.currentLongitude;
+        if (rLat && rLng) {
+          const loc = { latitude: rLat, longitude: rLng, heading: 0 };
+          setRiderLocation(loc);
+          setLocalRiderLoc(loc);
+        }
+      } catch {
+        // Network not ready — keep showing persisted booking so rider can see details
+      }
     })();
   }, []);
 

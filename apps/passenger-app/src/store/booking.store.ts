@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Booking, FareEstimate, Location } from '@tamarrawgo/shared-types';
 
 interface BookingState {
@@ -16,17 +18,26 @@ interface BookingState {
   reset: () => void;
 }
 
-export const useBookingStore = create<BookingState>((set) => ({
-  pickup: null,
-  dropoff: null,
-  fareEstimate: null,
-  activeBooking: null,
-  riderLocation: null,
+export const useBookingStore = create<BookingState>()(
+  persist(
+    (set) => ({
+      pickup: null,
+      dropoff: null,
+      fareEstimate: null,
+      activeBooking: null,
+      riderLocation: null,
 
-  setPickup: (pickup) => set({ pickup }),
-  setDropoff: (dropoff) => set({ dropoff }),
-  setFareEstimate: (fareEstimate) => set({ fareEstimate }),
-  setActiveBooking: (activeBooking) => set({ activeBooking }),
-  setRiderLocation: (riderLocation) => set({ riderLocation }),
-  reset: () => set({ pickup: null, dropoff: null, fareEstimate: null, activeBooking: null, riderLocation: null }),
-}));
+      setPickup: (pickup) => set({ pickup }),
+      setDropoff: (dropoff) => set({ dropoff }),
+      setFareEstimate: (fareEstimate) => set({ fareEstimate }),
+      setActiveBooking: (activeBooking) => set({ activeBooking }),
+      setRiderLocation: (riderLocation) => set({ riderLocation }),
+      reset: () => set({ pickup: null, dropoff: null, fareEstimate: null, activeBooking: null, riderLocation: null }),
+    }),
+    {
+      name: 'passenger-active-booking',
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({ activeBooking: state.activeBooking }),
+    }
+  )
+);

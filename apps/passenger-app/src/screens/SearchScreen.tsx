@@ -201,7 +201,7 @@ export default function SearchScreen() {
     } finally {
       setLoadingEstimate(false);
     }
-  }, [pickup, dropoff, dropoffText, passengerCount, promoCode]);
+  }, [pickup, dropoff, dropoffText, passengerCount, promoCode, bookingType, isRegular]);
 
   const handleConfirmBooking = useCallback(async () => {
     if (!pickup || !dropoff) return;
@@ -230,7 +230,7 @@ export default function SearchScreen() {
     } finally {
       setLoading(false);
     }
-  }, [pickup, dropoff, selectedPayment, passengerCount, promoCode]);
+  }, [pickup, dropoff, selectedPayment, passengerCount, promoCode, bookingType, isRegular]);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -309,7 +309,7 @@ export default function SearchScreen() {
                   <TouchableOpacity
                     key={rt.id}
                     style={[styles.rideTypeRow, selectedRide === rt.id && styles.rideTypeSelected]}
-                    onPress={() => setSelectedRide(rt.id)}
+                    onPress={() => { setSelectedRide(rt.id); if (rt.bookingType === 'REGULAR') setPassengerCount(1); }}
                   >
                     <View style={[styles.rideTypeIcon, selectedRide === rt.id && styles.rideTypeIconSelected]}>
                       <MaterialIcons name={rt.icon} size={22} color={selectedRide === rt.id ? '#fff' : GREEN} />
@@ -322,38 +322,37 @@ export default function SearchScreen() {
                   </TouchableOpacity>
                 ))}
 
-                {/* Passenger Count */}
-                <Text style={styles.sectionLabel}>Number of Passengers</Text>
-                <View style={styles.passengerCountRow}>
-                  {[1, 2, 3, 4].map(n => {
-                    const maxPax = selectedRideType.maxPax;
-                    const disabled = n > maxPax;
-                    return (
-                      <TouchableOpacity
-                        key={n}
-                        style={[
-                          styles.passengerCountBtn,
-                          passengerCount === n && styles.passengerCountBtnSelected,
-                          disabled && { opacity: 0.3 },
-                        ]}
-                        onPress={() => !disabled && setPassengerCount(n)}
-                        disabled={disabled}
-                      >
-                        <MaterialIcons name="person" size={18} color={passengerCount === n ? '#fff' : GREEN} />
-                        <Text style={[styles.passengerCountText, passengerCount === n && { color: '#fff' }]}>{n}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-                {isRegular && (
-                  <Text style={styles.passengerCountHint}>
-                    {'Regular: ₱per-seat × ' + passengerCount + ' passenger' + (passengerCount > 1 ? 's' : '') + ' · max 3 per booking'}
-                  </Text>
-                )}
-                {!isRegular && passengerCount > 1 && (
-                  <Text style={styles.passengerCountHint}>
-                    {'+' + (passengerCount - 1) * 20 + '% fare for ' + passengerCount + ' passengers'}
-                  </Text>
+                {/* Passenger Count — hidden for Regular (always 1) */}
+                {!isRegular && (
+                  <>
+                    <Text style={styles.sectionLabel}>Number of Passengers</Text>
+                    <View style={styles.passengerCountRow}>
+                      {[1, 2, 3, 4].map(n => {
+                        const maxPax = selectedRideType.maxPax;
+                        const disabled = n > maxPax;
+                        return (
+                          <TouchableOpacity
+                            key={n}
+                            style={[
+                              styles.passengerCountBtn,
+                              passengerCount === n && styles.passengerCountBtnSelected,
+                              disabled && { opacity: 0.3 },
+                            ]}
+                            onPress={() => !disabled && setPassengerCount(n)}
+                            disabled={disabled}
+                          >
+                            <MaterialIcons name="person" size={18} color={passengerCount === n ? '#fff' : GREEN} />
+                            <Text style={[styles.passengerCountText, passengerCount === n && { color: '#fff' }]}>{n}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                    {passengerCount > 1 && (
+                      <Text style={styles.passengerCountHint}>
+                        {'+' + (passengerCount - 1) * 20 + '% fare for ' + passengerCount + ' passengers'}
+                      </Text>
+                    )}
+                  </>
                 )}
 
                 {/* Payment Method */}
