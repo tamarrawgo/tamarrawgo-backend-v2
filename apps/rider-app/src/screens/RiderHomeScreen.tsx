@@ -338,11 +338,11 @@ export default function RiderHomeScreen() {
                 <MaterialIcons name="place" size={14} color="#333" />
                 <Text style={styles.bookingAddr} numberOfLines={1}>{b.dropoff?.address}</Text>
               </View>
-              <Text style={styles.poolBookingFare}>₱{Number(b.estimatedFare).toFixed(0)} · {formatDistance(b.distanceKm)}</Text>
+              <Text style={styles.poolBookingFare}>₱{Math.ceil(parseFloat(String(b.estimatedFare ?? 0)))} · {formatDistance(b.distanceKm)}</Text>
             </View>
           ))}
           <View style={styles.bookingMeta}>
-            <Text style={styles.bookingFare}>Total {formatCurrency(item.totalFare)}</Text>
+            <Text style={styles.bookingFare}>Total ₱{Math.ceil(+item.totalFare || 0)}</Text>
             <Text style={styles.bookingDist}>{item.waitingMinutes ?? 0} min wait</Text>
           </View>
           <View style={styles.bookingActions}>
@@ -410,7 +410,7 @@ export default function RiderHomeScreen() {
           </View>
         )}
         <View style={styles.bookingMeta}>
-          <Text style={styles.bookingFare}>{formatCurrency(+item.estimatedFare || 0)}</Text>
+          <Text style={styles.bookingFare}>₱{Math.ceil(+item.estimatedFare || 0)}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             {!isDelivery && !isPabili && <Text style={styles.bookingDist}>👤 {item.passengerCount ?? 1}</Text>}
             <Text style={styles.bookingDist}>{formatDistance(item.distanceKm)}</Text>

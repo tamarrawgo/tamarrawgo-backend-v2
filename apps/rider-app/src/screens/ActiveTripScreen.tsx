@@ -358,7 +358,7 @@ export default function ActiveTripScreen() {
       <View style={styles.completedContainer}>
         <MaterialIcons name="check-circle" size={80} color="#4CAF50" />
         <Text style={styles.completedTitle}>Trip Completed!</Text>
-        <Text style={styles.completedFare}>{formatCurrency(Number(activeBooking?.estimatedFare ?? 0))}</Text>
+        <Text style={styles.completedFare}>₱{Math.ceil(Number(activeBooking?.estimatedFare ?? 0))}</Text>
         <TouchableOpacity style={styles.doneBtn} onPress={() => { setActiveBooking(null); router.back(); }}>
           <Text style={styles.doneBtnText}>Done</Text>
         </TouchableOpacity>
@@ -454,7 +454,7 @@ export default function ActiveTripScreen() {
               <Text style={{ fontSize: 11, color: '#888', marginTop: 1 }}>👤 {activeBooking.passengerCount} passengers</Text>
             )}
           </View>
-          <Text style={styles.fareAmountCompact}>{formatCurrency(Number(activeBooking?.estimatedFare ?? 0))}</Text>
+          <Text style={styles.fareAmountCompact}>₱{Math.ceil(Number(activeBooking?.estimatedFare ?? 0))}</Text>
           <TouchableOpacity style={styles.callBtn} onPress={() => { setUnreadCount(0); router.push('/chat' as any); }}>
             <View style={{ position: 'relative' }}>
               <MaterialIcons name="chat" size={18} color={GREEN} />
