@@ -105,7 +105,11 @@ export class FareService {
     pabiliServiceFee?: number;
     regularBaseFare?: number;
     regularRatePerKm?: number;
+    commissionRate?: number;
   }) {
+    if (data.commissionRate !== undefined) {
+      data.commissionRate = Math.min(Math.max(data.commissionRate, 0.10), 0.20);
+    }
     const config = await this.getActiveFareConfig();
     return this.prisma.fareConfiguration.update({ where: { id: config.id }, data });
   }

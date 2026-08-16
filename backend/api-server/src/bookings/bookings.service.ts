@@ -726,8 +726,13 @@ export class BookingsService {
     const fare = parseFloat(String(booking.estimatedFare ?? 0));
     const promoDiscount = Number(booking.discount ?? 0);
     const hasPromo = promoDiscount > 0;
-    const riderProfile = await this.prisma.riderProfile.findUnique({ where: { id: booking.riderId } });
+    const [riderProfile, fareConfig] = await Promise.all([
+      this.prisma.riderProfile.findUnique({ where: { id: booking.riderId } }),
+      this.prisma.fareConfiguration.findFirst({ where: { isActive: true } }),
+    ]);
     const existingDebt = Number(riderProfile?.promoDebt ?? 0);
+    const commissionRate = Math.min(Math.max(Number(fareConfig?.commissionRate ?? 0.20), 0.10), 0.20);
+    const commissionPct = Math.round(commissionRate * 100);
 
     let commission: number;
     let riderEarnings: number;
@@ -736,7 +741,7 @@ export class BookingsService {
 
     if (hasPromo) {
       // Promo booking: waive commission, track carry-over
-      const normalCommission = fare * 0.20;
+      const normalCommission = fare * commissionRate;
       const carryOver = promoDiscount - normalCommission;
       commission = 0; // No commission deducted
       riderEarnings = fare;
@@ -744,9 +749,9 @@ export class BookingsService {
       notifBody = `Fare: ₱${fare.toFixed(0)} (₱${promoDiscount.toFixed(0)} promo applied)\nCommission waived! You earned ₱${fare.toFixed(0)}\n${newPromoDebt > 0 ? `₱${newPromoDebt.toFixed(0)} covered by app on next booking` : ''}`;
     } else {
       // Normal booking: deduct commission + recover any promo debt from app's share
-      commission = fare * 0.20;
+      commission = fare * commissionRate;
       riderEarnings = fare - commission;
-      notifBody = `Fare: ₱${fare.toFixed(0)}\nCommission (20%): -₱${commission.toFixed(0)}\nYou earned: ₱${riderEarnings.toFixed(0)}`;
+      notifBody = `Fare: ₱${fare.toFixed(0)}\nCommission (${commissionPct}%): -₱${commission.toFixed(0)}\nYou earned: ₱${riderEarnings.toFixed(0)}`;
       if (existingDebt > 0) {
         notifBody += `\nApp absorbed ₱${existingDebt.toFixed(0)} promo debt from previous booking`;
       }

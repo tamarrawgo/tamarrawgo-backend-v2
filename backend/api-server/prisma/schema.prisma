@@ -434,6 +434,8 @@ model FareConfiguration {
   // Regular (pooled shared tricycle)
   regularBaseFare      Decimal  @default(15) @db.Decimal(10, 2)
   regularRatePerKm     Decimal  @default(10) @db.Decimal(10, 2)
+  // Commission
+  commissionRate       Float    @default(0.20)
   isActive             Boolean  @default(true)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt

@@ -14,6 +14,7 @@ interface FareConfig {
   pabiliBaseFare: number;
   pabiliRatePerKm: number;
   pabiliServiceFee: number;
+  commissionRate: number;
 }
 
 export default function SettingsPage() {
@@ -28,6 +29,7 @@ export default function SettingsPage() {
       .then((res: any) => {
         setConfig({
           id: res.id,
+          commissionRate: Math.round(Number(res.commissionRate ?? 0.20) * 100),
           baseFare: Number(res.baseFare),
           ratePerKm: Number(res.ratePerKm),
           ratePerMinute: Number(res.ratePerMinute),
@@ -63,6 +65,7 @@ export default function SettingsPage() {
         pabiliBaseFare: config.pabiliBaseFare,
         pabiliRatePerKm: config.pabiliRatePerKm,
         pabiliServiceFee: config.pabiliServiceFee,
+        commissionRate: config.commissionRate / 100,
       });
       setSuccess('Fare rates updated successfully!');
       setTimeout(() => setSuccess(''), 3000);
@@ -75,8 +78,10 @@ export default function SettingsPage() {
 
   const updateField = (field: keyof FareConfig, value: string) => {
     if (!config) return;
-    const num = parseFloat(value);
-    if (!isNaN(num)) setConfig({ ...config, [field]: num });
+    let num = parseFloat(value);
+    if (isNaN(num)) return;
+    if (field === 'commissionRate') num = Math.min(Math.max(Math.round(num), 10), 20);
+    setConfig({ ...config, [field]: num });
   };
 
   const Field = ({ field, label, desc, isSurge = false }: { field: keyof FareConfig; label: string; desc: string; isSurge?: boolean }) => (
@@ -159,6 +164,35 @@ export default function SettingsPage() {
               </>
             ) : null}
           </div>
+
+          {/* Commission */}
+          {config && (
+            <div className="card">
+              <h2 className="text-lg font-bold text-gray-900 mb-1">💰 Commission Rate</h2>
+              <p className="text-xs text-gray-400 mb-4">Platform cut from each completed trip (10–20%)</p>
+              <div className="flex items-center justify-between py-3">
+                <div>
+                  <p className="font-medium text-gray-800">Commission %</p>
+                  <p className="text-xs text-gray-400">Applied on rider payout after each trip</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    step="1"
+                    min="10"
+                    max="20"
+                    value={config.commissionRate}
+                    onChange={(e) => updateField('commissionRate', e.target.value)}
+                    className="w-20 text-right text-lg font-bold text-primary border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500"
+                  />
+                  <span className="text-primary font-bold text-lg">%</span>
+                </div>
+              </div>
+              <div className="bg-yellow-50 rounded-lg px-4 py-2 text-xs text-yellow-700">
+                Range: 10% – 20%. Changes take effect on the next completed trip.
+              </div>
+            </div>
+          )}
 
           {config && (
             <div>
