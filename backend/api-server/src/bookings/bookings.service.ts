@@ -893,7 +893,7 @@ export class BookingsService {
     });
     if (!booking) throw new NotFoundException('Booking not found');
 
-    const cancellableStatuses = ['SEARCHING', 'ACCEPTED', 'RIDER_ARRIVED'];
+    const cancellableStatuses = ['POOLING', 'SEARCHING', 'ACCEPTED', 'RIDER_ARRIVED'];
     if (!cancellableStatuses.includes(booking.status)) {
       throw new BadRequestException('Cannot cancel booking at this stage');
     }
