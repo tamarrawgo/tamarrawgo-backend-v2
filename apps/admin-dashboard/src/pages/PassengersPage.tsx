@@ -108,6 +108,30 @@ export default function PassengersPage() {
 
   const totalPages = allPassengers ? Math.ceil((allPassengers as any).total / 20) : 1;
 
+  const exportCsv = async () => {
+    const p = new URLSearchParams({ limit: '9999' });
+    const vsParam = verificationStatusParam[tab];
+    if (vsParam) p.set('verificationStatus', vsParam);
+    if (search) p.set('search', search);
+    const res: any = await api.get(`/admin/passengers?${p}`);
+    const rows = res.data ?? [];
+    const headers = ['First Name', 'Last Name', 'Phone', 'Email', 'City', 'Barangay', 'Verification', 'Loyalty Points', 'Joined'];
+    const csv = [
+      headers.join(','),
+      ...rows.map((r: any) => [
+        r.firstName, r.lastName, r.phone, r.email ?? '',
+        r.city ?? '', r.barangay ?? '', r.verificationStatus,
+        r.loyaltyPoints ?? 0,
+        r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-PH') : '',
+      ].map((v: any) => `"${String(v).replace(/"/g, '""')}"`).join(',')),
+    ].join('\r\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `passengers-${tab}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-4 lg:p-8">
       <div className="mb-8">
@@ -384,6 +408,12 @@ export default function PassengersPage() {
                   Clear
                 </button>
               )}
+              <button
+                onClick={exportCsv}
+                className="text-sm bg-primary text-white px-4 py-2 rounded-xl hover:bg-primary-600 font-medium flex items-center gap-1.5"
+              >
+                ↓ Export CSV
+              </button>
             </div>
           </div>
 
