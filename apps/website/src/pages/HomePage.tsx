@@ -423,7 +423,14 @@ export default function HomePage() {
       {/* Download */}
       <section id="download" className="max-w-6xl mx-auto px-6 lg:px-12 py-20 lg:py-28 text-center scroll-mt-20">
         <h2 className="text-3xl md:text-4xl font-black text-[#0D1F13] mb-4">Download TamarrawGo</h2>
-        <p className="text-gray-500 max-w-lg mx-auto mb-10">Available for Android. Get the app and start booking rides today.</p>
+        <p className="text-gray-500 max-w-lg mx-auto mb-6">Available for Android. Get the app and start booking rides today.</p>
+        <div className="max-w-md mx-auto mb-8 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 text-left flex gap-3">
+          <span className="material-icons text-amber-500 mt-0.5 flex-shrink-0">info</span>
+          <div className="text-sm text-amber-800">
+            <p className="font-semibold mb-1">Browser safety warning?</p>
+            <p>Your browser may show a warning when downloading. This is normal for apps installed outside the Play Store. Tap <strong>"Download anyway"</strong> or <strong>"Keep"</strong> to continue. The app is safe to install.</p>
+          </div>
+        </div>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <a
             href="https://bazbirezrdudrluqunvo.supabase.co/storage/v1/object/public/apk-releases/passenger-app.apk"

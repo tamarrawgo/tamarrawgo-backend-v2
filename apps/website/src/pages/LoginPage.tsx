@@ -18,6 +18,12 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
+      let storageOk = true;
+      try { localStorage.setItem('_tg_test', '1'); localStorage.removeItem('_tg_test'); } catch { storageOk = false; }
+      if (!storageOk) {
+        setError('Your browser blocks storage access. Please open tamarrawgo.com in Chrome or Safari (not inside Facebook or Messenger).');
+        return;
+      }
       const res: any = await api.post('/auth/login', { phone: normalizedPhone, password });
       localStorage.setItem('tg_token', res.accessToken);
       localStorage.setItem('tg_refresh', res.refreshToken);
