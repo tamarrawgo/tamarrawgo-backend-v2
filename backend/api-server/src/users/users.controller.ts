@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Post, Body, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Put, Post, Body, UseGuards, Query, Logger } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { UsersService } from './users.service';
@@ -10,6 +10,8 @@ import { CurrentUser } from '../common/decorators/user.decorator';
 @UseGuards(AuthGuard('jwt'))
 @Controller({ path: 'users', version: '1' })
 export class UsersController {
+  private readonly logger = new Logger(UsersController.name);
+
   constructor(private users: UsersService) {}
 
   @Get('profile')
@@ -28,6 +30,13 @@ export class UsersController {
   @ApiOperation({ summary: 'Update FCM push notification token' })
   updateFcmToken(@CurrentUser() user: any, @Body() dto: UpdateFcmTokenDto) {
     return this.users.updateFcmToken(user.id, dto.fcmToken);
+  }
+
+  @Post('push-debug')
+  @ApiOperation({ summary: 'Temporary: log push registration failures reported by the app' })
+  pushDebug(@CurrentUser() user: any, @Body() body: { stage: string; detail: string }) {
+    this.logger.warn(`[FCM-REG] ${user.id} ${body?.stage}: ${body?.detail}`);
+    return { ok: true };
   }
 
   @Post('upload-photo')

@@ -60,7 +60,7 @@ export class NotificationsService implements OnModuleInit {
           }),
         },
       });
-      this.logger.debug(`[FCM] ✓ → ${fcmToken.slice(-6)}: ${payload.title}`);
+      this.logger.log(`[FCM] ✓ → ${fcmToken.slice(-6)}: ${payload.title}`);
     } catch (err: any) {
       this.logger.error(`[FCM] ✗ → ${fcmToken.slice(-6)}: ${err.message}`);
       const code: string = err.code ?? err.errorInfo?.code ?? '';
