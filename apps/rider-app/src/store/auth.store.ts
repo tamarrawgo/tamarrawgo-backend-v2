@@ -5,9 +5,18 @@ import { api } from '../services/api';
 
 async function registerFcmToken() {
   try {
+    // High-importance channel so booking pushes show as a heads-up banner with sound
+    await Notifications.setNotificationChannelAsync('bookings', {
+      name: 'Booking Requests',
+      importance: Notifications.AndroidImportance.MAX,
+      sound: 'default',
+      vibrationPattern: [0, 500, 250, 500],
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    }).catch(() => {});
     const { status } = await Notifications.requestPermissionsAsync();
     if (status !== 'granted') return;
-    const token = await Notifications.getExpoPushTokenAsync();
+    // Native FCM token — backend sends via firebase-admin, which rejects Expo push tokens
+    const token = await Notifications.getDevicePushTokenAsync();
     if (token?.data) {
       await api.put('/users/fcm-token', { fcmToken: token.data }).catch(() => {});
     }

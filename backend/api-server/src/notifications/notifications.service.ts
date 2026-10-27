@@ -53,7 +53,12 @@ export class NotificationsService implements OnModuleInit {
         token: fcmToken,
         notification: { title: payload.title, body: payload.body },
         data: stringData,
-        android: { priority: 'high' },
+        android: {
+          priority: 'high',
+          ...(payload.data?.type === 'BOOKING_REQUEST' && {
+            notification: { channelId: 'bookings', sound: 'default' },
+          }),
+        },
       });
       this.logger.debug(`[FCM] ✓ → ${fcmToken.slice(-6)}: ${payload.title}`);
     } catch (err: any) {
